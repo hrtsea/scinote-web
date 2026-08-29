@@ -3,6 +3,7 @@ name: Build Production Image
 on:
   push:
     branches: [master]
+    tags: ['v*']
   pull_request:
     branches: [master]
   workflow_dispatch:
