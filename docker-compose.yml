@@ -12,7 +12,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.build
     image: scinote_web_development
     container_name: scinote_web_development
     stdin_open: true
@@ -28,6 +28,11 @@ services:
                bundle exec rails s -b 0.0.0.0"
     environment:
       - RAILS_ENV=development
+      # 功能开关依赖的环境变量（按需填写真实值；留空则对应功能保持关闭）
+      # protocols.io 导入：需真实 API 令牌
+      - PROTOCOLS_IO_ACCESS_TOKEN=
+      # AI 协议解析服务地址（同时需在 ApplicationSettings 中开启 ai_protocol_parser_enabled）
+      - AI_PROTOCOLS_PARSER=
     volumes:
       - .:/usr/src/app
       - scinote_development_bundler:/usr/local/bundle/
@@ -36,7 +41,7 @@ services:
   webpack:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.build
     image: scinote_web_development
     container_name: scinote_webpack_development
     stdin_open: true
@@ -46,6 +51,7 @@ services:
       bash -c "yarn install && yarn build --watch"
     environment:
       - NODE_ENV=development
+      - npm_config_build_from_source=true
     volumes:
       - .:/usr/src/app
       - scinote_development_bundler:/usr/local/bundle/
@@ -53,14 +59,14 @@ services:
   css_bundling:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.build
     image: scinote_web_development
     container_name: scinote_css_bundling_development
     stdin_open: true
     tty: true
     user: scinote
     command: >
-      bash -c "yarn build:css --watch"
+      bash -c "until [ -f node_modules/.yarn-state.yml ]; do echo 'waiting for yarn install (webpack)...'; sleep 3; done; yarn build:css --watch"
     environment:
       - NODE_ENV=development
     volumes:
@@ -70,7 +76,7 @@ services:
   tailwind:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.build
     image: scinote_web_development
     container_name: scinote_tailwind_development
     stdin_open: true

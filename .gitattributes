@@ -1,0 +1,23 @@
+# Force LF line endings for all text files on checkout/commit.
+# Prevents CRLF<->LF churn when working across OSes (e.g. Windows dev machines).
+* text=auto eol=lf
+
+# Binary assets must never be line-ending normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.bz2 binary
+*.7z binary
+# Note: *.min.js / *.min.css are kept as text (eol=lf) so their line endings
+# normalize to upstream's LF and don't show spurious CRLF churn.
