@@ -1,22 +1,23 @@
 FROM ruby:3.4-trixie
 MAINTAINER SciNote <info@scinote.net>
 
-ARG TIKA_DIST_URL="https://archive.apache.org/dist/tika/3.2.3/tika-app-3.2.3.jar"
+ARG TIKA_DIST_URL="https://mirrors.huaweicloud.com/apache/tika/3.2.3/tika-app-3.2.3.jar"
 ENV TIKA_PATH=/usr/local/bin/tika-app.jar
+
+# Chromium 150.0.7871.46 crashes on startup under Grover/headless (https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1141571)
+ARG CHROMIUM_VERSION=149.0.7827.196-1~deb13u1
 
 # additional dependencies
 # libreoffice for file preview generation
 RUN apt-get update -qq && \
   apt-get install -y --no-install-recommends postgresql-common && \
-  /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y && \
   apt-get install -y --no-install-recommends \
   libjemalloc2 \
   libssl-dev \
   nodejs \
-  postgresql-client-18 \
+  postgresql-client-17 \
   default-jre-headless \
   poppler-utils \
-  qpdf \
   librsvg2-2 \
   libvips42 \
   graphviz  \
@@ -26,10 +27,17 @@ RUN apt-get update -qq && \
   fonts-wqy-microhei \
   fonts-wqy-zenhei \
   libfile-mimeinfo-perl \
-  chromium \
-  chromium-sandbox \
   npm \
   yarnpkg && \
+  echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260625T165532Z/ trixie-security main" > /etc/apt/sources.list.d/chromium-pin.list && \
+  apt-get update -qq && \
+  apt-get install -y --no-install-recommends \
+  chromium=$CHROMIUM_VERSION \
+  chromium-common=$CHROMIUM_VERSION \
+  chromium-sandbox=$CHROMIUM_VERSION && \
+  apt-mark hold chromium chromium-common chromium-sandbox && \
+  rm -f /etc/apt/sources.list.d/chromium-pin.list && \
+  apt-get update -qq && \
   wget -O $TIKA_PATH $TIKA_DIST_URL && \
   chmod +x $TIKA_PATH && \
   ln -s /usr/bin/yarnpkg /usr/bin/yarn && \
@@ -50,6 +58,8 @@ RUN mkdir $APP_HOME $APP_HOME/storage
 RUN useradd --uid 1000 -m scinote
 RUN chown scinote:scinote $APP_HOME $APP_HOME/storage
 USER scinote
+# 必须以 scinote 用户写入，运行时容器也以 scinote 运行，否则配置落到 /root 无法被读取
+RUN bundle config set --system mirror.https://rubygems.org https://mirrors.tuna.tsinghua.edu.cn/rubygems/
 ENV CHROMIUM_PATH=$APP_HOME/bin/chromium
 WORKDIR $APP_HOME
 

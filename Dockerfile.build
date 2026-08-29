@@ -1,0 +1,80 @@
+FROM ruby:3.4-trixie
+MAINTAINER SciNote <info@scinote.net>
+
+# === 本机网络环境修复 ===
+# 容器内 DNS 优先返回 IPv6，但本环境无可用 IPv6 出口，导致 apt/wget 连接挂起。
+# 让 glibc 优先使用 IPv4，并把 Debian 源替换为可达的阿里云镜像以加速下载。
+RUN echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf && \
+    sed -i 's#http://deb.debian.org/debian#http://mirrors.aliyun.com/debian#g; s#http://deb.debian.org/debian-security#http://mirrors.aliyun.com/debian-security#g' /etc/apt/sources.list.d/debian.sources
+
+ARG TIKA_DIST_URL="https://mirrors.huaweicloud.com/apache/tika/3.2.3/tika-app-3.2.3.jar"
+ENV TIKA_PATH=/usr/local/bin/tika-app.jar
+
+# Chromium 150.0.7871.46 crashes on startup under Grover/headless (https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1141571)
+ARG CHROMIUM_VERSION=149.0.7827.196-1~deb13u1
+
+# additional dependencies
+# libreoffice for file preview generation
+RUN apt-get update -qq && \
+  apt-get install -y --no-install-recommends postgresql-common && \
+  apt-get install -y --no-install-recommends \
+  libjemalloc2 \
+  libssl-dev \
+  nodejs \
+  postgresql-client-17 \
+  default-jre-headless \
+  poppler-utils \
+  librsvg2-2 \
+  libvips42 \
+  graphviz  \
+  libreoffice \
+  fonts-droid-fallback \
+  fonts-noto-mono \
+  fonts-wqy-microhei \
+  fonts-wqy-zenhei \
+  libfile-mimeinfo-perl \
+  npm \
+  yarnpkg && \
+  apt-get install -y --no-install-recommends \
+  chromium \
+  chromium-common \
+  chromium-sandbox && \
+  apt-mark hold chromium chromium-common chromium-sandbox && \
+  apt-get update -qq && \
+  wget -O $TIKA_PATH $TIKA_DIST_URL && \
+  chmod +x $TIKA_PATH && \
+  ln -s /usr/bin/yarnpkg /usr/bin/yarn && \
+  ln -s /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libvips.so.42 /usr/lib/$(dpkg-architecture -q DEB_HOST_MULTIARCH)/libvips.so && \
+  rm -rf /var/lib/apt/lists/*
+
+# node-canvas 等原生模块编译所需的 -dev 头文件（webpack 打包 canvas/barcode 时需要；
+# 否则 node-canvas 既下不到 GitHub 预编译二进制、又无法源码编译，导致 yarn install 卡死）
+RUN apt-get update -qq && \
+  apt-get install -y --no-install-recommends \
+  libcairo2-dev \
+  libjpeg62-turbo-dev \
+  libpango1.0-dev \
+  libgif-dev \
+  librsvg2-dev && \
+  rm -rf /var/lib/apt/lists/*
+
+ENV PATH=/usr/share/nodejs/yarn/bin:$PATH
+
+RUN npm install -g npm:puppeteer-core@24.10.0
+
+ENV BUNDLE_PATH=/usr/local/bundle/
+
+# create app directory
+ENV APP_HOME=/usr/src/app
+ENV PATH=$APP_HOME/bin:$PATH
+
+RUN mkdir $APP_HOME $APP_HOME/storage
+RUN useradd --uid 1000 -m scinote
+RUN chown scinote:scinote $APP_HOME $APP_HOME/storage
+USER scinote
+# 必须以 scinote 用户写入，运行时容器也以 scinote 运行，否则配置落到 /root 无法被读取
+RUN bundle config set --system mirror.https://rubygems.org https://mirrors.tuna.tsinghua.edu.cn/rubygems/
+ENV CHROMIUM_PATH=$APP_HOME/bin/chromium
+WORKDIR $APP_HOME
+
+CMD rails s -b 0.0.0.0
