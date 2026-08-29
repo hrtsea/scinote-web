@@ -1,0 +1,67 @@
+name: Build & Push Image
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # 镜像名自动取 owner/repo，例如 ghcr.io/your-org/scinote
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Build production image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # 把 Dockerfile.production 里的 BuildKit 缓存挂载改写成 GHA 缓存导出，
+      # 这样 runner 上的 apt/yarn/bundler 缓存会在多次构建间复用，显著提速。
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.production
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # 国内镜像源默认开启；如需直连 GitHub 构建，传入 build-args 覆盖：
+          #   GITHUB_MIRROR= APT_MIRROR=deb.debian.org ...
+          build-args: |
+            APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+            RUBYGEMS_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/rubygems/
+            NPM_MIRROR=https://registry.npmmirror.com
+            PGDG_MIRROR=mirrors.aliyun.com/postgresql/repos/apt
+            GITHUB_MIRROR=https://gitee.com/hpxing
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
