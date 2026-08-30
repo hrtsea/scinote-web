@@ -23,7 +23,7 @@ class TemplatesService
           name: Constants::TEMPLATES_PROJECT_NAME,
           visibility: :visible,
           template: true,
-          default_public_user_role: UserRole.predefined.find_by(name: I18n.t('user_roles.predefined.viewer')),
+          default_public_user_role: UserRole.find_predefined_viewer_role,
           created_by: team.created_by
         )
         tmpl_project.team_assignments.as_viewers.create!(team: team, assigned_by: team.created_by, assigned: :manually)

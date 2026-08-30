@@ -1,0 +1,15 @@
+zh-CN:
+  my_module_statuses:
+    dropdown:
+      status_label: 状态
+      status_transitioning_label: 正在切换到：
+      move_label: 移动到
+      return_label: 返回
+      view_flow_label: 查看状态流转
+      no_permission_label: 你没有权限更改此任务的状态。
+    update_status:
+      error:
+        no_permission: 你没有权限更改状态
+    conditions:
+      error:
+        my_module_not_active: 任务必须为活动状态

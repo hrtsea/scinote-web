@@ -1,0 +1,5634 @@
+zh-CN:
+  devise:
+    confirmations:
+      new:
+        head_title: 重新发送验证说明
+        title: 重新发送验证说明
+        submit: 重新发送验证说明
+    invitations:
+      edit:
+        header: 设置你的全名和密码
+    passwords:
+      edit:
+        head_title: 修改密码
+        title: 修改你的密码
+        password: 新密码
+        password_length: （至少 %{min_length} 个字符）
+        password_confirm: 确认新密码
+        submit: 修改我的密码
+      new:
+        head_title: 忘记密码
+        title: 忘记密码？
+        submit: 重置密码
+        head_admin_title: 管理员登录入口
+        description_admin: 组织管理员可在需要时（例如单点登录不可用时）通过重置密码方式访问 SciNote。仅管理员用户会收到包含重置说明的邮件。
+    registrations:
+      password_changed: 密码已成功更新。
+    sessions:
+      new:
+        head_title: 登录
+        title: 登录
+        or: 或
+        email_field: 邮箱
+        email_placeholder: john.doe@email.com
+        password_field: 密码
+        password_placeholder: 输入密码
+        remember_me: 记住我
+        submit: 登录
+        azure_ad_submit: 使用 Azure AD 登录
+        openid_connect_submit: 使用 OpenID Connect 登录
+        saml_submit: 使用 SAML 登录
+        okta_submit: 使用 Okta 登录
+      2fa:
+        title: 两步验证
+        description: 请输入身份验证器应用中显示的一次性验证码以登录 SciNote。
+        field: 身份验证器验证码
+        error_message: 一次性验证码不正确。
+        no_user_error: 找不到用户！
+        enter: 输入
+        bypass_code_link: 我有备用验证码
+      2fa_recovery:
+        title: 两步验证备用码
+        description: 请输入创建两步验证时提供的任一备用验证码。该验证码使用后将失效。
+        bypass_code: 备用验证码
+        enter: 输入
+        not_correct_code: 恢复码不正确
+      create:
+        team_name: '%{user} 的项目'
+      expire_modal:
+        why_see_this: 为什么会看到此提示？
+        session_end_in:
+          header: 你的会话将在 %{time} 后结束
+          description: 若想在不点击“保存”的情况下保留已填入字段的数据，请恢复会话后再保存。
+          paragraph1: 为保障你的工作安全，SciNote 会在无操作 %{session_timeout} 分钟后自动结束会话。
+          paragraph2: 会话结束后，你需要重新登录以开始新的工作会话。
+          revive_session: 恢复我的会话
+        session_ended:
+          header: 如需继续工作，请重新登录
+          description: 如有未保存的数据，请关闭此提示框，复制你的文本，待重新登录后再粘贴回去。
+    unlocks:
+      new:
+        head_title: 重新发送解锁说明
+        title: 重新发送解锁说明
+        submit: 重新发送解锁说明
+    links:
+      login: 登录
+      login_with_provider: 使用 SciNote 账户登录
+      signup: 注册
+      forgot: 忘记密码？
+      not_receive_confirmation: 未收到验证说明？
+      not_receive_unlock: 未收到解锁说明？
+      sign_in_provider: 使用 %{provider} 登录
+    linkedin:
+      provider_name: LinkedIn
+      complete_sign_up: 你需要完成注册流程
+      email_already_taken: 邮箱为 %{email} 的 SciNote 账户已存在
+      failed_to_save: 创建新用户失败
+    azure:
+      provider_name: Azure Active Directory
+      errors:
+        generic: 用户登录失败
+        no_local_user_map: 未找到本地用户记录
+        failed_to_save: 创建新用户失败
+    openid_connect:
+      provider_name: OpenID Connect
+      errors:
+        generic: 用户登录失败
+        no_local_user_map: 未找到本地用户记录
+        failed_to_save: 创建新用户失败
+    okta:
+      provider_name: Okta
+      errors:
+        generic: 用户登录失败
+        no_local_user_map: 未找到本地用户记录
+        failed_to_save: 创建新用户失败
+    saml:
+      provider_name: SAML
+      errors:
+        generic: 用户登录失败
+        no_local_user_map: 未找到本地用户记录
+        failed_to_save: 创建新用户失败
+  doorkeeper:
+    errors:
+      messages:
+        invalid_request:
+          unknown: 请求缺少必需参数、包含不支持的参数值，或存在其他格式错误。
+          missing_param: 缺少必需参数：%{value}。
+          not_support_pkce: code_verifier 参数无效。服务器不支持 pkce。
+          request_not_authorized: 请求需要授权，但用于授权的必需参数缺失或无效。
+    authorizations:
+      buttons:
+        authorize: 授权
+      new:
+        head_title: OAuth 授权
+        title: 授权 %{client_name} 连接你的 SciNote 账户
+        scopes_title: 希望：
+        scope_1: 使用与你的 SciNote 账户关联的基础资料信息
+        scope_2: 通过 SciNote API 代表你的用户账户在 SciNote 中创建、读取、更新和删除数据。
+        terms: 可能适用 %{client_name} 的条款。
+  activerecord:
+    models:
+      project: 项目
+      my_module: 任务
+      experiment: 实验
+      repository: 库存
+      repository_base: 库存
+      protocol: 规程
+      report: 报告
+    errors:
+      messages:
+        record_invalid: 验证失败：%{errors}
+        restrict_dependent_destroy:
+          has_one: 由于存在关联的 %{record} 记录，无法删除该记录
+          has_many: 由于存在关联的 %{record} 记录，无法删除该记录
+      models:
+        user_setting:
+          attributes:
+            key:
+              invalid: 必须为字母数字下划线格式（小写字母加下划线，即 snake_case）
+        project:
+          attributes:
+            name:
+              taken: 项目名称在工作区内必须唯一（含归档区）。
+            project_folder:
+              team: 项目文件夹与项目应属于同一工作区
+        project_folder:
+          attributes:
+            parent_folder_team: 父文件夹与文件夹应属于同一工作区
+            parent_folder: 文件夹不能作为自身的父级
+            parent_folder_child: 文件夹不能移动到其子级中
+        view_state:
+          attributes:
+            viewable_id:
+              not_unique: 该用户和父对象的状态已存在
+            state:
+              wrong_state: 参数错误
+        team_shared_object:
+          attributes:
+            team_id:
+              same_team: 库存不能共享到其所属的同一工作区
+            shared_object_id:
+              is_globally_shared: 库存已全局共享
+        protocol:
+          unchangable: 已发布的规程不能修改！
+          wrong_parent_type: 规程只能关联到已发布的规程！
+          wrong_version_number: 规程版本号必须连续！
+          wrong_parent_draft_number: 规程只能有 1 个草稿
+          attributes:
+            step_order:
+              invalid: 步骤顺序无效。
+            name:
+              taken: 规程模板名称在工作区内必须唯一（含归档区）。
+            description:
+              too_long: 文本过长
+        step:
+          attributes:
+            step_orderable_element_order:
+              invalid: 步骤元素顺序无效
+            description:
+              too_long: 文本过长
+        my_module:
+          attributes:
+            my_module_status_id:
+              not_correct_order: 状态只能切换到上一个或下一个状态。
+            position:
+              not_unique: X 与 Y 坐标位置已被实验中的另一个任务占用。
+            description:
+              too_long: 文本过长
+        my_module_status:
+          attributes:
+            next_status:
+              different_flow: 应属于同一工作流
+            previous_status:
+              different_flow: 应属于同一工作流
+        label_template:
+          attributes:
+            default:
+              already_exist: 默认模板已存在
+        asset:
+          attributes:
+            file:
+              too_big: 过大
+        step_orderable_element:
+          attributes:
+            step:
+              wrong_step: 关联到了错误的步骤
+        result_orderable_element:
+          attributes:
+            result:
+              wrong_result: 关联到了错误的结果
+        repository_snapshot:
+          attributes:
+            selected:
+              already_taken: 任务已选择快照
+        repository_list_item:
+          attributes:
+            base:
+              per_column_limit: 列中条目过多
+        repository_checklist_item:
+          attributes:
+            base:
+              per_column_limit: 列中条目过多
+        repository_table_filter_element:
+          general: 保存筛选条件时出现问题。
+          attributes:
+            repository_column:
+              must_exist: 筛选条件无法保存，因为一个或多个列已不再存在。请在保存前更新你的筛选条件。
+            parameters:
+              must_be_valid: 筛选条件无法保存，因为部分筛选值已不再存在。请在保存前更新你的筛选条件。
+        repository_row_connection:
+          self_connection: repository_row 不能与自身建立关联
+          reciprocal_connection: 不允许相互关联
+        repository_cell:
+          incorrect_format: 数据格式不正确
+        webhook:
+          attributes:
+            configuration:
+              disabled: Webhook 已禁用
+            url:
+              not_valid: URL 无效
+        result_text:
+          attributes:
+            text:
+              too_long: 文本过长
+        step_text:
+          attributes:
+            text:
+              too_long: 文本过长
+        system_notification:
+          attributes:
+            modal_body: 文本过长
+        connection:
+          attributes:
+            output_id:
+              creates_cycle: 不能形成循环
+        checklist_item:
+          attributes:
+            text: 文本过长
+            position: 该位置已被检查清单中的另一项占用
+        form_field_value:
+          attributes:
+            value:
+              not_applicable: 字段不适用
+              not_unique_latest: 最新字段值已存在
+        storage_location:
+          missing_position: 缺少位置元数据
+          not_uniq_position: 位置已被占用
+          not_uniq_repository_row: 库存条目已存在
+          attributes:
+            parent_storage_location: 存储位置不能作为自身的父级
+            parent_storage_location_team: 父存储位置与存储位置应属于同一工作区
+            parent_storage_location_child: 存储位置不能移动到其子级中
+            metadata:
+              invalid: 元数据无效
+        table:
+          attributes:
+            sheet_name:
+              not_unique_in_context: 表格名称在当前上下文中不唯一（%{parent_class}，ID“%{parent_id}”）！
+              not_unique_in_context_long: 无法执行此操作，因为该条目包含名称重复的表格。请重命名重复项后重试。
+  storage:
+    limit_reached: 已达到存储上限。
+  helpers:
+    select:
+      prompt: 请选择
+    submit:
+      create: 创建%{model}
+      update: 更新%{model}
+      submit: 保存%{model}
+    page_entries_info:
+      entry:
+        zero: 条记录
+        one: 条记录
+        other: 条记录
+      one_page:
+        display_entries:
+          zero: 没有找到%{entry_name}
+          one: 显示 <b>1</b> 条%{entry_name}
+          other: 显示全部 <b>%{count}</b> 条%{entry_name}
+      more_pages:
+        display_entries: 共 %{entry_name} <b>%{first}&nbsp;-&nbsp;%{last}</b> 条，总计 <b>%{total}</b> 条
+    label:
+      team:
+        name: 工作区名称
+      user:
+        full_name: 全名
+        initials: 缩写
+        avatar: 头像
+  activejob:
+    failure_notifiable_job:
+      general_notification_title: 导出失败，请联系技术支持。
+      general_notification_message: 请求时间戳：%{request_timestamp}
+      item_notification_title: 你的 %{item} 导出失败，请联系技术支持。
+      items:
+        project: 项目
+        repository: 库存
+        repository_item: 条目
+        stock_consumption: 库存消耗
+        form: 表单
+  head:
+    title: SciNote | %{title}
+  body:
+    notice: 你需要启用 JavaScript 才能运行此应用。
+  nav:
+    team_switch_title: 切换工作区
+    search: 在 SciNote 中搜索
+    clear: 清除
+    support: 支持
+    settings: 设置
+    user_profile: 个人资料
+    search_button: 前往
+    user_greeting: 你好，%{full_name}
+    advanced_search: 高级搜索
+    title: SciNote
+    academy_tooltip: SciNote Academy
+    notifications:
+      title: 通知
+      read: 已读
+      unread: 未读
+      read_all: 全部已读
+      all: 全部
+      message: 消息
+      system: 系统
+      today: 今天
+      older: 更早
+      read_more: 阅读更多
+    user:
+      settings: 设置
+      logout: 退出登录
+    activities:
+      none: 暂无动态！
+    label:
+      scinote: SciNote
+      dashboard: 仪表盘
+      projects: 项目
+      protocols: 规程
+      calendar: 日历
+      activities: 动态
+      repositories: 库存
+      teams: 工作区
+      search: 搜索
+      notifications: 通知
+      info: 信息
+      account: 账户
+  about:
+    modal_title: 关于 SciNote
+    core_version: SciNote 核心版本
+    addon_versions: 附加组件版本
+  action_toolbar:
+    no_actions: 暂无可用的操作
+  left_menu_bar:
+    dashboard: 仪表盘
+    projects: 项目
+    repositories: 库存
+    templates: 模板
+    forms: 表单
+    protocol: 规程模板
+    label: 标签模板
+    items: 库存
+    locations: 条目库位
+    reports: 报告
+    settings: 设置
+    activities: 全局动态
+    academy: 课程
+    support: 支持
+    equipment_bookings: 设备排期
+    support_links:
+      support: 知识中心
+      tutorials: 视频教程
+      core_version: SciNote 版本
+      about: 关于
+  navigator:
+    title: 导航器
+  sidebar:
+    title: 导航
+    elements_tooltip: （%{type}）%{name}
+    branch_expand: 展开此分支
+    branch_collapse: 折叠此分支
+    no_module_group: 无工作流
+    settings:
+      sidebar_title: 设置
+    experiments:
+      sidebar_title: 实验
+      sidebar_title_archived: 已归档实验
+      back_button: 返回项目
+      back_active_experiments: 返回进行中的实验
+      back_archived_projects: 返回已归档项目
+      archived_experiments: 已归档实验
+    my_modules:
+      sidebar_title: 任务
+      sidebar_title_archived: 已归档任务
+      back_button: 返回实验
+      back_to_archived_button: 返回已归档实验
+      archived_button: 已归档任务
+      back_to_active_button: 返回进行中的任务
+    my_module:
+      sidebar_title: 任务
+      back_button: 返回全部任务
+      back_button_archived: 返回全部已归档任务
+      steps: 规程
+      results: 结果
+      activities: 动态
+      archive: 已归档结果
+    repositories:
+      sidebar_title: 库存
+    templates:
+      sidebar_title: 模板
+      protocol_templates: 规程模板
+      label_templates: 标签模板
+  nav2:
+    all_projects:
+      index: 进行中
+      archive: 已归档
+      all: 全部
+    projects:
+      show: 实验
+      activities: 动态
+      reports: 报告
+      archive: 已归档实验
+    modules:
+      steps: 规程
+      results: 结果
+      activities: 动态
+      assigned_items: 已分配条目
+      archive: 归档
+  smart_annotations:
+    private:
+      project: '#private project'
+      experiment: '#private experiment'
+      my_module: '#private task'
+      repository_row: '#private inventory item'
+      object: '#private object'
+  attachments:
+    menu:
+      office_file: 新建 Microsoft 365 文件
+      chemical_drawing: 新建化学结构图
+      file_from_pc: 来自电脑的文件
+    modified_label: 修改时间：
+    preview_menu: 查看
+    add: 添加
+    sort_by: 排序方式
+    attachments_view_mode: 所有附件视图大小
+    open_locally_in: 在 %{application} 中打开
+    open_in: 在……中打开
+    open_locally: 在本地打开
+    new:
+      description: 新建
+      uploading: 上传中
+      file_too_big: 上传失败：文件过大
+      no_more_space: 上传失败：空间不足
+      general_error: 上传失败：出错了，请重试
+      leaving_warning: 离开后你的更改将丢失
+    thumbnail:
+      buttons:
+        open: 打开
+        move: 移动
+        download: 下载
+        delete: 删除
+        restore: 恢复
+    sort:
+      new_html: 最新在前 ▼
+      old_html: 最早在前 ▲
+      atoz_html: 名称 ▼
+      ztoa_html: 名称 ▲
+    view_mode:
+      inline_html: 大
+      thumbnail_html: 缩略图
+      list_html: 列表
+  seo:
+    titles:
+      projects_index: 项目
+      forms_index: 表单
+      forms_show: 表单模板
+      protocols_show: 规程模板
+      label_templates_index: 标签模板
+      label_templates_show: 标签模板
+      reports_index: 报告
+      equipment_bookings_index: 设备排期
+  search:
+    quick_search:
+      experiments: 实验
+      tasks: 任务
+      results: 任务结果
+      inventory_items: 库存条目
+      all_results: “%{query}”的全部搜索结果
+      empty_title: 在 %{team} 中未找到快速搜索结果。
+      empty_description: 快速搜索仅检查标题。按回车键或点击““%{query}”的全部搜索结果”以查找所有可用匹配项。
+      search_options: 搜索选项
+      project: 项目
+      experiment: 实验
+      task: 任务
+      result: 结果
+      inventory_item: 库存条目
+      protocol: 规程
+      label_template: 标签模板
+      report: 报告
+      step: 步骤
+      folder: 文件夹
+    whole_word: 匹配任意完整单词
+    whole_phrase: 匹配完整短语
+    match_case: 区分大小写
+    object_id: ID：
+    filters:
+      title: 更多搜索选项
+      sub_title: 通过下方的筛选条件来细化你的搜索。
+      by_type: 按类型筛选
+      by_tag: 按标签筛选
+      by_tag_placeholder: 选择标签
+      by_created_date: 按创建日期筛选
+      by_updated_date: 按更新日期筛选
+      by_team: 按工作区筛选
+      by_team_placeholder: 选择工作区
+      by_user: 按用户筛选
+      by_user_placeholder: 按用户筛选
+      by_user_info: “按用户筛选”选项会根据所选用户为记录的创建者、修改者或被分配到的条目的记录来细化搜索结果。
+      include_archived: 包含已归档对象
+      clear: 清除
+      date:
+        today: 今天
+        yesterday: 昨天
+        last_week: 上周
+        last_week_tooltip: 上一日历周（周一至周日）。
+        this_month: 本月
+        this_month_tooltip: 当前日历月。
+        this_year: 今年
+        this_year_tooltip: 当前日历年。
+        last_year: 去年
+        last_year_tooltip: 上一个日历年。
+        custom: 自定义
+        'on': 在
+    index:
+      head_title: 搜索
+      page_title: 搜索
+      results_title_html: “%{query}”的搜索结果
+      experiments: 实验
+      tasks: 任务
+      task_results: 任务结果
+      folders: 文件夹
+      projects: 项目
+      task_protocols: 任务规程
+      files: 文件
+      inventory_items: 库存条目
+      protocol_templates: 规程模板
+      label_templates: 标签模板
+      format: 格式
+      archived: 已归档
+      reports: 报告
+      repository: 库存
+      more_search_options: 更多搜索选项
+      clear_filters: 清除
+      all_results: 全部结果
+      id: ID
+      created_at: 创建于
+      created_by: 创建者
+      updated_at: 更新于
+      team: 工作区
+      folder: 文件夹
+      task: 任务
+      untitled_protocol: 未命名规程
+      project: 项目
+      experiment: 实验
+      protocol_template: 规程模板
+      inventory_item: 库存条目
+      created_desc: 最后创建
+      created_asc: 最先创建
+      atoz: 名称 A 到 Z
+      ztoa: 名称 Z 到 A
+      reached_end: 你已到达列表末尾
+      no_results_text: 未找到搜索结果
+      adjust_search_text: 请尝试调整搜索或筛选条件以查找你需要的内容。
+  comments:
+    save_changes: 保存更改
+    empty_state:
+      title: 此处暂无评论
+      description: 还没有人评论。使用下方输入框来发表第一条评论吧。
+    placeholder: 添加新评论……
+    options_dropdown:
+      header: 评论选项
+      edit: 编辑
+      delete: 删除
+    delete_confirm: 确定要删除这条评论吗？
+    delete_error: 删除评论时出错。
+    step_url: 前往步骤
+  labels:
+    archived: （A）
+  projects:
+    index:
+      header:
+        cards: 卡片
+        table: 表格
+        active_projects: 前往进行中的项目
+        archived_projects: 前往已归档项目
+      head_title: 项目
+      head_title_archived: 已归档项目
+      navigation_title: 项目
+      navigation_archived_projects: 已归档项目
+      back_to_active_projects: 返回进行中的项目
+      breadcrumbs_root: 项目
+      breadcrumbs_collapsed: 点击显示隐藏层级
+      archive: 归档
+      archived: 已归档
+      active: 进行中
+      hidden: 仅项目成员
+      visible: 全体工作区成员
+      no_projects:
+        text: 你没有任何进行中的项目。
+        title: 请创建你的项目
+        create_new_button: 新项目
+        no_permission_title: 你没有创建新项目的权限。请联系你的工作区管理员。
+      new: 新项目
+      new_tooltip: 创建新项目
+      new_folder: 新文件夹
+      new_folder_tooltip: 创建新文件夹
+      visibility_private: 项目仅对项目成员可见。
+      visibility_public: 项目对全体工作区成员可见。
+      user_project: '%{user} 于 %{timestamp} 加入。'
+      no_activities: 无动态！
+      no_comments: 无评论！
+      no_users: 无用户！
+      manage_users: 管理用户
+      no_notifications: 目前没有逾期的任务
+      no_results_found: 未找到结果……
+      empty_state:
+        no_archived_projects: 无已归档项目
+        no_active_projects: 无进行中的项目
+      no_results_description: 尝试重置筛选条件或换一个搜索词
+      module_overdue_html: 任务 <em>%{module}</em> 已逾期（%{days}）。
+      module_overdue_days:
+        one: 1 天
+        other: '%{count} 天'
+      module_one_day_due_html: 任务 <em>%{module}</em> 将在不到 1 天内到期。
+      user_role: 角色：
+      user_full_name: 用户：
+      edit_user: 编辑角色
+      delete_user: 从项目中移除用户
+      delete_user_confirm: 确定要将用户 %{user} 从项目 %{project} 中移除吗？
+      team_filter: 显示来自以下来源的项目
+      all_filter: 全部
+      start_date: 开始日期
+      activity_tab: 动态
+      users_tab: 用户
+      notifications_tab: 截止日期
+      comment_tab: 评论
+      new_comment: 新评论
+      content_loading: 加载中……
+      edit_button: 编辑
+      move_button: 移动
+      archive_button: 归档
+      restore_button: 恢复
+      delete_button: 删除
+      edit_option: 编辑
+      archive_option: 归档
+      restore_option: 恢复
+      project_members_access: 访问权限
+      comments_option: 评论
+      comments_option_with_unread: 评论（%{comments_count}）
+      activities_option: 动态
+      comment_placeholder: 你的留言
+      more_comments: 更多评论
+      due_date: 截止日期
+      add_due_date: 添加截止日期
+      no_due_date: 无截止日期
+      add_start_date: 添加开始日期
+      no_start_date: 无开始日期
+      add_description: 添加描述
+      favorite: 收藏
+      status:
+        not_started: 未开始
+        in_progress: 进行中
+        done: 已完成
+      card:
+        start_date: 创建于
+        updated_on: 更新于
+        id: ID
+        visibility: 可见范围
+        users: 访问权限
+        name: 项目名称
+        archived_date: 归档于
+        comments: 评论
+        updated_at: 更新于
+        description: 描述
+        supervised_by: 项目负责人
+        status: 状态
+        completed_experiment: 已完成实验
+        completed_experiments: '%{completed}/%{all} 个实验'
+      end_of_list_placeholder: 你已到达列表末尾
+      folder:
+        description: '%{projects_count} 个项目 | %{folders_count} 个文件夹'
+      modal_new_project_folder:
+        description: 为你的文件夹取一个易辨认的名称。
+        modal_title: 创建文件夹
+        name: 新文件夹名称
+        name_placeholder: 输入文件夹名称
+        create: 创建文件夹
+        success_flash: 项目文件夹 <strong>%{name}</strong> 已成功创建。
+      modal_new_project:
+        modal_title: 创建新项目
+        create: 创建
+        name: 项目名称
+        name_placeholder: 我的项目
+        team: 工作区
+        visibility_html: 向全体工作区成员授予此项目的访问权限
+        visibility_hidden: 仅项目成员
+        visibility_visible: 全体工作区成员
+      modal_edit_project:
+        modal_title: 编辑项目 %{project}
+        submit: 保存
+      modal_edit_folder:
+        title: 编辑文件夹 %{folder}
+        description: 重命名文件夹
+        folder_name_field: 文件夹名称
+        submit: 保存
+      modal_move_folder:
+        title: 移动 %{items}
+        description: 选择要将 %{items} 移动到的位置
+        submit: 移动
+        find_folder: 查找文件夹
+        projects: 项目
+        items:
+          projects: 项目
+          project_folders: 文件夹
+          projects_and_folders: 项目与文件夹
+      modal_delete_folders:
+        title: 删除项目文件夹
+        description_1_html: 你将删除 <strong>%{number}</strong> 个选中的项目文件夹
+        description_2: 确定要继续吗？
+        confirm_button: 删除文件夹
+      modal_manage_users:
+        modal_title: 管理 %{name} 的用户
+        no_users: 无用户！
+        create: 添加
+        select_user_role: 选择角色
+        invite_users_link: 邀请用户
+        invite_users_details: 到工作区 %{team}。
+        contact_admins: 如需邀请更多用户加入工作区 %{team}，请联系其管理员。
+      filters_modal:
+        members:
+          label: 成员
+          placeholder: 选择项目成员
+        head_of_project:
+          label: 项目负责人
+          placeholder: 选择人员
+        status:
+          label: 状态
+          placeholder: 选择项目状态
+        folders:
+          label: 查看文件夹内部
+          popover_html: 当<strong>“查看文件夹内部”</strong>处于开启状态时，筛选条件也会将全部文件夹及其内容纳入考虑。
+    export_projects:
+      export_button: 导出
+      error_title: 导出被拒绝
+      error_text_p1_html: 看起来你已超过每日导出限额。导出次数<strong>每天限制为 %{limit} 次请求</strong>——你当前剩余
+        0 次导出请求。
+      error_text_p2_html: 请在<strong>明天</strong>重复所需操作，届时你的每日限额将重置为 %{limit} 次导出请求。
+      modal_title: 导出项目
+      modal_text_p1_html: 你将导出工作区 <strong>%{team}</strong> 中的 <strong>%{num_projects}
+        个项目</strong>。项目将以 .zip 文件格式导出。根据文件大小，可能需要 5 分钟到数小时不等。另请注意，从此刻起项目中的任何新数据都不会包含在导出文件中。
+      modal_text_p2_html: 导出就绪后，你会收到确认邮件，且指向 .zip 文件的<strong>链接</strong>会出现在你的<strong>SciNote
+        通知</strong>中。出于安全原因，该链接<strong>将在 7 天后过期</strong>。
+      modal_text_p3_html: 请注意，导出次数每天限制为 %{limit} 次请求。确认此次导出后，你还将剩余 %{num} 次。
+      modal_submit: 导出
+      success_flash: 已收到导出请求。你的导出请求正在处理中。
+      zero_projects_flash: 该文件夹为空，无法导出任何项目。
+    activity:
+      visibility_hidden: 仅项目成员
+      visibility_visible: 全体工作区成员
+    create:
+      success_flash: 项目 <strong>%{name}</strong> 已成功创建。
+    update:
+      success_flash: 项目 <strong>%{name}</strong> 已成功更新。
+      error_flash: 项目 <strong>%{name}</strong> 未更新。
+    move:
+      success_flash: 你已成功将所选项目/文件夹移动到另一个文件夹。
+      error_flash: 发生错误。所选项目/文件夹未被移动。
+    archive:
+      success_flash: 项目 <strong>%{name}</strong> 已成功归档。
+      error_flash: 项目 <strong>%{name}</strong> 未归档。
+    archive_group:
+      success_flash: <strong>%{number}</strong> 个项目已成功归档。
+      error_flash: 归档项目失败。
+    restore_group:
+      success_flash: <strong>%{number}</strong> 个项目已成功恢复。
+      error_flash: 恢复项目失败。
+    restore:
+      success_flash: 项目 <strong>%{name}</strong> 已成功恢复。
+      error_flash: 项目 <strong>%{name}</strong> 未恢复。
+    delete_folders:
+      success_flash: <strong>%{number}</strong> 个项目文件夹已成功删除。
+      error_flash: 删除项目文件夹失败。
+    show:
+      head_title: '%{project}'
+      empty_state:
+        no_archived_experiments: 该项目没有已归档实验，或你无权访问。
+        no_active_experiments: 该项目没有进行中的实验，或你无权访问。
+        no_active_experiment_archived_project: 该项目已归档，不能有进行中的实验。
+    reports:
+      print_title: '%{project} | 报告'
+      unnamed: （未命名）
+      index:
+        head_title: 报告
+        new: 新报告
+        new_tooltip: 创建新报告
+        report_button: 报告
+        update_pdf: 更新 PDF
+        save_pdf_to_inventory: 将 PDF 保存到库存
+        search_reports: 搜索报告
+        request_docx: 生成 .DOCX
+        update_docx: 更新 .DOCX
+        edit: 编辑
+        delete: 删除
+        deleted: （已删除）
+        thead_project_name: 项目名称
+        thead_name: 报告名称
+        thead_created_by: 创建者
+        thead_last_modified_by: 更新者
+        thead_created_at: 创建于
+        thead_updated_at: 更新于
+        thead_id: ID
+        no_reports: 无报告！
+        pdf: PDF
+        docx: DOCX
+        error: 错误
+        previous_pdf: 之前的 PDF
+        previous_docx: 之前的 DOCX
+        generating: 生成中
+        generate: 生成
+        generation:
+          regeneration_modal_title: 报告内容
+          regeneration_modal_body: 自报告上次生成以来，报告中所包含的项目、实验和任务的内容可能已在 SciNote 中更新。因此，你即将生成的报告内容可能与已保存的版本不同。
+          regeneration_modal_confirmation: 确定要继续吗？
+          accepted_message: 你的报告已成功加入生成队列。完成后我们会通知你！
+          completed_docx_notification_title: 你的报告 .DOCX 已成功生成。
+          completed_pdf_notification_title: 你的报告 .PDF 已成功生成。
+          completed_notification_message: 报告：%{report_link} | 工作区：%{team_name}
+          error_docx_notification_title: 你的报告 .DOCX 生成失败。请重试。
+          error_pdf_notification_title: 你的报告 .PDF 生成失败。请重试。
+          error_notification_message: 报告：%{report_link} | 工作区：%{team_name}
+          content_generation_error: 生成报告内容失败
+          file_preview_generation_error: 我们无法生成此文件的预览。
+        modal_delete:
+          head_title: 删除报告
+          message: 确定要删除所选报告吗？
+          delete: 删除
+          success: 报告已成功删除。
+      wizard:
+        statuses:
+          step_1: 选择项目
+          step_2: 选择任务
+          step_3: 选择任务内容
+        first_step:
+          select_project_title: 选择项目和报告模板
+          select_project_description: 你将创建一个新报告。请选择要为其创建报告的项目，并选择报告设计模板。仅显示至少包含 1
+            个任务的项目。
+          select_project: 选择项目
+          select_template: 选择你的 PDF 模板
+          select_docx_template: 选择你的 DOCX 模板
+          report_description: 报告描述（可选）
+          report_description_placeholder: 在此报告中你可以看到……
+          values_editor:
+            title_pdf: PDF %{template}
+            title_docx: DOCX %{template}
+            description: 此模板需要你填写有关该项目的额外信息。这是你唯一可以填写这些信息的地方。
+            header: 页眉
+            cover: 标题页
+            footer: 页脚
+            toc: 目录
+            no_values_title_pdf: PDF %{template}：无需额外数据
+            no_values_title_docx: DOCX %{template}：无需额外数据
+            no_values_description: SciNote 模板无需任何额外输入即可成功生成。
+        second_step:
+          select_project_content: 选择并重新排序实验和任务
+          collapse_all: 全部折叠
+          expand_all: 全部展开
+          hide_unchecked: 隐藏未勾选项
+          select_all_tasks: 选择所有任务
+        third_step:
+          title: 选择任务内容
+          select_all: 选择全部内容
+          task_protocol: 任务规程
+          protocol_description: 规程描述
+          protocol_step: 规程步骤
+          completed_steps: 已完成步骤
+          uncompleted_steps: 未完成的步骤
+          skipped_steps: 跳过的步骤
+          step_texts: 步骤文本
+          step_checklists: 步骤检查清单
+          step_files: 步骤文件
+          step_tables: 步骤表格
+          step_well_plates: 步骤孔板
+          step_forms: 步骤表单
+          step_comments: 步骤评论
+          archived_steps: 已归档步骤和组件
+          archived_results: 已归档结果和组件
+          assigned_items: 已分配条目
+          assigned_items_description: 下方所选库存仅包含你直接分配到任务的条目。
+          assigned_items_repository_items_description_html: 你可以<strong>仅为 docx 报告</strong>自定义库存列。库存管理列默认反映条目消耗情况。
+          include_all_assigned_iitems: 包含以下库存中分配的所有条目
+          results: 结果
+          all_results: 包含所有结果元素
+          order_results: 结果排序
+          atoz: 名称 A 到 Z
+          ztoa: 名称 Z 到 A
+          new: 最后添加
+          old: 最先添加
+          new_updated: 最后修改
+          old_updated: 最先修改
+          file_results: 结果文件
+          insert_pages_from_pdf: 将 PDF 和 docx 文件中的页面插入报告
+          pdf_warning: 这可能会增加报告生成时间。
+          table_results: 结果表格
+          text_results: 结果文本
+          results_comments: 结果评论
+          additional_content: 附加内容
+          task_activity: 包含任务动态
+          exclude_task_metadata: 排除项目、实验和任务的元数据
+          exclude_timestamps: 排除时间戳
+          report_info_metadata: 在报告中包含 SciNote 实例和版本信息
+          archived: '[已归档]'
+          deleted: '[已删除]'
+          repository_column:
+            select_deselect_all: 全选/全不选
+            placeholder: 选择列
+            all_selected: 已选择所有列
+            selected: 列已选
+      new:
+        report_name_placeholder: 为报告命名
+        continue_button: 继续
+        generate_button: 开始生成
+        generate_as_button: 生成为
+        save_as_new_report: 新报告
+        update_report: 覆盖当前报告
+        head_title: '%{project} | 新报告'
+        nav_title: 报告对象：
+        nav_print: 打印
+        nav_download: 下载
+        nav_pdf: PDF 报告
+        nav_docx: DOCX 报告
+        save_PDF_to_inventory: 将 PDF 保存到库存
+        nav_save: 保存
+        nav_close: 取消
+        nav_sort_by: 排序方式
+        nav_sort_asc: 最早在上
+        nav_sort_desc: 最新在上
+        nav_sort: 排序
+        sidebar_title: 导航
+        global_sort: 对整个报告排序将撤销你可能已做的任何自定义排序。继续吗？
+        unsaved_work: 确定要离开此页面吗？所有未保存的数据都会丢失。
+        no_content_for_PDF_html: <h1>无内容</h1>
+        no_permissions: 你没有权限管理此列
+        edit_warning_modal:
+          title: 报告内容
+          description: 自报告上次生成以来，报告中所包含的项目、实验和任务的内容可能已在 SciNote 中更新。因此，你即将编辑的报告内容可能与已保存的版本不同。
+          button: 确定
+        save_PDF_to_inventory_modal:
+          pdf_not_ready: 此报告的 PDF 尚未就绪，请一分钟后重试
+          description_one: 你可以在此处将 PDF 报告保存到库存条目。
+          description_two: 先选择一个库存，然后选择一列，最后选择库存中要保存 PDF 报告的条目。注意该列的类型必须为“文件”。
+          inventory: 选择库存：
+          inventory_column: 选择库存列：
+          inventory_item: 选择库存条目：
+          no_inventories: 没有可保存此 PDF 的库存。
+          success_flash: 报告已成功保存到库存条目。
+          asset_present_warning_html: 所选单元格已包含文件。如果你想替换该文件，请点击“保存”。替换文件将产生以下后果：<ul><li>原文件将被永久删除；</li><li>新文件将添加到库存条目中。</li></ul>
+          no_items: 所选库存中还没有任何条目。添加第一个条目
+          here: 此处
+          no_columns: 所选库存中没有“文件”类型的列。请为该库存添加“文件”列，或选择另一个包含“文件”列的库存。
+          nothing_selected: 未选择任何内容
+        exit_modal:
+          title_new: 报告将丢失
+          title_edit: 更改将丢失
+          description_new: 你将取消报告的生成过程。这将导致所有选择和可能已输入的数据丢失。
+          description_edit: 你将取消已编辑报告的生成过程。这将导致所有更改丢失。
+          description_2: 确定要继续吗？
+        template_warning_modal:
+          title: 模板数据将丢失
+          description: 你将切换到另一个模板。你输入的与该模板相关的所有数据将丢失。
+          confirmation: 确定要继续吗？
+        project_warning_modal:
+          title: 任务选择将刷新
+          description: 你将切换到另一个项目。你所做的任务选择将被完全刷新。
+          confirmation: 确定要继续吗？
+        generate_PDF:
+          generated_on: 由 SciNote 生成的报告，时间：%{timestamp}
+          generated_on_with_info: 由 %{subdomain} 生成的报告，时间：%{timestamp} ID：%{reportid}
+            SciNote 版本：%{version}
+      renderers:
+        lists:
+          appended_image: 附加图片 - %{name}
+          appended_table: 附加表格
+      elements:
+        download: '[下载]'
+        archived_metadata: 于 %{datetime} 由 %{user} 归档
+        all:
+          sort_asc: 报告元素内容按最早在上排序
+          sort_desc: 报告元素内容按最新在上排序
+          move_up: 将报告元素上移
+          move_down: 将报告元素下移
+          remove: 从报告中移除报告元素
+          scinote_link: SciNote 链接
+        project_header:
+          user_time: 项目 %{code} 于 %{timestamp} 创建。
+          title: 项目 %{project} 的报告
+          started_on: 开始日期：%{started_on}
+          due_date: 截止日期：%{due_date}
+          status_label: 状态：
+          supervised_by: 项目负责人：%{user}
+          status:
+            not_started: 未开始
+            in_progress: 进行中
+            done: 已完成
+        module:
+          user_time: 任务 %{code} 于 %{timestamp} 创建。
+          started_on: 开始日期：%{started_on}
+          status: 状态：
+          no_start_date: 无开始日期
+          due_date: 截止日期：%{due_date}
+          no_due_date: 无截止日期
+          no_description: 无描述
+          tags_header: 任务标签：
+          no_tags: 无标签
+          results: 结果
+          protocol:
+            name: 规程
+            user_time: 规程 %{code} 于 %{timestamp} 创建。
+        experiment:
+          user_time: 实验 %{code} 于 %{timestamp} 创建。
+          no_description: 无描述
+          no_tags: 无标签
+          started_on: 开始日期：%{started_on}
+          due_date: 截止日期：%{due_date}
+          status_label: 状态：
+          status:
+            not_started: 未开始
+            in_progress: 进行中
+            done: 已完成
+        module_activity:
+          name: 任务动态
+          sidebar_name: 动态
+          no_activity: 无动态
+        module_repository:
+          name: 任务 %{my_module} 的 %{repository}
+          table_name: '%{name}'
+          no_items: 无条目
+          no_columns: 未选择列
+        result:
+          user_time: 于 %{timestamp} 由 %{user} 添加。
+          linked_steps: 关联步骤：
+        result_asset:
+          file_name: '%{file}'
+          user_time: 于 %{timestamp} 由 %{user} 添加。
+          full_preview_attached: '[附加到报告的完整文档]'
+        result_table:
+          table_name: '%{name}'
+          user_time: 表格于 %{timestamp} 创建。
+        result_text:
+          user_time: 文本于 %{timestamp} 创建
+        step:
+          sidebar_name: 步骤 %{pos}：%{name}
+          step_pos: 步骤 %{pos}：
+          no_description: 无描述
+          linked_results: 关联结果：
+          completed:
+            user_time: 由 %{user} 于 %{timestamp} 完成。
+          uncompleted:
+            user_time: 由 %{user} 于 %{timestamp} 创建。
+        step_table:
+          table_name: '%{name}'
+          user_time: 表格于 %{timestamp} 创建。
+        step_text:
+          user_time: 文本于 %{timestamp} 创建
+        step_well_plates_table:
+          table_name: '%{name}'
+          user_time: 孔板于 %{timestamp} 创建。
+        step_asset:
+          file_name: '%{file}'
+          sidebar_name: 文件 %{file}
+          user_time: 文件于 %{timestamp} 上传。
+        step_checklist:
+          checklist_name: '%{name}'
+          user_time: 检查清单于 %{timestamp} 创建。
+          checked: 已勾选
+        result_comments:
+          sidebar_name: 评论
+          name: 结果评论
+          no_comments: 无评论
+          comment_prefix: '%{user} 于 %{date} %{time}：'
+        step_comments:
+          sidebar_name: 评论
+          name: 步骤评论
+          no_comments: 无评论
+          comment_prefix: '%{user} 于 %{date} %{time}：'
+        step_forms:
+          field: 字段
+          answer: 回答
+          submitted_at: 提交于
+          submitted_by: 提交人
+          not_submitted: 尚未提交
+          user_time: 表单于 %{timestamp} 由 %{user} 提交。
+          table_name: '%{name}'
+    experiment_archive:
+      head_title: '%{project} | 已归档实验'
+      no_archived_experiments: 无已归档实验！
+      restore_option: 恢复
+      archived_on: 归档于
+      created_on: 创建于
+      last_modified_on: 最后修改于
+      archived_on_title: 实验于 %{date} %{time} 归档。
+      created_on_title: 实验于 %{date} %{time} 创建。
+      last_modified_on_title: 实验最后修改于 %{date} %{time}。
+  teams:
+    private_team: 私有工作区
+  equipment_bookings:
+    index:
+      head_title: 设备排期
+      show_calendar: 显示日历范围：
+      no_repositories: 你无权访问任何库存
+      go_to_repositories: 前往库存
+      sidebar:
+        new_event: 新建事件
+        filter_items: 筛选条目
+        all_items_selected: 已选择全部条目
+        filter_people: 筛选成员
+        all_users_selected: 已选择全部用户
+        event_types:
+          usage: 使用
+          maintenance: 维护
+          calibration: 校准
+          other: 其他
+      delete_modal:
+        title: 删除事件
+        description_html: 确定要删除此事件吗？<br><br><b>该操作无法撤销。</b>
+        delete: 删除
+      manage_modal:
+        create_title: 创建事件
+        update_title: 更新事件
+        event_name: 事件名称
+        item: 条目
+        select_item: 选择条目
+        event_type: 事件类型
+        start_date: 开始日期
+        end_date: 结束日期
+        until: 至
+        full_day_event: 全天事件
+        frequency: 重复频率
+        frequency_options:
+          once: 仅一次
+          daily: 每天
+          weekly: 每周
+          monthly: 每月
+          custom: 自定义
+        repeat_every: 每
+        custom_frequency_units:
+          days: 天
+          weeks: 周
+          months: 个月
+          years: 年
+        ends: 结束于
+        never: 从不
+        after: 之后
+        on_date: 在
+        occassions: 次
+        people: 成员
+        create_event: 创建事件
+        update_event: 更新事件
+    promo:
+      promo_title: 此功能在开源版 SciNote 中默认禁用
+  forms:
+    published: 发布表单
+    draft: 未命名表单
+    default_name: 归档表单失败。
+    restored:
+      success_flash: <strong>%{number}</strong> 个表单已成功恢复。
+      error_flash: 提交于
+    duplicated:
+      success_flash: <strong>%{name}</strong> 表单已成功复制。
+    archived:
+      success_flash: <strong>%{number}</strong> 个表单已成功归档。
+      error_flash: 更新日期
+    export:
+      title: 导出
+      description: 提交人
+      export_button: 你即将从所选表单模板导出数据。仅已提交的表单会包含在 .xlsx 文件中。文件就绪后，你会收到一封<strong>邮件和一条通知</strong>，内含下载链接。出于安全考虑，该链接将在
+        7 天后过期。
+      archived: 草稿
+      columns:
+        form_path: 表单路径
+        form_timestamp: 表单路径
+        submitted_by: 表单提交时间戳（UTC）
+        form_field_timestamp: '%{name} 用户'
+        form_field_submitted_by: '%{name} 用户'
+      values:
+        not_applicable: 已完成
+        completed: 导出表单数据
+        not_completed: 未填写
+    publish:
+      title: <p>发布表单会将其锁定，禁止编辑，并使其可用于规程步骤中。只有当表单未关联任何步骤时，才能取消发布。</p><p>确定要发布该表单吗？</p>
+      description_html: 此功能在开源版 SciNote 中默认禁用
+    fields:
+      mark_as_na: 标记为已完成
+      mark_as_na_tooltip: 标记为 N/A
+      add_text: 添加数字
+      add_number: 添加日期和时间
+      from: 由
+      submitted_by: '%{date} 由 %{user}'
+      by: 添加文本
+      to: 范围无效
+      add_date: 未完成
+      add_datetime: 添加日期
+      not_valid_range: 未选择任何选项
+      no_selection: “标记为 N/A”将删除该字段中的内容。
+      mark_as_completed: 从
+    index:
+      head_title: 至
+      head_title_archived: 表单
+      toolbar:
+        new: 复制
+        access: 版本
+        archive: 访问权限
+        restore: 新建表单
+        duplicate: 归档
+      table:
+        name: ID
+        code: 访问权限
+        versions: 在规程中使用
+        used_in_protocols: 更新于
+        access: 已归档表单
+        published_by: 表单名称
+        published_on: 发布者
+        updated_on: 发布于
+    show:
+      build_form: 文本
+      add_block: 添加
+      title_label: 必填
+      title_placeholder: 选择条目
+      title_empty_error: 包含范围
+      title_too_long_error: 标题过长（最多 %{limit} 个字符）
+      description_label: 检查清单项
+      description_placeholder: 检查清单项
+      description_too_long_error: 描述过长（最多 %{limit} 个字符）
+      required_label: 添加你的第一个表单区块
+      mark_as_na: 下拉列表选项 1
+      mark_as_na_explanation: 下拉列表选项 2
+      delete: 每行输入一个检查清单项：
+      duplicate: 复制
+      edit_form: 下拉选项
+      test_form: 测试表单
+      publish: 标记为 N/A
+      unpublish: 取消发布
+      dropdown_options_label: 描述
+      dropdown_options_placeholder_html: 添加描述
+      checklist_options_label: 构建你的表单
+      checklist_options_placeholder_html: 检查清单选项
+      unit_label: 单位
+      unit_placeholder: 添加单位
+      time_label: 发布
+      range_label: 允许用户将该字段标记为不适用。
+      no_block: 复制
+      field_too_long_error: 字段过长（最多 %{limit} 个字符）
+      options_too_many_error: 字段过长（最多 %{limit} 个字符）
+      add_items: 添加区块
+      no_items_selected: 编辑表单
+      add: 恢复表单失败。
+      select_items: 未选择任何条目
+      validations:
+        response_validation:
+          title: 响应校验
+          min_placeholder: 添加最小值
+          max_placeholder: 添加最大值
+          message_placeholder: 添加自定义警告信息
+      blocks:
+        TextField: 单项选择
+        NumberField: 多项选择
+        SingleChoiceField: 条目
+        MultipleChoiceField: 日期和时间
+        DatetimeField: 操作
+        ActionField: 添加条目
+        RepositoryRowsField: 数字
+    response:
+      submit: 尚未提交
+      submitted_on: 提交表单
+      not_submitted: 解锁表单以进行编辑？
+      by: 已发布
+      edit_modal:
+        title: 解锁表单进行编辑将需要重新提交。即使数据未更改，新提交的时间戳和用户也会更新。
+        description: 由
+    promo:
+      promo_title: 恢复
+  label_templates:
+    types:
+      fluics_label_template: Fluics
+      zebra_label_template: ZPL
+    default_zebra_name: SciNote 条目（ZPL，300dpi）
+    default_zebra_name_203dpi: SciNote 条目（ZPL，203dpi）
+    default_fluics_name: SciNote 条目（Fluics）
+    new_label_template: 新建标签
+    fluics:
+      sync:
+        success: Fluics 标签模板已成功更新
+        error: Fluics 标签模板更新失败
+    repository_row:
+      errors:
+        unsupported_key: 该标签模板渲染器不支持键 %{key}。
+        column_not_found: 该标签模板包含的库存列占位符在当前库存中不存在。部分数据可能无法打印在标签上。打印前请检查标签预览和标签模板。
+        logo_not_supported: 公司徽标无法打印在标签上，因为在你的 SciNote 中未配置。请在“设置”中上传公司徽标。
+        logo_params_error: 解析徽标参数失败！
+    index:
+      head_title: 标签模板
+      default_label: 默认标签
+      search_templates: 搜索标签
+      thead_name: 标签名称
+      format: 格式
+      description: 描述
+      updated_by: 更新者
+      updated_at: 更新于
+      created_by: 创建者
+      created_at: 创建于
+      templates_duplicated: '[%{count}] 个标签模板已成功复制'
+      templates_deleted: 已成功删除标签模板
+      template_set_as_default: 已成功将该模板设为默认
+      toolbar:
+        new: 新建标签模板
+        new_tooltip: 创建新标签模板
+        update_fluics_labels: 更新 Fluics 标签
+        edit: 编辑
+        duplicate: 复制
+        delete: 删除
+        set_FluicsLabelTemplate_default: 设为默认 Fluics 标签
+        set_ZebraLabelTemplate_default: 设为默认 ZPL 标签
+        set_fluics_default: 设为默认 Fluics 标签
+        fluics_warning: 内置 FLUICS 模板不可编辑、删除或复制
+        edit_template: 编辑
+      delete_modal:
+        title: 删除标签模板
+        description: 确定要删除所选标签模板吗？
+    show:
+      breadcrumb_index: 标签模板
+      name_error_prefix: 标签模板名称
+      name_placeholder: 输入标签模板名称
+      description_error_prefix: 标签模板描述
+      description_title: 模板描述
+      description_placeholder: 输入模板描述（可选）
+      description_empty: 无模板描述
+      content_title: '%{format} 模板代码'
+      preview_title: 模板预览
+      view_content_tooltip: 点击编辑模板代码
+      code_errors:
+        empty: ZPL 模板代码不能为空
+        too_long: ZPL 模板代码已超过 10,000 个字符的上限
+        invalid: ZPL 模板代码无效
+      insert_dropdown:
+        button: 插入字段代码
+        common_fields: 常用自定义字段
+        nothing_found: 未找到任何内容……
+        field_code: 字段代码：%{code}
+        search_placeholder: 输入以搜索……
+        logo_modal:
+          title: 将徽标插入标签
+          description: 请指定宽度或高度，另一维度将按比例自动调整
+          width: 宽度（%{unit}）
+          height: 高度（%{unit}）
+          insert: 插入
+      buttons:
+        refresh: 刷新预览
+        save: 保存模板代码
+    default_columns:
+      inventory_name: 库存名称
+      item_id: 条目 ID
+      name: 名称
+      added_on: 添加于
+      added_by: 添加者
+    label_preview:
+      title: 预览
+      options: 选项
+      units: 计量单位
+      height: 高度
+      width: 宽度
+      density: 密度
+      refresh_preview: 刷新预览
+      mm: 毫米（mm） 1 cm = 10 mm
+      in: 英寸（in）
+      error_html: 标签无法预览：<br>ZPL 代码可能无效，或预览生成器已停止运行。请仔细检查代码、保存并刷新页面。
+    promo:
+      head_title: 标签模板
+      promo_title: 此功能在开源版 SciNote 中默认禁用
+  label_printers:
+    create:
+      success: 已成功添加 %{printer_name}
+      error: 无法添加 %{printer_name}
+    update:
+      success: 已成功更新 %{printer_name}
+      error: 无法更新 %{printer_name}
+    delete:
+      success: 已成功删除 %{printer_name}。
+      error: 无法删除 %{printer_name}。
+    fluics:
+      statuses:
+        ready: 就绪
+        busy: 繁忙
+        out_of_labels: 标签用尽
+        unreachable: 离线
+        error: 错误
+    modal_printing_status:
+      printer_status:
+        ready: 就绪
+        not_ready: 未就绪
+        out_of_labels: 标签用尽
+        error: 打印机错误
+        unreachable: 打印机离线
+        offline: 离线
+      multiple_items: '%{item_count}/%{starting_item_count} 个标签'
+      printing_status:
+        done: 完成
+        printing: 打印中
+        out_of_labels: 正在等待标签。请插入标签。
+        error: 打印机出现问题。
+        unreachable: 打印机离线
+        search: 正在检查打印机状态
+  repository_templates:
+    default_template_name: 默认模板
+    cell_lines_template_name: 细胞系模板
+    equipment_template_name: 设备模板
+    chemicals_and_reagents_template_name: 化学品与试剂模板
+    repository_list_value_delimiter: 返回
+    template_columns:
+      species: 物种
+      organ: 器官
+      morphology: 形态
+      culture_type: 培养类型
+      stock: 库存
+      passage_number: 传代数
+      lot_number: 批号
+      freezing_date: 冷冻日期
+      operator: 操作员
+      yield: 产量
+      status: 状态
+      handling_procedure: 操作规范
+      notes: 备注
+      calibration_date: 校准日期
+      calibration_message: 请考虑重新校准。
+      availability_status: 可用状态
+      safety_handling_info: 安全与操作信息
+      training_records: 培训记录
+      contact_person: 联系人
+      contact_phone: 联系电话
+      internal_id: 内部 ID
+      manufacturer: 生产厂商
+      serial_number: 序列号
+      concentration: 浓度
+      date_opened: 开封日期
+      expiration_date: 过期日期
+      expiration_date_message: 请考虑更换该条目。
+      storage_conditions: 存储条件
+      type: 类型
+      purity: 纯度
+      cas_number: CAS 号
+      safety_sheet: 安全数据表
+      vendor: 供应商
+      catalog_number: 目录号
+      lot: 批次
+      price: 价格
+      molecular_weight: 分子量
+      repository_list_value:
+        endothelial: 内皮
+        epithelial: 上皮
+        fibroblast: 成纤维
+        lymphoblast: 淋巴母细胞
+        adherent: 贴壁
+        suspension: 悬浮
+        minus_twenty_celsious: -20°C
+        two_to_eigth_celsious: 2°C 至 8°C
+        minus_eigthty: -80°C
+        ambient: 常温
+        buffer: 缓冲液
+        liquid: 液体
+        reagent: 试剂
+        solid: 固体
+      stock_units:
+        vials: 管
+      repository_status_value:
+        frozen: 已冷冻
+        in_subculturing: 传代中
+        out_of_tock: 缺货
+        available_for_use: 可用
+        in_use: 使用中
+        out_of_service: 停用
+        under_maintenance: 维护中
+  my_modules:
+    details:
+      title: 详情
+      info_popover:
+        project_label: 项目
+        experiment_label: 实验
+        creator_label: 创建者
+        creator_same_user_label: （你）
+        created_label: 创建于
+        modified_label: 修改于
+        modified_value: '%{date} 由 %{full_name}'
+        modified_value_without_user: '%{date}'
+        view_task_access: 访问权限
+      start_date: 开始日期：
+      no_start_date: 无开始日期
+      no_start_date_placeholder: + 添加开始日期
+      due_date: 截止日期：
+      completed_date: 完成日期：
+      no_due_date_placeholder: + 添加截止日期
+      overdue: 已逾期
+      due_soon: 即将到期
+      no_due_date: 无截止日期
+      assigned_users: 分配给：
+      no_assigned_users: 无已分配的项目成员
+      tags: 标签：
+      add_tags: + 添加标签
+      no_tags: 无标签
+      manage_tags: 管理标签
+      create_new_tag: → 新建
+      recent_protocols_from_repository: 来自模板的最近规程
+      code: ID：
+    archive:
+      steps: 无任务管理权限
+      results: 出错了
+    shareable_links:
+      share: 共享
+      shared: 已共享
+      disabled: <b>你的工作区已禁用共享功能。</b><br>请让你的工作区管理员在设置中启用共享。
+    notes:
+      title: 备注
+      no_description: 无任务描述
+      empty_description_edit_label: 添加备注
+    assigned_items:
+      title: 已分配的条目
+      assign_from: 分配来源
+      create_item: 新建条目
+      toolbar:
+        print: 打印标签
+        export_consumption: 导出消耗记录
+        assign: 分配
+        assign_downstream: 分配到任务及下游任务
+        unassign: 取消分配
+        unassign_downstream: 从任务及下游任务取消分配
+      create_modal:
+        modal_title: 创建新条目
+        description: 选择一个库存并为新条目命名
+        inventory_label: 库存
+        inventory_placeholder: 选择库存
+        inventory_item_name: 条目名称
+        create_item: 新建条目
+        checkbox_label: 标记为产出
+      direct_assign:
+        success: 已成功将条目分配到该任务。
+      repository:
+        private_repository_name: 私有库存
+        private_repository_row_name: 私有条目
+    protocol:
+      title: 规程
+      options_dropdown:
+        title: 规程操作
+        load_from_repo: 从模板加载
+        import: 导入规程
+        export: 导出规程
+        unlink: 取消关联规程
+        revert_protocol: 还原规程
+        update_protocol: 新版本更新
+        save_to_repo: 另存为新模板
+        delete_steps: 删除所有步骤
+        archive_steps: 归档所有步骤
+        add_protocol_steps: 添加规程步骤
+    description:
+      title: 编辑任务 %{module} 描述
+      label: 描述
+    due_date:
+      title: 编辑任务 %{module} 截止日期
+      label: 截止日期
+    states:
+      state_label: 状态：
+      in_progress: 进行中
+      completed: 完成于
+      completed_on: 任务已完成（%{date}）
+      due_soon: 即将到期
+      overdue: 已逾期
+    module_archive:
+      head_title: '%{project} | %{module} | 归档'
+      option_delete: 删除
+      confirm_delete: 确定要永久删除该结果吗？
+      delete_flash: 已成功从任务 <strong>%{module}</strong> 中移除结果 <strong>%{result}</strong>。
+      archive_flash: 已成功归档任务 <strong>%{module}</strong> 中的结果 <strong>%{result}</strong>
+      archived_on: 归档于
+      archived_on_title: 结果于 %{date} %{time} 归档。
+      option_download: 下载
+      no_archived_results: 暂无已归档结果！
+      archive_timelabel: 归档于 %{date}
+      restored_flash: 任务 %{module} 已成功恢复！
+    restore_group:
+      success_flash_html: <strong>%{number}</strong> 个任务已成功恢复。
+      partial_success_flash_html: 仅恢复了 <strong>%{number}</strong> 个任务。
+      error_flash: 恢复任务失败。
+    protocols:
+      head_title: '%{project} | %{module} | 规程'
+      protocol: 规程
+      protocol_status_bar:
+        protocol_id_label: ID：
+        protocol_version_label: 版本
+        private_parent: 私有
+        unlinked: 已取消关联
+        linked: 已关联
+        no_description: 无规程描述
+        enter_name: 规程标题
+        empty_description_edit_label: 添加描述
+        keywords: 关键词
+        no_keywords: 无关键词
+        protocol_created: 规程创建于：
+        template_updated: 规程模板更新于：
+        protocol_updated: 规程修改于：
+        protocol_loaded: 已加载规程模板：
+        protocol_published: 已发布规程模板：
+        messages:
+          template_updated_html: 规程模板中有此规程的新版本可用。
+          protocol_updated: 任务中此规程的版本已被修改。
+          unlinked: 此规程未关联到模板。
+        btns:
+          unlink: 取消关联规程模板
+          unlink_title: 将此规程与其在模板中的父级取消关联
+          revert: 还原规程
+          revert_title: 将规程还原到模板版本。这将丢弃所有本地修改。
+          save_to_repository: 保存到模板
+          save_a_copy_to_repository: 保存副本到模板
+          save_to_repository_title: 复制此规程到模板
+          update_self: 从模板更新
+          update_self_title: 用模板中存储的版本更新此规程
+      confirm_link_update_modal:
+        description: 该任务已包含 %{steps_count} 个步骤、%{results_count} 个结果和 %{rows_count}
+          个已分配条目。
+        unlink_title: 取消关联规程模板
+        unlink_message: 这将停止跟踪规程模板的变更。一旦取消关联，将无法再次关联。
+        unlink_btn_text: 是，取消关联
+        revert_title: 在任务上还原规程
+        revert_message_html: 点击“还原”按钮会用当前规程模板版本覆盖任务现有内容：规程步骤、条目和结果将替换任务中现有的对应内容。
+        revert_option_merge_html: <strong>保留任务现有内容</strong> 并追加所选模板内容（模板将取消关联；当前规程名称和描述保持不变）。
+        revert_option_replace_html: <strong>覆盖任务现有内容</strong>，使用当前规程模板版本：规程步骤、条目和结果将替换任务中现有的对应内容。
+        revert_btn_text: 还原
+        update_self_title: 在任务上更新规程
+        update_self_message_html: 点击“更新”按钮会用当前规程模板版本覆盖任务现有内容：规程步骤、条目和结果将替换任务中现有的对应内容。
+        update_self_option_merge_html: <strong>保留任务现有内容</strong> 并将新版本作为附加内容追加（模板将取消关联；当前规程名称和描述保持不变）。
+        update_self_option_replace_html: <strong>覆盖任务现有内容</strong>，使用最新规程模板版本：规程步骤、条目和结果将替换任务中现有的对应内容。
+        update_self_btn_text: 更新
+        warning_html: <strong>此操作不可撤销。确定要继续吗？</strong>
+      unlink_flash: 规程已成功取消关联。
+      unlink_error: 取消关联规程失败。
+      revert_flash: 规程已成功还原。
+      revert_error: 还原规程失败。
+      revert_error_locked: 还原规程失败。规程中的一个或多个文件正在被编辑。
+      update_parent_flash: 模板中的规程已使用任务中的版本成功更新。
+      update_parent_error: 更新规程的模板版本失败。
+      update_parent_error_locked: 更新规程的模板版本失败。规程中的一个或多个文件正在被编辑。
+      update_from_parent_flash: 规程已成功更新。
+      update_from_parent_error: 用模板中的版本更新规程失败。
+      update_from_parent_error_locked: 用模板中的版本更新规程失败。规程中的一个或多个文件正在被编辑。
+      load_from_repository_flash: 已成功从模板加载规程。
+      load_from_repository_error: 无法从模板加载规程。
+      load_from_repository_error_locked: 无法从模板加载规程。规程中的一个或多个文件正在被编辑。
+      load_from_repository_modal:
+        title: 加载规程模板
+        text: 此操作将覆盖任务中的当前规程，并取消其与模板的关联。当前规程在模板中保持不变。
+        text2: 选择要加载到任务的规程。
+        filter_protocols: 搜索规程
+        thead_name: 名称
+        thead_keywords: 关键词
+        thead_published_by: 发布者
+        thead_published_on: 发布于
+        thead_version: 版本
+        thead_id: ID
+        confirm_message: 确定要从模板加载规程吗？此操作将覆盖任务中的当前规程，并取消其与模板的关联。当前规程在模板中保持不变。
+        import_to_linked_task_rep: 确定要从模板加载规程吗？此操作将覆盖任务中的当前规程，并取消其与模板的关联。当前规程在模板中保持不变。
+        load: 加载规程
+        confirm_modal:
+          description: 该任务已包含 %{steps_count} 个步骤、%{results_count} 个结果和 %{rows_count}
+            个已分配条目。
+          load_description: 选择加载所选规程模板的方式：
+          option_merge_html: <strong>保留任务现有内容</strong> 并将新版本作为附加内容追加。<strong>警告</strong>：模板将取消关联；当前规程名称和描述保持不变；如果所加载模板包含带引用的表格，建议使用“覆盖任务现有内容”，因为表格表名会被重命名，可能导致新加载表格中的交叉引用无法正常工作。
+          option_replace_html: <strong>覆盖任务现有内容</strong>，使用模板：规程步骤、条目和结果将替换任务中现有的对应内容。
+          confirmation_description_html: <strong>此操作不可撤销。确定要继续吗？</strong>
+          load: 加载模板
+      copy_to_repository_modal:
+        title: 保存到规程模板
+        name_label: 模板规程名称
+        name_placeholder: 我的规程
+        type_label: 保存至
+        type_public: 工作区规程
+        type_private: 我的规程
+        type_text: 你可以复制一份规程并保存到“工作区规程”或“我的规程”。工作区规程对所有工作区成员可见，“我的规程”仅限个人使用。
+        link_label: 在模板中将该任务关联到此规程
+        link_text: <strong>警告！</strong>&nbsp;这将取消关联当前已关联的规程。
+        error_400: 由于未知错误，规程无法复制到模板。
+        success_message: 规程已成功另存为新模板。
+        confirm: 保存
+      load_from_file_flash: 已成功从文件加载规程。
+      load_from_file_error: 无法从文件加载规程。
+      load_from_file_error_locked: 无法从文件加载规程。其中一个或多个文件正在被编辑。
+      load_from_file_size_error: 无法从文件加载规程。文件大小限制为 %{size}MB。
+      load_from_file_invalid_error: 你提供的文件无效或扩展名不正确。
+      load_from_file_protocol_general_error: 无法从文件加载规程。可能是某些字段（规程及各步骤标题、名称）的字符数过多或过少（最多
+        %{max}，最少 %{min}）。
+    results:
+      head_title: '%{project} | %{module} | 结果'
+      active_results: 当前结果
+      archived_results: 已归档结果
+      default_name: 未命名结果
+      archived: 已归档
+      placeholder: 输入结果名称
+      add_label: 新结果
+      add_title: 创建新结果
+      no_results_placeholder: 此处无结果
+      new_text_result: 文本
+      new_table_result: 表格
+      new_asset_result: 文件
+      published_on_html: 由 <em>%{user}</em> 于 <em>%{timestamp}</em> 添加
+      published_on_iso_html: 由 <em>%{user}</em> 于 <em><span class='iso-formatted-date'>%{timestamp}</span></em>
+        添加
+      published_table: 于 %{timestamp} 录入了表格。
+      published_text: 于 %{timestamp} 录入了文本。
+      published_asset: 于 %{timestamp} 上传了文件。
+      drop_message: 拖放文件以添加到结果 %{name}
+      expand_label: 全部展开
+      collapse_label: 全部折叠
+      empty_name: 添加标题
+      archive_confirm: 确定要归档该结果吗？
+      info_tab: 信息
+      comments_tab: 评论
+      comment_title: '%{user} 于 %{time}：'
+      link_to_step: 关联到步骤
+      link_steps: 将步骤关联到此结果
+      linked_steps: 已关联步骤
+      modals:
+        archive:
+          title: 归档结果
+          description_1: 此结果中的表格可能包含被其他表格交叉引用的单元格。
+          description_2: 归档该步骤会保留这些交叉引用，但在步骤恢复前，其他表格中被引用的单元格可能无法正确显示，因为归档数据不可访问。
+          description_3: 确定要归档此结果吗？
+          confirm: 归档
+        restore:
+          title: 恢复结果
+          description_1: 结果将按当前生效的排序方式恢复到“结果”标签页。
+          description_2: 注意：此结果中已单独归档的组件不会自动恢复，你可随后分别恢复它们。
+          description_3: 确定要继续吗？
+          confirm: 恢复
+          success: '%{name} 已从归档中成功恢复。'
+        link_steps:
+          title: 将结果关联到规程步骤
+          description: 你可以将结果关联到多个步骤。
+          empty_description: 未找到步骤。请先添加步骤才能关联到结果。
+          steps_label: 规程步骤
+          placeholder: 选择步骤
+          link_steps: 关联步骤
+          go_to_protocol: 前往规程
+          step_label: 步骤 %{position} - %{name}
+      insert:
+        button: 插入内容
+        title: 插入结果内容
+        table: 表格
+        well_plate: 孔板
+        text: 文本
+        checklist: 检查清单
+        attachment: 文件
+        add_file: 来自你的电脑
+        checklist_item: 添加新项
+        well_plate_options:
+          custom: 自定义
+          32_x_48: 1536（32 × 48）
+          16_x_24: 384（16 × 24）
+          8_x_12: 96（8 × 12）
+          6_x_8: 48（6 × 8）
+          4_x_6: 24（4 × 6）
+          3_x_4: 12（3 × 4）
+          2_x_3: 6（2 × 3）
+      text:
+        placeholder: 输入结果文本
+      sorts:
+        updated_at_asc: 最先修改
+        updated_at_desc: 最后修改
+        created_at_asc: 最先创建
+        created_at_desc: 最后创建
+        name_asc: 名称 A 到 Z
+        name_desc: 名称 Z 到 A
+      filters:
+        query:
+          label: 包含文本
+          placeholder: 输入搜索词
+        created_at:
+          label: 创建日期
+        updated_at:
+          label: 修改日期
+      options:
+        comment_title: 评论
+        no_comments: 无评论
+        new_comment: 新评论
+        edit_title: 编辑结果
+        archive_title: 归档结果
+      actions:
+        edit_content: 管理结果内容
+        rearrange_content: 重新排列结果内容
+        archive: 归档
+        duplicate: 复制
+        restore: 恢复
+        delete: 删除
+        pin: 置顶
+        unpin: 取消置顶
+      move_modal:
+        search_placeholder: 输入结果名称
+        step:
+          no_options_placeholder: 没有可选择的步骤
+        result:
+          no_options_placeholder: 没有可选择的结果
+      delete_modal:
+        title: 删除结果
+        description_1: 你将删除该结果。其中可能包含你不想丢失的数据，且删除后无法恢复。
+        description_2: 确定要删除吗？
+        confirm: 永久删除
+    archive_results:
+      preview: 无在项目创建实验的权限
+    activities:
+      head_title: '%{project} | %{module} | 动态'
+      no_activities: 暂无动态！
+      more_activities: 更多动态
+    repository:
+      head_title: '%{project} | %{module} | 已分配条目'
+      export: 导出
+      no_assigned_items: 此任务未分配任何条目。
+      no_assigned_items_can_assign: 此任务未分配任何条目。使用右侧按钮开始分配。
+      assign_items: 分配条目
+      create_item: 新建条目
+      assigned_items_modal:
+        title: 已分配条目
+        assign_new_row: + 从其他库存分配
+        inventory: 库存：
+        empty_placeholder: 尚未分配任何条目
+      version:
+        view_version: 版本：实时版本
+        live_version: 实时版本
+        snapshot_version: 版本：%{snapshot_date}
+        snapshot_name: '%{snapshot_date}'
+        snapshot_created_by: 由 %{user}
+        pin: 设为默认视图
+        delete: 删除快照
+        delete_version_modal:
+          title: 删除快照
+          text: 确定要删除此快照吗？
+        create_snapshot: + 创建快照
+        creating_snapshot: 正在创建快照……
+      full_view:
+        modal_live_header: ：实时版本
+        modal_snapshot_header: ：%{snapshot_date} 的快照
+        assign_modal_header: 从 %{repository_name} 库存分配
+        error: 错误
+      snapshots:
+        simple_view:
+          live_bottom_label: 实时版本
+          snapshot_bottom_label: 快照版本 %{date_time}
+          snapshot_tag: 快照
+          live_tag: 实时版本
+        full_view:
+          header: 版本
+          live: 实时版本
+          live_description: 定期从库存更新
+          no_live_version: 库存已删除
+          no_assigned_items: 未分配条目
+          no_snapshots_label: 你尚未创建任何快照。要创建请点击下方按钮。
+          versions_sidebar_button: 查看版本
+          export_button: 导出条目
+          create_button: 创建快照
+          set_default_button: 设为默认视图
+          created_by: 由 %{full_name}
+          provisioning: 配置中
+      stock_modal:
+        title: 消耗 %{name}
+        title_edit: 编辑 %{name} 消耗记录
+        description: 输入此任务消耗的总数量。
+        amount: 数量
+        consumed: 已消耗
+        comment: 备注（可选）
+        enter_comment: 输入备注
+      stock_warning_modal:
+        title: 库存不足！
+        description_html: 消耗 <strong>%{value}</strong> 将导致超出当前库存，造成库存为负数。
+        consume_anyway: 仍然消耗
+      assign_modal:
+        title: 分配条目
+        title_downstream: 将条目分配到此任务及下游任务
+        description: 你将把 %{number} 个条目分配到以下任务：
+        current: （当前任务）
+        description_2: 确定要分配吗？
+        action: 分配
+        action_task: 分配到任务
+        action_task_and_downstream: 分配到任务及下游任务
+        no_repository_selected: 选择一个库存以开始分配条目
+        assignment_disclaimer: 一次只能分配同一库存中的条目。切换库存会取消所有已选项。
+      unassign_modal:
+        title: 取消分配条目
+        message: 你将从此任务中取消分配 <b>%{number} 个条目</b>。
+        message_2: 你随时可以重新将条目分配回任务。
+        message_downstream: 你将从以下任务中取消分配 <b>%{number} 个条目</b>：
+        current: （当前任务）
+        confirmation: 确定要继续吗？
+        action: 取消分配
+        action_downstream: 从任务及下游任务取消分配
+      flash:
+        assign_to_task_html: 已成功将 <strong>%{assigned_items}</strong> 个条目分配到任务。
+        assign_to_task_and_downstream_html: 已成功将 <strong>%{assigned_items}</strong>
+          个条目分配到任务及下游任务。
+        unassign_from_task_html: 已成功从任务中取消分配 <strong>%{unassigned_items}</strong>
+          个条目。
+        unassign_from_task_and_downstream_html: 已成功从任务及下游任务中取消分配 <strong>%{unassigned_items}</strong>
+          个条目。
+        assign_and_unassign_from_task_html: 已成功在任务中分配 <strong>%{assigned_items}</strong>
+          个、取消分配 <strong>%{unassigned_items}</strong> 个条目。
+        assign_and_unassign_from_task_and_downstream_html: 已成功在任务及下游任务中分配 <strong>%{assigned_items}</strong>
+          个、取消分配 <strong>%{unassigned_items}</strong> 个条目。
+        update_error: 更新条目时出错。
+    modals:
+      status_flow_modal:
+        title: 任务状态流转
+        current_status: 当前状态
+        done: 已完成
+      update_repository_record:
+        title: 将 %{repository_name} 条目更新到 %{my_module_name} 任务
+        title_downstream: 将 %{repository_name} 条目更新到任务及下游任务
+        message: 是否要更新此任务的 %{size} 个条目？
+        message_downstream_1: 这 %{size} 个条目将在本任务及下游任务中更新。
+        message_downstream_2: 这些条目将在以下任务中更新。准备好更新了吗？
+        next: 下一步
+        task: 更新任务
+        task_and_downstream: 更新任务及下游任务
+        newly_assigned_items: 新分配的条目
+        items_will_be_removed: 将要移除的条目
+      assign_repository_record:
+        title: 将 %{repository_name} 条目分配到任务 %{my_module_name}
+        title_downstream: 将 %{repository_name} 条目分配到任务及下游任务
+        message: 你将仅把 %{size} 个条目分配到此任务。确定要分配吗？
+        message_downstream: 你将把 %{size} 个条目分配到以下任务。确定要分配吗？
+        current_task: 当前任务
+        hidden_tasks: 无权限：有 %{size} 个任务你无法分配。
+        task: 分配到任务
+        task_and_downstream: 分配到任务及下游任务
+      transition_snapshot_error:
+        title: 无法更改状态
+        body_html: 任务无法切换到下一状态，因为 <strong>%{repository}</strong> 库存快照生成失败。如问题持续，请联系技术支持。
+      snapshot_error:
+        title: 快照错误
+        body_html: <strong>%{repository}</strong> 库存快照生成失败。如问题持续，请联系技术支持。
+      reorder_results:
+        title: 重新排列结果内容
+    modules_list_partial:
+      private_tasks_html: 分配给 <strong>%{nr}</strong> 个私有任务
+      no_results:
+        title: 未找到结果
+        description: 尝试其他搜索请求
+    unshared_inventory:
+      title_html: 库存 <b>%{inventory_name}</b> 已不再与你的工作区共享。
+      body_html: 该库存的所有者已取消与你的工作区的共享。若要查看分配给你的任务的条目，请联系 <b>%{team_name}</b> 工作区管理员
+        <b>%{admin_name}</b>（<b>%{admin_email}</b>）。
+    open_mobile_app: 打开移动端应用
+    status_error:
+      general: 状态切换失败
+      repository_snapshot: '%{repository} 库存快照生成失败'
+  experiments:
+    id: 表格
+    experiment_id: 实验操作
+    experiment_actions: 该实验暂无已归档任务。
+    header:
+      cards: 前往已归档实验
+      table: 卡片
+      active_experiments: 实验 ID
+      archived_experiments: 前往进行中的实验
+    toolbar:
+      new_button: 移动
+      new_button_tooltip: 新建实验
+      description_button: 归档
+      edit_button: 复制
+      duplicate_button: 描述
+      move_button: 编辑详情
+      archive_button: 表格
+      restore_button: 创建新实验
+    card:
+      name: 更多
+      id: 描述
+      start_date: 实验名称
+      modified_date: ID
+      archived_date: 添加描述
+      completed_task: 归档于
+      completed_value: '%{completed}/%{all} 个任务'
+      description: 已完成
+      more: 更新于
+      add_description: 缩放：
+    index:
+      edit_option: 截止日期
+      clone_option: 归档
+      move_option: 更多
+      archive_option: 添加开始日期
+      restore_option: 移动
+      more_link: 选择实验状态
+      experiment_access: 编辑
+      add_due_date: 添加描述
+      add_start_date: 添加截止日期
+      add_description: ID
+      due_date: 复制
+      start_date: 恢复
+      details_modal:
+        description: '%{name} 描述'
+      filters:
+        status: 访问权限
+        status_placeholder: 状态
+    new:
+      create: 无权限：你并非对所有实验任务都拥有编辑权限。
+      modal_title: 创建
+      modal_create: 描述
+      name: 新建实验
+      name_placeholder: 实验名称
+      description: 新建实验
+    edit:
+      modal_title: 保存
+      modal_create: 编辑详情
+      label_title: 向实验添加任务……
+      panel_label: 无工作流
+      add-description: 正在复制内容……
+      no-description: 编辑实验详情
+      no_workflowimg: 无描述
+      add_task: 添加描述……
+    create:
+      success_flash: 已成功将实验 %{experiment} 另存为模板。
+      error_flash: 无法创建新实验。
+    update:
+      success_flash: 已成功更新实验 %{experiment}
+      error_flash: 恢复
+    archive:
+      success_flash: 已成功归档实验 %{experiment}
+      error_flash: 你请求的操作被拒绝（422）。
+      label_title: 无法归档该实验。
+    archive_group:
+      success_flash: <strong>%{number}</strong> 个实验已成功归档。
+      error_flash: 归档
+    restore_group:
+      success_flash: <strong>%{number}</strong> 个实验已成功恢复。
+      error_flash: 我的实验
+    clone:
+      modal_title: 将实验 %{experiment} 另存为模板
+      label_title: 无法将实验另存为模板。
+      modal_submit: 另存为模板
+      success_flash: 将实验 %{experiment} 另存为模板
+      error_flash: （当前项目）
+      current_project: 创建于
+    duplicate_tasks:
+      success: 已成功将 %{count} 个任务另存为模板。
+      duplicating: 正在复制内容……
+    move:
+      modal_title: 移动
+      notice: 无项目：你对其他任何项目都没有编辑权限。
+      target_project: 可移动到你拥有创建实验和任务权限的项目。
+      label_title: 无法移动该实验。实验名称已被占用。
+      modal_submit: 移动
+      success_flash: 已成功移动实验 %{experiment}
+      error_flash: 恢复
+      task_permission: 目标项目
+      no_projects: 移动实验
+    table:
+      head_title: '%{experiment} | 概览'
+      move_success_flash: 将实验移动到项目 %{project} 失败。
+      move_error_flash: 将实验移动到项目 %{project} 失败。
+      column:
+        id_html: 收藏
+        task_name_html: 标签
+        due_date_html: 已完成任务
+        start_date_html: 结果
+        archived_html: 时长
+        age_html: 归档任务失败。
+        results_html: + 添加开始日期
+        status_html: 未开始
+        assigned_html: 归档于
+        tags_html: 状态
+        comments_html: 分配给
+        completed_task: 评论
+        no_due_date_placeholder: 未设置
+        no_due_date: ID
+        no_start_date_placeholder: + 添加截止日期
+        favorite: 截止日期
+        status:
+          not_started: 进行中
+          in_progress: 已完成
+          done: 开始日期
+      modal_move_modules:
+        title: 选择项目
+        description: 移动
+        project: 没有可移动此任务的实验。
+        experiment: 可移动到你拥有创建实验和任务权限的项目。
+        select_project: 选择实验
+        select_experiment: 项目
+        confirm: 选择任务标签
+        no_experiments: 实验
+        success_flash: 已成功将任务移动到实验 %{experiment}。
+        error_flash: 将任务移动到实验 %{experiment} 失败。
+      column_display_modal:
+        title: 任务名称
+        description: 重置为默认值
+        reset_to_default: ID
+        confirmation:
+          title: 重置后，列的顺序、宽度和可见性将恢复为默认值。<br><br><b>确定要重置为默认吗？</b>
+          description_html: 重置
+          confirm: 评论
+        id: 截止日期
+        task_name: 标签
+        due_date: 点击眼睛按钮可隐藏或显示表格中的列
+        archived: 时长
+        age: 任务名称
+        results: 重置为默认
+        status: 结果
+        assigned: 已归档
+        tags: 状态
+        comments: 分配给
+      toolbar:
+        new: 移动
+        new_tooltip: 新建任务
+        edit: 复制
+        archive: 管理指派人
+        restore: 创建新任务
+        move: 管理列
+        duplicate: 归档
+        task_access: 恢复
+        task_data: 任务访问权限
+        manage_columns_tooltip: 编辑
+      my_module_actions:
+        title: 恢复
+        edit: 复制
+        duplicate: 归档
+        move: 编辑
+        access: 访问权限
+        archive: 访问权限
+        restore: 移动
+      filters:
+        name: 截止日期
+        due_date: 选择任务指派人
+        status: 任务名称
+        status_placeholder: 状态
+        tags: 选择任务状态
+        tags_placeholder: 标签
+        assigned: 管理列
+        assigned_placeholder: 分配给
+      view:
+        canvas: 前往已归档任务
+        table: 卡片
+        cards: 画布
+        archived_tasks: 前往进行中的任务
+        active_tasks: 使用过的标签
+      add_tag: 恢复实验失败。
+      used_tags: 任务数据显示
+      search: 未设置
+      not_set: 任务操作
+      archive_group:
+        success_flash: <strong>%{number}</strong> 个任务已成功归档。
+        error_flash: + 添加标签
+    canvas:
+      archive_confirm: 实验
+      actions: 无法归档实验。
+      view: 实验已成功更新。
+      head_title: '%{project} | 概览'
+      canvas_edit: 确定要归档该实验吗？
+      canvas_empty: 编辑工作流
+      new_my_module: 新建任务
+      new_my_module_tooltip: 新建任务
+      new_my_module_modal:
+        title: 输入任务名称
+        name: 添加截止日期
+        name_placeholder: 任务名称
+        due_date: 创建任务
+        due_date_placeholder: 截止日期（可选）
+        assigned_tags_label: 新建任务
+        assigned_tags_placeholder: 添加标签（可选）
+        assigned_users: 添加标签
+        assigned_users_placeholder: 分配给（可选）
+        create: 分配给项目成员
+      zoom: 查看
+      reload_on_submit: 任务分配给
+      modal_manage_tags:
+        head_title: 添加一组标签以标记该项目内的任务。
+        head_title_read: 管理标签
+        subtitle: 从任务 %{module} 中移除标签。
+        no_tags: 标签名称
+        edit_tag: 删除标签会从所有已标记任务中移除该标签，且无法恢复。<br><br><b>确定要继续吗？</b>
+        remove_tag: 从任务 %{module} 中移除标签。
+        delete_tag: 新建标签
+        delete_tag_confirmation: 从所有任务中永久删除该标签。
+        explanatory_text: 编辑标签。
+        project_tags: '%{project} 项目标签'
+        save_tag: 保存标签。
+        cancel_tag: 无法查看任务
+        create: 取消对标签的修改。
+        create_new: 添加
+        new_tag_name: 标签
+      edit:
+        id: 重命名任务
+        new_module: 将工作流移动到其他实验
+        new_module_hover: 新建任务
+        save: 选项
+        save_short: 保存工作流
+        cancel: 这里空空如也，请添加一些任务。
+        unsaved_work: 访问权限
+        drag_connections: 归档工作流
+        no_module_id: 拖动我到画布上
+        options_header: 保存后分配
+        edit_module: 从此处拖动连线
+        task_access: 保存
+        clone_module: 取消
+        clone_module_group: 将任务另存为模板（仅复制规程步骤）
+        clone_prefix: 将工作流另存为模板（仅复制规程步骤）
+        move_module: 新建任务
+        move_module_group: 移动
+        delete_module: 克隆 -
+        delete_module_group: 归档任务
+        modal_new_module:
+          title: 我的任务
+          name: 创建任务
+          name_placeholder: 任务名称
+          confirm: 将工作流移动到实验
+        modal_edit_module:
+          title: 任务名称
+          name: 重命名
+          confirm: 归档工作流
+        modal_move_module:
+          title: 没有可移动此任务的实验。
+          confirm: 重命名任务
+          no_experiments: 移动
+        modal_move_module_group:
+          title: 没有可移动此工作流的实验。
+          confirm: 将任务移动到实验
+          no_experiments: 移动
+        modal_delete_module:
+          title: 归档
+          confirm: ID：
+          message: 确定要归档任务 %{module} 吗？该任务的定位将被移除。
+        modal_delete_module_group:
+          title: 归档
+          confirm: 归档任务
+          message: 确定要归档 %{module} 所属的 workflow 任务吗？该工作流中所有任务的定位都将被移除。
+      popups:
+        info_tab: 编辑描述
+        no_description: 暂无评论！
+        full_info: 评论
+        users_tab: 该任务暂无指派人。
+        no_users: 该任务暂无描述。
+        manage_users: 任务信息
+        module_user_join: 加入时间：%{date}。
+        module_user_join_full: '%{user} 于 %{date} %{time} 加入。'
+        activities_tab: 新建任务
+        no_activities: 新评论
+        more_activities: 管理用户
+        comments_tab: 你的留言
+        no_comments: 暂无动态！
+        more_comments: 全部动态
+        comment_placeholder: 动态
+        new_comment: 更多评论
+      full_zoom:
+        due_date: 确定要离开此页面吗？所有未保存的数据都会丢失。
+        no_due_date: 你无权查看此任务
+        status_transitioning_label: 未设置
+        no_access: 无用户
+        modal_manage_users:
+          modal_title: 邀请用户
+          no_users: 管理用户：
+          user_join: 加入时间：%{date}。
+          user_join_full: '%{user} 于 %{date} %{time} 加入。'
+          create: 截止
+          invite_users_link: 添加
+          invite_users_details: 至工作区 %{team}。
+          contact_admins: 如需邀请更多用户加入工作区 %{team}，请联系其管理员。
+      medium_zoom:
+        no_access: 正在切换到：
+      update:
+        success_flash: 保存操作正在进行中。刷新此页面可能会导致异常行为。
+    module_archive:
+      head_title: '%{experiment} | 已归档任务'
+      restore_option: 移动
+      move_option: 归档于
+      archived_on: 开始日期
+      archived_on_title: 任务归档于 %{date} %{time}。
+    empty_state:
+      no_archived_modules: 该实验已归档，不能有进行中的任务。
+      no_active_modules: 更改详情
+      no_active_modules_archived_branch: 该实验暂无进行中的任务。
+  shareable_links:
+    modal:
+      title: 共享任务
+      sharing_toggle_label: 链接共享
+      description_placeholder: 为访客添加可选的留言。
+      sharing_link_label: 共享链接
+      copy_button: 复制
+      disclaimer: 任何持有链接的人都可以查看此任务的规程和结果页面。
+      too_long_text: 文本过长（最多 %{counter} 个字符）
+      copy_success: 共享链接已复制到剪贴板
+    destroy_modal:
+      title: 停用共享链接
+      description: 此操作将永久停用共享链接。任何持有该链接的用户都将无法再访问该任务。
+      deactivate: 停用
+    left_navigation:
+      welcome: 欢迎使用 SciNote！
+      title: SciNote 电子实验记录本（ELN）软件
+      description_1: SciNote 是一款领先的 ELN（电子实验记录本），提供库存、合规与工作区管理工具，已被 FDA、USDA 以及超过
+        10 万名科研工作者使用。
+      description_2: 我们的用户最喜欢什么？
+      description_3:
+        bullet_point_1: 易用性
+        bullet_point_2: 支持质量
+        bullet_point_3: 部署便捷
+      free_trial: 免费试用
+    welcome_modal:
+      title: 欢迎使用 SciNote
+      description: 你已被邀请查看 %{my_module}。
+      view_task_btn: 查看任务
+    linked_results: '%{count} 个关联结果'
+  tags:
+    index:
+      new_tag: 新建标签
+      tag_name: 标签名称
+      color: 颜色
+      used_in: 用于
+      created_by: 创建者
+      created_on: 创建于
+      updated_on: 更新于
+      tag_name_placeholder: 输入标签名称
+      too_short_name: 过短（最少 %{count} 个字符）
+      too_long_name: 过长（最多 %{count} 个字符）
+      places: 处
+      place: 处
+      toolbar:
+        delete: 删除
+        merge: 合并到
+    merge_modal:
+      title: 合并标签
+      description_html: 所选标签将合并到你下方选择的目标标签。它们在使用位置会被替换，然后被删除。
+      target_tag: 目标标签
+      target_tag_placeholder: 搜索要合并到的标签
+      merge: 合并
+      merge_success: 标签合并成功。
+      merge_error: 合并标签时出错。
+    delete_modal:
+      single_title: 删除标签 %{tag}
+      multiple_title: 删除 %{count} 个标签
+      single_description_html: 删除标签也会将其从所有使用位置（%{count} 处）移除。<br><br>此操作不可撤销。<br><br><b>确定要删除此标签吗？</b>
+      multiple_description_html: 删除 %{tags_count} 个标签也会将其从所有使用位置（%{count} 处）移除。<br><br>此操作不可撤销。<br><br><b>确定要删除这些标签吗？</b>
+      confirm: 删除
+    tags_input:
+      add_tag: 添加标签
+      edit_tags: 编辑标签
+      create_tag: 创建标签
+      placeholder: 输入以添加标签
+      no_options_found: 未找到选项
+    manage_modal:
+      title: 编辑标签
+      description: 本工作区中的标签由所有成员共享。任何有权限的成员均可创建或编辑标签，所有更改会应用到标签被使用的任何地方。
+      create_tag: 创建标签
+      type_tag_name: 输入标签名称
+      manage_tags: 管理标签
+      validation_failed: 校验失败：%{errors}
+  result_texts:
+    new:
+      head_title: '%{project} | %{module} | 添加文本结果'
+      title: 向任务 %{module} 添加结果
+      create: 添加
+    edit:
+      head_title: '%{project} | %{module} | 编辑文本结果'
+      title: 编辑任务 %{module} 的结果
+      update: 更新
+    create:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中添加文本结果
+    update:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中更新文本结果
+    archive:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中归档文本结果
+    destroy:
+      success_flash: 文本结果已成功删除。
+  result_assets:
+    new:
+      head_title: '%{project} | %{module} | 添加文件结果'
+      title: 向任务 %{module} 添加结果
+      create: 添加
+    edit:
+      head_title: '%{project} | %{module} | 编辑文件结果'
+      title: 编辑任务 %{module} 的结果
+      uploaded_asset: 已上传文件
+      update: 更新
+      locked_file_error: 此文件正被他人编辑。
+      label:
+        name: 名称
+    create:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中添加文件结果
+    update:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中更新文件结果
+    archive:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中归档文件结果
+      error_flash: 无法归档文件结果。该文件正被他人编辑。
+    destroy:
+      success_flash: 文件结果已成功删除。
+    wopi_open_file: 在 %{app} 中打开
+    wopi_edit_file: 在 %{app} 中打开
+    wopi_word: 网页版 Microsoft Word
+    wopi_excel: 网页版 Microsoft Excel
+    wopi_powerpoint: 网页版 Microsoft PowerPoint
+    error_flash: 出错了！请稍后重试。
+  result_tables:
+    new:
+      head_title: '%{project} | %{module} | 添加表格结果'
+      title: 向任务 %{module} 添加结果
+      create: 添加
+      label:
+        name: 名称
+    edit:
+      head_title: '%{project} | %{module} | 编辑表格结果'
+      title: 编辑任务 %{module} 的结果
+      update: 更新
+      label:
+        name: 名称
+    create:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中添加表格结果
+    update:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中更新表格结果
+    archive:
+      success_flash: 已成功在任务 <strong>%{module}</strong> 中归档表格结果
+    destroy:
+      success_flash: 表格结果已成功删除。
+  repositories:
+    private: 私有库存
+    repository: 库存：%{name}
+    snapshot_failed: 快照失败
+    repository_column:
+      private: 私有列
+    icon_title:
+      i_shared: 共享库存（由你的工作区拥有）
+      shared_edit: 共享库存（由 %{team_name} 拥有）。你可编辑。
+      shared_read: 共享库存（由 %{team_name} 拥有）。你仅可查看。
+    index:
+      active_reminders:
+        label: 生效中的提醒
+        short_label: 提醒……
+        description: 仅显示生效中的提醒
+        checked_description: 显示全部条目
+      head_title: 库存
+      title: 库存
+      empty_title: 你的工作区还没有任何库存
+      empty_description_no_create: 浪费这么多空间实在可惜。遗憾的是你无权添加库存，可以向工作区管理员申请授予该权限。
+      empty_description_with_create: 浪费这么多空间实在可惜，现在就创建你的第一个库存吧
+      sidebar_instructions: 创建库存后，库存列表将显示在此处，便于你在不同库存之间快速切换。
+      sidebar_repo1: 试剂
+      sidebar_repo2: 样本
+      sidebar_repo3: 设备
+      add_new_repository_tab: 添加库存
+      delete_flash: 库存“%{name}”已成功删除！
+      rename_flash: 已将“%{old_name}”库存成功重命名为“%{new_name}”！
+      copy_flash: 已将“%{old}”库存成功复制为“%{new}”！
+      columns: 管理列
+      edit_inventory: 编辑库存
+      share_inventory: 共享
+      view_only_permission_label: 你只有查看权限
+      show_per_page: 每页显示 %{number} 条
+      filter_inventory: 搜索库存
+      no_inventories: 此处无库存
+      no_inventories_matched: 没有库存匹配你的搜索请求
+      no_archived_inventories: 此处无已归档库存
+      no_archived_inventories_matched: 没有已归档库存匹配你的搜索请求
+      snapshot_provisioning_in_progress: 正在创建快照时，编辑功能已禁用，请稍候片刻。
+      options_dropdown:
+        import_items: 导入
+        export_items: 导出
+        rename: 重命名库存
+        copy: 复制库存
+        delete: 删除库存
+        archive: 归档库存
+        restore: 恢复库存
+      modal_delete:
+        title_html: 删除库存：%{name}
+        message_html: 确定要删除库存 <em>%{name}</em> 吗？此操作不可撤销。
+        alert_heading: 删除库存会带来以下后果：
+        alert_line_1: 库存内的所有数据都将丢失；
+        alert_line_2: 所有指向库存条目的引用都将失效；
+        alert_line_3: 若存在任务分配的条目快照，其访问将遵循任务级权限。
+        delete: 删除
+      modal_rename:
+        title_html: 重命名库存：%{name}
+        name: 库存名称
+        name_placeholder: 我的库存
+        rename: 保存
+      modal_copy:
+        title_html: 复制库存：%{name}
+        name: 新库存名称
+        description: 仅复制库存的结构。
+        name_placeholder: 我的库存
+        copy: 复制
+      modal_export:
+        title: 导出库存
+        description_p1_html:
+          one: 你即将导出 %{team_name} 工作区中的 <strong>1</strong> 个库存。
+          other: 你即将导出 %{team_name} 工作区中的 <strong>%{count}</strong> 个库存。
+        description_alert: 根据文件大小，此过程可能需要几分钟到数小时。之后输入的任何新数据都不会包含在导出中。
+        description_p2: 下载文件就绪后，你会收到邮件和通知。出于安全原因，该链接将在 7 天后过期。
+        description_p3_html: 本次导出后，你今天还剩 <strong>%{remaining_export_requests}</strong>
+          次导出请求（每日上限 %{requests_limit} 次）。
+        export: 导出
+      modal_export_limit_exceeded:
+        title: 导出被拒绝
+        error_p1_html: 看来你已超过每日导出限额。导出次数<strong>每天限制为 %{limit} 次请求</strong>——你当前剩余
+          0 次导出请求。
+        error_p2_html: 请在<strong>明天</strong>重复所需操作，届时你的每日限额将重置为 %{limit} 次导出请求。
+      modal_create:
+        title: 创建新库存
+        name_label: 库存名称
+        name_placeholder: 我的库存
+        submit: 创建
+        success_flash_html: 库存 <strong>%{name}</strong> 创建成功。
+        repository_template_label: 选择库存模板
+        only_system_defined_columns: 仅系统定义的列。
+      modal_confirm_sharing:
+        title: 库存共享更改
+        description_1: 你将不再与部分工作区共享此库存。所有已分配到任务的未共享库存条目将被自动移除，且该操作不可撤销。任何条目关联关系链接（如存在）也将被删除。
+        description_2: 确定要应用你所做的更改吗？
+        confirm: 应用
+      export:
+        notification:
+          error:
+            title: 你的库存导出失败，请联系技术支持。
+      table:
+        access: 访问权限
+    show:
+      name: 名称
+      archived_inventory_items: '%{repository_name} 已归档条目'
+      archived_inventory: 已归档 %{repository_name}
+      inventory_archived_items: '%{repository_name} 已归档条目'
+      subtitle: 由 %{team_name} 拥有
+      your_team: 你的工作区
+      show_active_items: 显示活动条目
+      show_archived_items: 显示已归档条目
+      archived_view_label:
+        active: 这些是来自 %{repository_name} 库存中单独归档的条目。该库存本身仍处于活动状态。
+        archived_on: 库存归档于
+        archived_by: 由
+      filter_inventory_items: 搜索条目
+      filter_inventory_items_with_ean: 使用条码搜索
+      search_button_tooltip: 快速搜索
+      ean_search_button_tooltip: 条码搜索
+      no_items: 此处无条目
+      no_items_matched: 此处无条目
+      no_archived_items: 此处无已归档条目
+      no_stock: 无条目库存
+      no_archived_items_matched: 此处无已归档条目
+      error_searching: 搜索出错，请重试
+      button_tooltip:
+        new: 创建新条目
+        import: 导入条目
+        filters: 筛选条件
+        search: 快速搜索
+      filters:
+        save_filters: 保存筛选条件
+        new_filter: 新筛选条件
+        overwrite_filter: 覆盖
+        title: 筛选条件
+        clear: 清除
+        add_filter: 添加筛选条件
+        apply: 显示结果
+        delete_saved_filter: 删除已保存的筛选条件
+      repository_filter:
+        errors:
+          column_not_found: 筛选失败，因为一个或多个列已不存在，请更新你的筛选条件。
+          value_not_found: 筛选失败，因为部分筛选值已不存在，请更新你的筛选条件。
+        enter_value: 输入文本
+        filters:
+          operators:
+            contains: 包含
+            does_not_contain: 不包含
+            contains_relationship: 包含关联关系
+            does_not_contain_relationship: 不包含关联关系
+            equal_to: 等于
+            unequal_to: 不等于
+            greater_than: 大于
+            greater_than_or_equal_to: 大于或等于
+            less_than: 小于
+            less_than_or_equal_to: 小于或等于
+            between: 介于
+            today: 今天
+            yesterday: 昨天
+            last_week: 上周
+            this_month: 本月
+            this_year: 今年
+            last_year: 上一年
+            empty: 为空
+            any_of: 任一为
+            all_of: 全部为
+            none_of: 均不为
+            file_contains: 文件包含
+            file_attached: 已附加文件
+            file_not_attached: 未附加文件
+            date:
+              'on': 在
+              after: 之后
+              before: 之前
+              not_on: 不在
+            tooltips:
+              today: 今天（零点到零点）
+              yesterday: 过去 24 小时
+              last_week: 上一日历周（周一到周日）
+              this_month: 当前日历月（当月第一天到最后一天）
+              this_year: 当前日历年（1月1日至12月31日）
+              last_year: 上一日历年（1月1日至12月31日）
+          types:
+            RepositoryNonEmptyTextValue:
+              input_placeholder: 输入 %{name}
+            RepositoryAssetValue:
+              input_placeholder: 输入文本
+            RepositoryTextValue:
+              input_placeholder: 输入 %{name}
+            RepositoryRelationshipValue:
+              input_placeholder: 输入关联项 ID 或名称
+            RepositoryNumberValue:
+              input_placeholder: 输入 %{name}
+              to_placeholder: 至
+              from_placeholder: 从
+            RepositoryMyModuleValue:
+              select_placeholder: 选择任务
+              multiple_selected: 已选任务
+              all_selected: 已选择全部任务
+            RepositoryListValue:
+              select_placeholder: 选择 %{name}
+              multiple_selected: 已选项
+              all_selected: 已选择全部项
+            RepositoryStatusValue:
+              select_placeholder: 选择 %{name}
+              multiple_selected: 已选项
+              all_selected: 已选择全部项
+            RepositoryChecklistValue:
+              select_placeholder: 选择 %{name}
+              multiple_selected: 已选项
+              all_selected: 已选择全部项
+            RepositoryUserValue:
+              select_placeholder: 选择用户
+              multiple_selected: 已选用户
+              all_selected: 已选择全部用户
+            RepositoryStockValue:
+              input_placeholder: 输入数值
+              to_placeholder: 至
+              from_placeholder: 从
+              all_units: 全部单位
+              no_unit: 无单位
+    table:
+      id: 条目 ID
+      external_id: 外部 ID
+      assigned: 已分配
+      assigned_tasks: 已分配到任务
+      assigned_search: 搜索……
+      assigned_tooltip: '%{tasks} 个任务，分布于 %{experiments} 个实验、%{projects} 个项目'
+      row_name: 名称
+      added_on: 创建于
+      added_by: 添加者
+      updated_on: 更新于
+      updated_by: 更新者
+      archived_on: 归档于
+      archived_by: 归档者
+      relationships: 关联关系
+      children: 子项
+      parents: 父项
+      locations: 库位
+      row_consumption: 已消耗
+      enter_row_name: 输入名称
+      locked_item: 这是只读条目。
+      assets:
+        select_file_btn: 选择文件（最大 %{max_size} MB）……
+      text:
+        errors:
+          too_long: 文本过长（最多 %{max_length} 个字符）
+        enter_text: 输入文本
+      number:
+        enter_number: 输入数量
+        errors:
+          wrong_format: 数字格式不正确
+      list:
+        select_item: 选择……
+      status:
+        set_status: 设置状态……
+      checklist:
+        set_checklist: 设置检查清单……
+      date_time:
+        errors:
+          set_all_or_none: 需要同时设置两者，或都不设置
+          not_valid_range: 范围无效。
+      name:
+        errors:
+          too_long: 条目名称过长（最多 %{max_length} 个字符）
+          is_empty: 条目名称不能为空
+      row_locked: 该条目已锁定，快照正在生成中。请稍后再试。
+    pagination_edit_overlay_html: 请在前往其他页面前<a class="repository-save-changes-link">保存你的更改</a>
+    toolbar_edit_overlay_html: 请在前往其他页面前<a class="repository-save-changes-link">保存你的更改</a>以使用筛选条件
+    add_new_record: 新项目
+    parse_sheet:
+      help_text: 将上传文件的列与数据库中已有的列进行匹配。
+      scinote_columns_html: <em>SciNote</em> 列：
+      file_columns: 已导入列：
+      example_value: 导入文件内容：
+      do_not_include_column: 不包含此列
+      edit_existing_items_checkbox: 编辑现有条目
+      overwrite_with_empty_cells: 用空单元格覆盖
+      errors:
+        invalid_file: 你提供的文件无效，请确保文件使用 %{encoding} 编码。
+        invalid_extension: 文件扩展名无效。
+        empty_file: 你选择了空文件，没有太多可导入的内容。
+        temp_file_failure: 无法创建临时文件，请联系管理员。
+        items_min_limit: 导入文件内容不符合条件
+        no_file_selected: 你未选择任何文件。
+        errors_list_title: 由于发现一个或多个错误，条目未被导入：
+        list_row: 第 %{row} 行
+        list_error: '%{key}：%{val}'
+    import_records:
+      update_inventory: 导入条目
+      steps:
+        step1:
+          id: step1
+          icon: sn-icon-open
+          label: 步骤 1
+          title: 导入条目
+          subtitle: 库存导入支持新增条目或更新现有数据。请确保导入文件包含列标题名称。为便于导入，可导出包含现有条目的完整库存，或仅导出库存列模板。
+          helpText: 帮助
+          exportTitle: 导出
+          exportFullInvBtnText: 导出所有条目
+          exportEmptyInvBtnText: 下载库存模板
+          importTitle: 导入
+          importBtnText: 导入
+          cancelBtnText: 取消
+          dragAndDropSupportingText: .csv、.xlsx、.txt 或 .tsv 文件
+        step2:
+          id: step2
+          icon: sn-icon-open
+          label: 步骤 2
+          title: 映射数据
+          subtitle: 将导入文件的列与库存中的现有列进行匹配，以完成条目导入。
+          selectNamePropertyError: 选择要导入条目的名称属性字段。
+          autoMappingText: 自动映射
+          autoMappingTooltip: 选择自动映射时，SciNote 会自动连接名称匹配的列；未选择时，需要手动映射每一列。
+          updateEmptyCellsText: 覆盖空单元格
+          onlyAddNewItemsText: 仅新增条目
+          importedFileText: 导入文件：
+          cancelBtnText: 取消
+          confirmBtnText: 确认
+          importedIgnoredSection: <b>%{imported}</b> 列<b>待导入。</b> <b>%{ignored}</b>
+            列<b>已忽略。</b>
+          systemColumns:
+            added_by: 添加者
+            created_on: 创建于
+            updated_by: 更新者
+            updated_on: 更新于
+            archived_by: 归档者
+            archived_on: 归档于
+            parents: 父项
+            children: 子项
+          computedDropdownOptions:
+            name: 名称
+            id: ID
+            RepositoryTextValue: 文本
+            RepositoryNumberValue: 数字
+            RepositoryAssetValue: 文件
+            RepositoryChecklistValue: 检查清单
+            RepositoryDateRangeValue: 日期范围
+            RepositoryDateTimeRangeValue: 日期时间范围
+            RepositoryDateTimeValue: 日期时间
+            RepositoryDateValue: 日期
+            RepositoryTimeValue: 时间
+            RepositoryListValue: 下拉
+            RepositoryStatusValue: 状态
+            RepositoryStockValue: 库存
+          table:
+            tableRow:
+              placeholders:
+                matchNotFound: 未找到匹配
+                doNotImport: 不导入
+              matchNotFoundColumnTitle: 未找到列匹配。
+              importedColumnTitle: 该列将被导入。
+              doNotImportColumnTitle: 该列不会被导入。
+              newColumnType:
+                text: 文本
+                list: 下拉
+              systemGeneratedData:
+                itemId: 条目 ID
+                createdOn: 创建于
+                addedBy: 添加者
+                addedOn: 添加于
+                archivedBy: 归档者
+                archivedOn: 归档于
+                updatedBy: 更新者
+                updatedOn: 更新于
+            columnLabels:
+              number: 序号
+              importedColumns: 已导入列
+              scinoteColumns: SciNote 列
+              status: 状态
+              exampleData: 示例数据
+        step3:
+          title: 导入预览
+          subtitle: 此预览显示本次导入将对 %{inventory} 库存产生的更改。将被更新的值以绿色标记；红色显示错误的条目不会被导入。导入状态提供了更多详情，此阶段仍可取消导入。
+          updated_items: 已更新
+          new_items: 新
+          unchanged_items: 未改变
+          duplicated_items: 重复
+          invalid_items: 无效
+          archived_items: 已归档
+          code: 条目 ID
+          name: 名称
+          status: 状态
+          cancel: 取消导入
+          import: 导入
+          status_message:
+            created: 新条目
+            updated: 已更新
+            unchanged: 未改变
+            not_exist: 条目 ID IT%{id} 在该库存中不存在
+            archived: 已归档
+            invalid: 无效条目
+            duplicated: 导入文件中存在重复的条目 ID
+        step4:
+          title: 成功报告
+          subtitle: '%{inventory} 已成功更新。'
+          import_date: 导入日期：
+          imported_file: 导入文件：
+          download_report: 下载成功报告
+          close: 关闭
+      info_sidebar:
+        title: 条目导入指南
+        elements:
+          element0:
+            id: el0
+            icon: sn-icon-export
+            label: 导出库存
+            subtext: 在进行更改前，建议先导出当前库存条目信息。如果你只是新增条目，建议导出库存模板。
+          element1:
+            id: el1
+            icon: sn-icon-edit
+            label: 整理你的导入数据
+            subtext: 请确保在导入文件的首行包含表头名称，其后为条目数据。
+          element2:
+            id: el2
+            icon: sn-icon-import
+            label: 上传你的文件
+            subtext: 使用 .csv、.xlsx、.txt 或 .tsv 文件上传数据，以导入新条目或更新现有条目数据。
+          element3:
+            id: el3
+            icon: sn-icon-tables
+            label: 映射并完成数据导入
+            subtext: 将上传的文件数据与你要更新的库存列进行映射，即可完成条目导入。
+          element4:
+            id: el4
+            icon: sn-icon-open
+            label: 了解更多
+            linkTo: https://knowledgebase.scinote.net/en/knowledge/how-to-add-items-to-an-inventory
+      dragAndDropUpload:
+        notSingleFileError: 每次仅可导入单个文件，请一次导入一个文件。
+        wrongFileTypeError: 文件扩展名无效（%{extensions}）。
+        emptyFileError: 你上传了空文件，没有太多可导入的内容。
+        fileTooLargeError: 文件过大，最大文件大小限制为
+        importText:
+          firstPart: 导入
+          secondPart: 或拖放至此
+      import: 导入
+      no_header_name: 无列名
+      success_flash: '%{total_rows_count} 个新条目中，%{successful_rows_count} 个已成功导入。'
+      partial_success_flash: '%{total_rows_count} 个条目中，%{successful_rows_count} 个已成功导入。'
+      error_message:
+        items_limit: 导入文件包含的行数过多，单次最多允许上传 %{items_size} 个条目。
+        importing_duplicates: 检测到重复 ID 的项目：%{duplicate_ids}。导入时这些将被忽略。
+        temp_file_not_found: 找不到该文件，你的会话可能已过期。
+        session_expired: 你的会话已过期，请重试。
+        no_data_to_parse: 没有可解析的内容。
+        no_column_name: 名称列是必需的！
+        duplicated_values: 有两列或更多列映射相同。
+        errors_list_title: 由于发现一个或多个错误，项目未被导入：
+        no_repository_name: 条目名称是必需的！
+        mapping_error: 需要列映射
+    edit_record: 编辑
+    assign_record: 分配到任务
+    copy_record: 复制
+    delete_record: 删除
+    archive_record: 归档
+    restore_record: 恢复
+    print_label: 打印标签
+    create_event_record: 创建事件
+    exports:
+      export: 导出
+      records: 条目
+      stock_consumption: 消耗
+    save_record: 保存
+    cancel_save: 取消
+    hide_reminders: 清除所有提醒
+    assign_records_to_module: 分配到任务
+    update_records_to_module: 更新任务
+    unassign_records_from_module: 取消分配
+    columns: 列
+    column_new_text: 新列
+    column_create: 创建
+    columns_delete: 删除
+    columns_changed: 有人对正在使用的库存新增或移除了列。为防止数据不一致，我们将为你重新加载此页面。
+    columns_visibility: 可见列
+    modal_assign_items_to_task:
+      title: 分配到任务
+      body:
+        description: 选择下方字段以将条目分配到任务。
+        project_select:
+          label: 项目
+          placeholder: 选择或输入项目名称
+          no_options_placeholder: 无可选项目
+        experiment_select:
+          label: 实验
+          placeholder: 选择或输入实验名称
+          disabled_placeholder: 选择项目以启用实验
+          no_options_placeholder: 无可选实验
+        task_select:
+          label: 任务
+          placeholder: 输入任务名称
+          disabled_placeholder: 选择或输入任务名称
+          no_options_placeholder: 无可用于分配条目的任务
+      assign:
+        text: 分配到任务
+        flash_all_assignments_success: 已成功将 %{count} 个条目分配到任务。
+        flash_some_assignments_success: 已成功将 %{assigned_count} 个条目分配到任务。其中 %{skipped_count}
+          个条目此前已分配到任务。
+        flash_assignments_failure: 将条目分配到任务失败。
+    modal_delete_record:
+      title: 删除条目
+      notice: 删除条目会将其从所有关联对象中移除，包括关联关系、库位、任务分配条目、规程模板和智能标注。任务库存快照会保留被删除条目的记录。
+      notice_warning_html: <b>确定要删除所选条目吗？</b>
+      delete: 删除
+    modal_delete_asset_value:
+      title: 确认删除文件吗？
+      notice_html: <p>删除此文件将移除整列的历史记录。<br><br></p><p>此操作不可撤销。<br><br></p><p>若要保留版本历史，请用新文件替换，而不是删除。</p>
+      delete: 删除
+    modal_delete_column:
+      title: 删除列
+      message: 确定要永久删除所选列 %{column} 吗？此操作不可撤销。
+      alert_heading: 删除列会带来以下后果：
+      alert_line_1: 你将丢失 %{nr} 个条目在该列中的信息；
+      alert_line_2: 该列将对所有工作区成员删除。
+      alert_line_3: 所有依赖此列的已保存库存筛选条件将被更新（基于该列的个人筛选条件将从已保存筛选中移除）。
+      delete: 删除
+    modal_parse:
+      title: 导入条目
+      warning_1: 导入到下拉列时请小心！文件中每个新的唯一单元格值都会创建一个新下拉选项。下拉选项的最大数量为 %{limit}。
+      warning_2: 不支持导入到文件列。
+      import: 导入
+    modal_import:
+      title: 导入条目
+      notice: 你可以上传 .csv 文件（逗号分隔）、制表符分隔文件（.txt 或 .tsv）或 Excel 文件（.xlsx）。首行应包含表头名称，其后为样本数据行。
+      upload: 上传
+      limit_description_html: 导入条目时，尽量将数量限制在 <b>500</b> 以内，否则可能影响处理。
+    js:
+      permission_error: 你无权编辑此条目。
+      not_found_error: 此库存条目不存在。
+      column_added: 新列已成功创建。
+      empty_column_name: 请输入列名称。
+    create:
+      success_flash: 已成功将条目 <strong>%{record}</strong> 添加到库存 <strong>%{repository}</strong>
+    update:
+      success_flash: 库存条目已成功更新。
+    destroy:
+      success_flash: '%{records_number} 个项目已成功删除。'
+      contains_other_records_flash: '%{records_number} 个项目已成功删除。所选项目中 %{other_records_number}
+        个由其他用户创建，未被删除。'
+      no_records_selected_flash: 未选择任何项目。
+      no_deleted_records_flash: 未删除任何项目。所选项目中有 %{other_records_number} 个由其他用户创建，未被删除。
+    default_column: 名称
+    id_column: 条目 ID
+    copy_records_report: '%{number} 个项目已成功复制。'
+    archive_inventories:
+      success_flash: 库存已成功归档！
+      unsuccess_flash: 库存归档失败！
+      invalid_inventories_flash: 请提供有效的库存
+    restore_inventories:
+      success_flash: 库存已成功恢复！
+      unsuccess_flash: 库存恢复失败！
+    archive_records:
+      success_flash: 库存 <strong>%{repository}</strong> 中的条目已成功归档
+      unsuccess_flash: 库存 <strong>%{repository}</strong> 中的条目归档失败
+      invalid_rows_flash: 请提供有效的条目
+    restore_records:
+      success_flash: 库存 <strong>%{repository}</strong> 中的条目已成功恢复
+      unsuccess_flash: 库存 <strong>%{repository}</strong> 中的条目恢复失败
+    multiple_share_service:
+      unable_to_share: 无法与 %{team} 工作区共享库存 %{repository}。
+      unable_to_unshare: 无法取消与 %{team} 工作区共享库存 %{repository}。
+      unable_to_update: 无法更新与 %{team} 工作区共享的库存 %{repository}。
+      not_allowed: 你无权共享此库存！
+      invalid_arguments: 找不到 %{key}
+      nothing_to_delete: 找不到用于删除的共享关系
+    my_module_update_row_service:
+      invalid_arguments: 找不到 %{key}
+    my_module_assigned_snapshot_service:
+      invalid_arguments: 找不到 %{key}
+    item_card_errors:
+      item_not_found: 你查找的库存条目不存在。
+    item_card:
+      add_relationship_button_text: 添加
+      repository_item_relationships_modal:
+        header_title: 添加关联关系
+        header_subtitle: 选择下方字段以添加新关联关系。
+        add_button: 添加
+        cancel_button: 取消
+        select_inventory_placeholder: 选择库存名称
+        select_inventory_no_options_placeholder: 无库存选项
+        select_item_placeholder: 选择条目名称或 ID
+        select_item_no_options_placeholder: 无条目选项
+        select_relationship_placeholder: 选择关联关系
+        select_relationship_no_options_placeholder: 无关联关系选项
+        inventory_section_title: 库存
+        item_section_title: 条目
+        relationship_section_title: 关联关系
+      header_title: 库存条目
+      section:
+        information: 信息
+        relationships: 关联关系
+        assigned: 已分配（%{count}）
+        qr: 二维码
+      print_label: 打印标签
+      assigned:
+        empty: 此条目未分配到任何任务。
+        assign: 分配到任务
+        private:
+          one: 已分配到 %{count} 个私有任务（不会显示）
+          other: 已分配到 %{count} 个私有任务（不会显示）
+        labels:
+          team: 工作区：
+          project: 项目：
+          experiment: 实验：
+          my_module: 任务：
+      relationships:
+        id: ID：%{code}
+        item: 条目：
+        inventory: 库存：
+        empty: 此条目未分配任何关联关系。
+        private_item_name: 私有条目
+        parents:
+          count: 父项（%{count}）
+          empty: ''
+        children:
+          count: 子项（%{count}）
+          empty: ''
+        unlink_modal:
+          title: 解除关联
+          description: 确定要解除该条目的关联吗？如有需要，稍后可重新关联。
+          unlink: 解除关联
+          success: 已成功将 %{to_connection} 从 %{from_connection} 解除关联。
+          error: 解除 %{to_connection} 与 %{from_connection} 的关联失败，请重试。
+      default_columns:
+        repository_name: 库存
+        id: 条目 ID
+        added_on: 添加于
+        added_at: 添加于
+        added_by: 添加者
+        updated_on: 更新于
+        updated_by: 更新者
+        archived_on: 归档于
+        archived_by: 归档者
+      reminders:
+        stock_low: 仅剩 %{stock_formated}。
+        stock_empty: 无剩余库存
+        date_expiration: 此条目将于 %{date_expiration} 过期。
+        item_expired: 此条目已过期。
+        day:
+          one: 天
+          other: 天
+      stock_export: 导出
+      snapshot_label: '%{name} 于 %{timestamp} 创建的快照'
+      custom_columns_label: 自定义列
+      no_custom_columns_label: 无自定义列
+      repository_time_range_value:
+        no_time_range: 无时间范围
+        placeholder: 输入时间范围
+      repository_text_value:
+        collapse: 折叠
+        expand: 展开
+        no_text: 无内容
+        placeholder: 输入文本
+      repository_stock_value:
+        placeholder: 输入库存
+        no_stock: 无库存
+      repository_status_value:
+        no_status: 未选择
+      repository_number_value:
+        collapse: 折叠
+        expand: 展开
+        no_number: 无数字
+        placeholder: 输入数字
+      repository_list_value:
+        no_list: 未选择
+      repository_date_value:
+        no_date: 无日期
+        placeholder: 输入日期
+      repository_date_time_value:
+        no_date_time: 无日期时间
+        placeholder: 输入日期和时间
+      repository_date_time_range_value:
+        no_date_time_range: 无日期时间范围
+        placeholder: 输入日期和时间范围
+      repository_date_range_value:
+        no_date_range: 无日期范围
+        placeholder: 输入日期范围
+      repository_checklist_value:
+        no_checklist: 未选择
+      repository_asset_value:
+        no_asset: 无文件
+        placeholder: 输入资产
+        add_asset: 添加文件
+        errors:
+          upload_failed_general: 上传失败，出现错误，请重试
+          file_too_big: 上传失败，文件大小必须小于 %{file_size} MB。
+      repository_time_value:
+        no_time: 无时间
+        placeholder: 输入时间
+      expand: 展开
+      collapse: 折叠
+      dropdown_placeholder: 选择
+      date_time:
+        errors:
+          set_all_or_none: 需要同时设置两者，或都不设置
+          not_valid_range: 范围无效。
+          select_valid_value: 请选择有效的日期或日期时间值
+          browser_alert_message: 你已做了一些更改，确定要离开此页面吗？
+      errors:
+        load_error_header: 你没有查看此条目详情所需的权限。
+        load_error_description: 如需获取访问权限，请联系你的工作区管理员。
+    highlight_component:
+      information_label: 信息
+      custom_columns_label: 自定义列
+      relationships_label: 关联关系
+      assigned_label: 已分配
+      locations_label: 库位
+      QR_label: 二维码
+      schedule_label: 排期
+    locations:
+      title: 库位（%{count}）
+      container: 盒
+      assign: 分配新库位
+    equipment_booking:
+      title: 排期
+      create_event: 创建事件
+      upcoming_events: 即将到来
+      past_events: 过去
+      show_more: 显示更多
+      no_events: 无已排期事件
+  repository_stock_values:
+    manage_modal:
+      title: 库存 %{item}
+      edit_title: 编辑 %{item} 的库存
+      save_stock: 保存库存
+      enter_amount: 输入你要入库的条目数量和单位。
+      operation: 操作
+      add: 添加
+      remove: 移除
+      set: 设为
+      amount: 数量
+      amount_placeholder: 输入数量
+      amount_placeholder_new: 100、2000……
+      amount_error: 输入数量
+      negative_error: 不允许负值。
+      unit: 单位
+      unit_prompt: 选择单位
+      unit_error: 选择单位
+      comment: 备注（可选）
+      comment_placeholder: 输入备注
+      current_stock: 当前库存
+      new_stock: 新增库存
+      comment_limit: 已达到最大字符数（255）
+      create_reminder: 创建库存不足提醒
+      reminder_at: 提醒阈值
+      units_remaining: 剩余 %{unit}。
+      enter_ammount: 输入数量
+    stock_export:
+      headers:
+        consumption_type: 消耗类型
+        item_name: 条目名称
+        item_id: 条目 ID
+        consumed_amount: 消耗数量
+        consumed_amount_unit: 消耗数量单位
+        added_amount: 入库数量
+        added_amount_unit: 入库数量单位
+        consumed_by: 消耗者
+        consumed_on: 消耗于
+        team: 工作区
+        project: 项目
+        project_id: 项目 ID
+        experiment: 实验
+        experiment_id: 实验 ID
+        task: 任务
+        task_id: 任务 ID
+        stock_amount_balance: 更新后的库存数量（余额）
+        stock_balance_unit: 更新后的库存单位
+  repository_rows:
+    invalid_params: 参数无效
+  repository_row_connections:
+    invalid_params: 参数无效
+  repository_ledger_records:
+    errors:
+      my_module_references_missing: 任务引用未设置
+  equipment_booking:
+    equipment_booking_disabled: <b>设备预订功能已禁用</b>
+  storage_locations:
+    storage_locations_disabled: <b>存储库位功能已禁用</b>
+    container: 盒
+    location: 库位
+    show:
+      hidden: 私有条目
+      table:
+        position: 位置
+        reminders: 提醒
+        row_id: 条目 ID
+        row_name: 名称
+        stock: 库存
+      toolbar:
+        assign: 分配条目
+        unassign: 取消分配
+        move: 移动
+      unassign_modal:
+        title: 取消分配库位
+        description: 确定要将 %{items} 个条目从当前存储库位移除吗？
+        description_single: 确定要从该库位移除条目吗？
+        button: 取消分配
+      assign_modal:
+        override:
+          title: 覆盖库位
+          p_1_html: 你即将覆盖 <b>%{count}</b> 个已占用的库位。此操作不可撤销。
+          p_2: 确定要确认覆盖吗？
+          skip: 跳过已占用库位
+          cta: 覆盖
+        selected_position_title: 分配到库位 %{position}
+        selected_row_title: 分配新库位
+        assign_title: 分配库位
+        move_title: 移动 %{name}
+        assign_description: 选择一个条目以将其分配到 %{number} 个库位。
+        move_description: 选择要将 %{name} 移动到的位置。
+        selected_row_description: 为条目 %{name} 选择库位。
+        assign_action: 分配
+        move_action: 移动
+        row: 行
+        column: 列
+        inventory: 库存
+        item: 条目
+      import_modal:
+        import_button: 导入条目
+        title: 将条目导入盒
+        description: 将条目导入盒允许将条目分配到盒并更新网格盒内的位置。首先，导出当前盒数据以下载一个列出盒内已有条目的文件。然后，编辑导出的文件以添加或更新你想放入盒中的条目。导入文件时，确保其包含“盒位置”和“条目
+          ID”列，才能成功导入。
+        export: 导出
+        export_button: 导出当前盒
+        import: 导入
+        drag_n_drop: .xlsx 文件
+        errors:
+          invalid_structure: 导入文件内容不符合条件。
+          invalid_position: 文件中的位置必须与盒匹配。
+          duplicate_items: 导入文件中存在重复的条目 ID
+          invalid_item: 条目 ID %{row_id} 不存在。
+    index:
+      head_title: 库位
+      breadcrumbs_root: 库位
+      new_location: 新建库位
+      new_container: 新建盒
+      duplicate:
+        success_message: 库位已成功复制。
+      toolbar:
+        edit: 编辑
+        move: 移动
+        duplicate: 复制
+        delete: 删除
+      table:
+        name: 库位名称
+        id: ID
+        sub_locations: 子库位
+        items: 条目
+        free_spaces: 空位
+        shared: 已共享
+        owned_by: 由
+        created_on: 创建于
+        created_by: 创建者
+        description: 描述
+      filters_modal:
+        search_tree: 查看库位内部
+      edit_modal:
+        title_create_location: 新建库位
+        title_create_container: 新建盒
+        title_edit_location: 编辑库位
+        title_edit_container: 编辑盒
+        description_create_location: 填写字段并创建新库位。
+        description_create_container: 填写以下字段以创建新盒。定义盒的尺寸可以控制可用于放置库存条目的空位数。
+        name_label_location: 库位名称
+        image_label_location: 库位图片
+        name_label_container: 盒名称
+        image_label_container: 盒图片
+        drag_and_drop_supporting_text: .png 或 .jpg 文件
+        warning_box_not_empty: 盒尺寸仅在盒为空时才能更新。
+        description_label: 描述
+        name_placeholder_location: 大冰箱
+        name_placeholder_container: 盒 1
+        description_placeholder: 让所有人保持同步。你也可以使用智能标注。
+        dimensions_label: 尺寸（行 × 列）
+        no_grid: 无网格
+        grid: 网格
+        no_grid_tooltip: 你可以向“无网格”盒分配不限数量的条目，但它们没有指定库位。
+        success_message:
+          create_location: 库位 %{name} 已成功创建。
+          create_container: 盒 %{name} 已成功创建。
+          edit_location: 库位 %{name} 已成功更新。
+          edit_container: 盒 %{name} 已成功更新。
+        errors:
+          max_length: 过长（最多 %{max_length} 个字符）
+      find_row_modal:
+        title: 查找条目
+        description: 选择一个条目以查看其库位。
+        no_results: 该条目未分配任何库位
+      move_modal:
+        title: 移动 %{name}
+        description: 选择要将 %{name} 移动到的位置。
+        search_header: 库位
+        no_results: 你尚未创建任何存储库位和盒。<br>请先前往 <b>库存 > 库位</b> 创建库位结构，才能将条目分配到库位。
+        success_flash: 你已成功将所选库位/盒移动到另一个库位。
+        error_flash: 出错了。所选库位/盒未被移动。
+        placeholder:
+          find_storage_locations: 查找库位
+      delete_modal:
+        title: 删除%{type}
+        description_1_html: 你即将删除 <b>%{name}</b>。此操作将删除该 %{type}。<b>%{num_of_items}</b>
+          个条目将失去其已分配的库位。
+        description_2_html: <b>确定要删除吗？</b>
+        success_message: '%{type} %{name} 已成功删除。'
+      share: 共享
+  libraries:
+    manange_modal_column_index:
+      title: 请每行输入一个你习惯使用的单位&#10;例如&#10;这样
+      add_column: 库存单位
+    manange_modal_column:
+      button_tooltip: 管理列
+      name_placeholder: 下拉列表选项 1
+      empty_name_error: 下拉项应以逗号分隔。
+      value_too_high_error: 过高（最大 %{max_value}）
+      name: 每行输入一个下拉列表选项：
+      colum_type: 输入检查清单项，以分号分隔……
+      dropdown_item_descirption: 消息（可选）
+      change_multi_select_items_warning: 注意：更改现有的列表项会导致之前选择的项被取消选择。移除列表项也会从所有已保存的库存筛选条件中移除它。
+      too_many_items_label: / %{limit} 个条目
+      select:
+        repository_text_value: 日期和时间
+        repository_number_value: 检查清单
+        repository_date_value: 小数位数
+        repository_date_range_value: 输入列名称……
+        repository_time_value: 下拉
+        repository_time_range_value: 日期
+        repository_date_time_value: 添加新列
+        repository_date_time_range_value: 保存列
+        repository_checklist_value: 名称
+        repository_status_value: 日期
+        repository_stock_value: 日期和时间
+        repository_list_value: 文件
+        repository_asset_value: 输入下拉列表选项，以空格分隔……
+      new:
+        title: ……
+        button: 下拉列表选项 2
+      edit:
+        title: 编辑 %{name} 列
+        button: 已达到最大字符数（255）
+      number_type:
+        decimals_label: 输入下拉列表选项，以分号分隔……
+      list_type:
+        delimiter_label: 更新列
+        dropdown_items_label: 分号
+        dropdown_item_select_option: 换行
+        delimiters:
+          auto: 自动
+          return: 分隔符
+          space: 逗号
+          semicolon: 自动
+          comma: 列必须命名。
+        items_placeholders:
+          auto: 空格
+          return: 下拉项
+          comma: 选择选项……
+          semicolon: 输入下拉列表选项……
+          space: 输入下拉列表选项，以逗号分隔……
+      status_type:
+        status_options_label: 库存
+        add_status_label: 数字
+        errors:
+          icon_and_name_error: 状态
+      datetime_type:
+        options: 输入数量
+        reminder: 选项
+        remind: 月
+        enter_amount: 列类型
+        days: 已选
+        weeks: 提醒
+        months: 天
+        before_set_date: 输入检查清单项，以空格分隔……
+        reminder_message: 范围
+        enter_reminder_message: 在设定日期之前
+        range_label: 输入提醒信息
+        reminder_message_limit: 提醒
+      stock_type:
+        multiple_options: 状态图标和状态名称均需填写
+        all_options: 时间
+        stock_units: 消耗
+        units_description: 已选
+        add_stock: 文本
+        add_stock_consumption: 时间
+        stock_consumption_locked: 设置库存
+        no_item_stock: 状态选项
+        textarea_placeholder_html: 所有选项
+        units_changing_warning: 请输入至少一个单位。
+        empty_units_error: 添加状态选项
+      checklist_type:
+        multiple_options: ……
+        all_options: 所有选项
+        checklist_items: 检查清单项
+        items_placeholders:
+          auto: 输入检查清单项……
+          return: 每行输入一个检查清单项：
+          comma: 输入检查清单项，以逗号分隔……
+          semicolon: 检查清单项 1
+          space: 检查清单项 2
+    repository_columns:
+      head_title: '%{repository} | 管理列'
+      repository_list_items_limit: 下拉项数量已达上限 %{limit}
+      no_permissions: 添加列
+      update:
+        success_flash: 列 %{name} 已成功创建。
+      create:
+        success_flash: 列 %{name} 已成功创建。
+      destroy:
+        success_flash: 列 %{name} 已成功删除。
+        error_flash: 这些单位将在管理库存时显示。你可以随时在列表中添加、移除或重命名。
+    index:
+      head_title: 库存
+      head_title_archived: 已归档库存
+      table:
+        name: 库存名称
+        id: ID
+        number_of_items: 条目数
+        shared: 已共享
+        ownership: 所有者
+        added_on: 创建于
+        added_by: 创建者
+        archived_on: 归档于
+        archived_by: 归档者
+      shared_for_viewing: 用于查看
+      shared_for_editing: 用于编辑
+      not_shared: 否
+      shared: 是
+      switch_view:
+        active: 显示活动库存
+        archived: 显示已归档库存
+      buttons:
+        edit: 重命名
+        duplicate: 复制
+        export: 导出
+        archive: 归档
+        restore: 恢复
+        delete: 删除
+      no_libraries:
+        create_new_button: 新建库存
+        create_new_button_tooltip: 创建新库存
+      access: 访问权限
+    show:
+      head_title: 库存 | %{library}
+  repository_row:
+    modal_info:
+      ID: ID：
+      head_title: 条目“%{repository_row}”的信息
+      added_on: 添加于
+      added_by: 添加者
+      column_name: '%{cf}：'
+      title: 此条目已分配到 %{nr} 个任务。
+      private_tasks: '%{nr} 个任务为私有任务，将不会显示。'
+      no_tasks: 此条目未分配到任何任务。
+      amount: 数量：%{value}
+      unit: 单位：%{unit}
+      assign_to_task: 分配到任务
+      assign_to_task_error:
+        no_access: 你只能查看此任务
+        already_assigned: 该条目已分配到此任务
+      export_consumption_label: 导出消耗记录
+    modal_print_label:
+      head_title: 打印标签 - %{repository_row}
+      head_title_multiple: 打印标签 - %{repository_rows} 行
+      id_label: ID：%{repository_row_id}
+      printer: 打印机
+      label: 标签模板
+      number_of_copies: 打印份数
+      print_label: 打印标签
+      print_anyway: 仍然打印
+      label_preview: 标签预览
+      no_printers:
+        title: 似乎没有可用的打印机
+        description: 想了解更多关于打印标签和标签打印机的知识，请访问我们的博客。
+        visit_blog: 访问博客
+      general_error: 出错了
+    reminder:
+      clear_for_me: 对我清除
+      clear_for_all: 对所有人清除
+      low_stock_title: 条目库存不足
+      stock_low_html: 仅剩 <strong>%{stock_formated}</strong>。
+      stock_empty: 已无库存。
+      date_reminder: 日期提醒。
+      date_expiration_html: 该条目将于 <strong>%{date_expiration}</strong> 过期。
+      item_expired: 该条目已过期。
+      day: 天
+  activities:
+    index:
+      global_activities_title: 全局动态
+      today: 今天
+      more_activities: 显示更多动态
+      no_activities: 暂无动态！
+      no_activities_message: 暂无动态可显示。请更新筛选条件，或开始使用 SciNote 以生成你的第一条动态。
+      no_activities_task_message: 暂无动态可显示。
+      activity_counter_label: 条动态
+      activities_counter_label: 条动态
+      expand_all: 全部展开
+      collapse_all: 全部折叠
+    modal:
+      modal_title: 动态
+    result_type:
+      text: 文本
+      table: 表格
+      asset: 文件
+    wopi_file_editing:
+      started: 编辑开始
+      finished: 编辑结束
+    file_editing:
+      started: 编辑开始
+      finished: 编辑结束
+    protocols:
+      my_to_team_message: 我的规程 → 工作区规程
+      team_to_my_message: 工作区规程 → 我的规程
+  user_my_modules:
+    new:
+      head_title: '%{project} | %{module} | 添加用户'
+      title: 向任务 %{module} 添加用户
+      create: 向任务添加用户
+      no_users_available: 当前项目的所有用户都已添加到此任务。
+      assign_user: 添加用户
+      back_button: 返回任务
+    create:
+      success_flash: 已成功将用户 %{user} 添加到任务 <strong>%{module}</strong>。
+      error_flash: 用户 %{user} 无法被添加到任务 <strong>%{module}</strong>。
+    destroy:
+      success_flash: 已成功从任务 <strong>%{module}</strong> 中移除用户 %{user}。
+      error_flash: 用户 %{user} 无法从任务 <strong>%{module}</strong> 中移除。
+  step_comments:
+    new:
+      head_title: '%{project} | %{module} | 向步骤添加评论'
+      title: 向步骤 %{step} 添加评论
+      create: 添加评论
+    create:
+      success_flash: 已成功向步骤 <strong>%{step}</strong> 添加评论。
+  result_comments:
+    new:
+      head_title: '%{project} | %{module} | 向结果添加评论'
+      title: 向结果添加评论
+      create: 添加评论
+    create:
+      success_flash: 已成功向结果添加评论。
+  users:
+    enums:
+      status:
+        active: 活动中
+        pending: 待确认
+    invitations:
+      edit:
+        head_title: 接受邀请
+    registrations:
+      edit:
+        head_title: 我的个人资料
+        title: 我的个人资料
+        avatar_label: 个人资料照片
+        avatar_btn: 编辑
+        avatar_modal:
+          title: 更改你的个人资料照片
+          upload_button: 上传照片
+          option_text_html: 或<br>在下方选择你的头像
+        avatar_total_size: 你的头像文件不能大于 ${size} MB。（请换一个更小的文件重试。）
+        name_label: 全名
+        name_title: 更改姓名
+        initials_label: 缩写
+        initials_title: 更改缩写
+        email_label: 邮箱
+        email_title: 更改邮箱
+        new_email_label: 新邮箱
+        external_id_label: 外部 ID
+        external_id_title: 外部 ID
+        job_title_label: 职位
+        current_password_label: 当前密码
+        password_explanation: （我们需要你的当前密码来确认更改）
+        waiting_for_confirm: 目前正在等待以下邮箱确认：%{email}
+        password_label: 密码
+        password_title: 更改密码
+        new_password_label: 新密码
+        new_password_2_label: 确认新密码
+        2fa_title: 两步验证
+        2fa_description: 两步验证（2FA）是一种通过使用两种不同的验证方式组合来验证用户身份的方法。它为你的账户增加了一层额外的安全防护，可抵御潜在的远程攻击或其他威胁。
+        2fa_enabled: 已启用
+        2fa_button: 启用身份验证
+        2fa_button_disable: 禁用身份验证
+        2fa_modal:
+          step_1:
+            title: 1. 在移动设备上安装一个验证器应用
+            description: 用手机下载一个验证器应用。启用 SciNote 中的 2FA 需要它。下方是一些最常用的应用。
+            google_auth: Google 验证器
+            microsoft_auth: Microsoft 验证器
+            2fa_auth: 2FA 验证器
+            android: Android
+            ios: iOS
+            start: 开始
+          step_2:
+            title: 2. 用应用扫描二维码
+            description: 打开你的验证器应用，用它扫描此二维码以添加 2FA。
+            next: 下一步
+          step_3:
+            title: 3. 输入验证器应用提供的验证码
+            description: 将生成的验证码输入下方字段，以完成两步验证的设置。
+            enter_code: 输入验证器验证码
+            verify: 验证
+          step_4:
+            title: 4. 保存你的备用码
+            verified: 2FA 已验证
+            description: 你的 2FA 已验证。请保存下方这些一次性验证码，以便在丢失设备时仍可访问账户。这样你就可以重置验证。
+            download_codes: 下载验证码
+          disable:
+            title: 禁用两步验证
+            description: 在下方输入你的密码以确认禁用 2FA。这将从你的账户中移除身份验证，使你的账户更容易受到潜在攻击。
+            password_label: 输入密码
+            disable_2fa: 禁用 2FA
+        2fa_errors:
+          wrong_submit_code: 验证码不正确
+          wrong_password: 密码不正确
+        connected_devices:
+          title: 管理已连接设备
+          description: 移除设备后，你将从所选设备退出登录。
+          empty_state: 没有已连接的设备。
+        devices_table:
+          device_name: 设备名称
+          last_seen: 最近活跃
+        device_revocation_modal:
+          title: 移除已连接设备
+          description: 该设备将失去对 SciNote 账户的访问权限。
+          validation: 确定要移除吗？
+          cancel: 取消
+          remove: 移除
+        api_key:
+          title: API 密钥
+          description: 生成或吊销用于 SciNote API 的 API 密钥。重新生成 API 密钥将使旧密钥失效。
+          generate: 生成
+          regenerate: 重新生成
+          revoke: 吊销
+          expired: 该密钥已过期！
+          generated: API 密钥已生成！
+          revoked: API 密钥已吊销！
+      new:
+        head_title: 注册
+        team_name_label: 工作区名称
+        team_name_placeholder: 例如：John 的实验室
+        email_label: 邮箱
+        full_name_label: 全名
+        password_label: 密码
+        minimum_password_length: （至少 %{password_length} 个字符）
+        password_confirmation_label: 确认密码
+        captcha_description: 证明你不是机器人。请在下方输入验证码。
+      new_with_provider:
+        head_title: 完成注册
+    statistics:
+      title: 我的统计
+      team: 工作区
+      project: 项目
+      experiment: 实验
+      protocol: 规程
+    settings:
+      changed_team_flash: 你当前正在使用 %{team}！
+      changed_team_error_flash: 出错了！请稍后重试。
+      changed_team_in_search: 所搜索的条目不在你当前的工作区。你将被重定向到 %{team} 工作区！
+      sidebar:
+        account: 账户
+        teams: 工作区
+        webhooks: Webhooks
+        groups: 群组
+        account_nav:
+          profile: 我的个人资料
+          preferences: 我的偏好
+          addons: 附加组件
+          connected_accounts: 已关联账户
+          automations: 自动化
+      account:
+        preferences:
+          head_title: 设置 | 我的偏好
+          title: 我的偏好
+          edit:
+            time_zone_label: 时区
+            time_zone_sublabel: 时区设置影响整个应用中所有时间和日期字段。
+            time_zone_title: 时区
+            time_zone_managed_note: 此设置由你的组织管理，无法更改。
+            date_format_label: 日期格式
+            date_format_sublabel: 日期格式设置影响整个应用中所有日期的显示。
+            date_format_title: 日期格式
+            date_format_managed_note: 此设置由你的组织管理，无法更改。
+            language_label: 语言
+            language_sublabel: 选择界面显示语言（简体中文 / English）。
+          update_flash: 偏好设置已成功更新。
+        addons:
+          head_title: 设置 | 附加组件
+          title: 附加组件
+          no_addons: 你没有任何 SciNote 附加组件。
+          scinote_addons: SciNote 附加组件
+          label_printers: 标签打印机
+          printers:
+            ready: 就绪
+            not_ready: 未就绪
+            printer_details: 打印机详情
+            details: 详情
+            enter_api_key: 输入 API 密钥
+            set_up: 设置
+            enabled: 已启用
+          fluics_printer:
+            title: FLUICS Print
+            description: 真正的即插即用标签打印方案。
+          zebra_printer:
+            title: Zebra 标签打印机
+            description: 通过 USB、互联网或局域网连接的 Zebra 打印机，几秒内即可在 PC 或 Mac 上打印自定义样式和尺寸的标签。
+            details: 详情
+          desktop_app:
+            scinote_apps: SciNote 应用
+            scinote_edit: SciNote Edit
+            description: 下载 SciNote Edit 桌面应用，即可使用本地安装的软件自动编辑文件。
+            macos_button: 下载 macOS 版
+            windows_button: 下载 Windows 版
+            version: 版本 %{version}
+          more_info: 更多信息
+        label_printer:
+          fluics_printer: FLUICS Print：标签打印机
+          zebra_printer: Zebra 标签打印机
+          instructions: 说明
+          fluics_instruction:
+            p1: 要使其生效，请按以下步骤操作：
+            p2_html: 1. <a href='%{link}' target='_blank'>订购</a> 你的 FLUICS Print 套件。它包含在线打印机、标签和
+              API 密钥。
+            p3: 2. 将在线打印机插入电源插座，并用网线将其连接到互联网。
+            p4: 3. 在下方字段中输入 API 密钥。
+            p5: 4. SciNote 会自动找到你的打印机并与之连接。你可以开始打印标签了。
+          zebra_instruction:
+            general_html: 请确认你的 Zebra 打印机型号受官方 Zebra 页面上的 Zebra Browser Print 技术支持的：<a
+              href='%{link}' target='_blank'>官方 Browser Print 页面。</a>
+            contact_html: 如需更详细的说明，请参阅 <a href='%{link_blog}' target='_blank'>SciNote
+              博客文章</a> 和 <a href='%{link_zebra_support}' target='_blank'>Zebra 打印机支持。</a>
+            usb:
+              header: 通过 USB 线连接 Zebra 打印机
+              p1: 请确保你的 Zebra 打印机已接通电源、开机，并通过 USB 线连接到电脑。
+              p2_html: 要从 SciNote 打印标签，你需要根据操作系统下载并安装 Zebra Browser Print 应用：<a href='%{link}'
+                target='_blank'>官方下载页面。</a>安装过程中，可能会提示你安装特定的 Zebra 打印机驱动。
+              p3: 使用此 SciNote 界面右侧的“更新打印机”选项更新打印机。
+              p4: 你的 Zebra 打印机现在应已列在 SciNote 中。
+              p5: 前往库存，选择标签模板并开始打印。
+            network:
+              header: 通过网络（LAN 或 WiFi）连接 Zebra 打印机
+              disclaimer: 部分 Zebra 打印机支持通过 LAN 或 WiFi 网络连接。相关信息请查阅你的打印机文档或 Zebra 官方产品页面。
+              p1: 请确保你的 Zebra 打印机已接通电源并开机。
+              p2: 请确保你的电脑和 Zebra 打印机已连接到本地网络（通过 LAN 或 Wi-Fi）。
+              p3_html: 要从 SciNote 打印标签，你需要根据操作系统下载 Zebra Browser Print 应用：<a href='%{link}'
+                target='_blank'>官方下载页面。</a>
+              p4: 安装 Zebra Browser Print 应用。
+              p5: 打开 Zebra Browser Print 应用并设置打印机的 IP 地址和端口号。打印机 IP 地址应设置为“静态”（你可能需要联系
+                IT 管理员协助）。
+              p6: 使用此 SciNote 界面右侧的“更新打印机”选项更新打印机。
+              p7: 你的 Zebra 打印机现在应已列在 SciNote 中。
+              p8: 前往库存，设置标签内容，并开始打印。
+          settings: 设置
+          api_key_label: API 密钥
+          api_key_warning: 更改 API 密钥将导致打印机列表刷新
+          api_key_error: API 密钥无效
+          api_key_information: 没有 API 密钥？点击此处了解更多信息。
+          saved: 已保存
+          update_printers: 更新打印机
+          no_printers_available: 没有可用的打印机
+          looking_for_printers: 正在查找已连接的打印机……
+        connected_accounts:
+          head_title: 设置 | 已关联账户
+          title: 已关联账户
+          not_connected: 你没有任何已关联账户
+          unlink_success: 已成功解除关联
+          azure_ad:
+            title: 你的 Microsoft Entra ID 账户
+            connect_hint: 允许你使用 Microsoft Entra ID 账户登录。
+            connected: 已连接
+            unlink_button: 解除关联
+            unlink_modal:
+              title: 解除 Microsoft Entra ID 账户关联？
+              description_1: 确定要解除 Microsoft Entra ID 与 SciNote 账户的关联吗？
+              submit_button: 提交
+          okta:
+            title: 你的 Okta 账户
+            connect_hint: 允许你使用 Okta 账户登录。
+            connected: 已连接
+            unlink_button: 解除关联
+            unlink_modal:
+              title: 解除 Okta 账户关联？
+              description_1: 确定要解除 Okta 与 SciNote 账户的关联吗？
+              submit_button: 提交
+          openid_connect:
+            title: 你的 OpenID Connect 账户
+            connect_hint: 允许你使用 OpenID Connect 账户登录。
+            connected: 已连接
+            unlink_button: 解除关联
+            unlink_modal:
+              title: 解除 OpenID Connect 账户关联？
+              description_1: 确定要解除 OpenID Connect 与 SciNote 账户的关联吗？
+              submit_button: 提交
+          saml:
+            title: 你的 SAML 账户
+            connect_hint: 允许你使用 SAML 账户登录。
+            connected: 已连接
+            unlink_button: 解除关联
+            unlink_modal:
+              title: 解除 SAML 账户关联？
+              description_1: 确定要解除 SAML 与 SciNote 账户的关联吗？
+              submit_button: 提交
+          errors:
+            not_found: 你尚未为该提供方关联任何账户
+            generic: 无法解除已关联账户
+      teams:
+        head_title: 设置 | 工作区
+        breadcrumbs:
+          all: 所有工作区
+          new_team: 新建工作区
+        navigation:
+          details: 详情
+          members: 成员
+          groups: 群组
+          tags: 标签
+          data_integrity: 数据完整性
+        preferences:
+          title:
+            general: 工作区偏好
+            data_integrity: 数据删除
+          sections:
+            sharing:
+              title: 共享
+              items:
+                task_sharing_enabled:
+                  label: 启用任务共享
+                  enable_success_message: 任务共享已启用。
+                  disable_success_message: 任务共享已禁用。
+                  failure_message: 出错了。
+                  confirm:
+                    title: 禁用任务共享
+                    description: 确定要在 %{name} 中禁用任务共享吗？此操作将停用任务共享，并永久停用 %{shared_task_count}
+                      个任务的全部共享链接。任何持有共享链接的用户都将无法再访问共享任务。
+                    button: 禁用
+            deletion:
+              title: 允许删除
+              message: 请联系你的 SciNote 管理员更改这些设置
+              items:
+                repository_deletion_enabled:
+                  label: 允许从归档中删除库存和库存条目
+                  enable_success_message: 库存删除功能已启用。
+                  disable_success_message: 库存删除功能已禁用。
+                result_deletion_enabled:
+                  label: 允许从归档中删除结果
+                  enable_success_message: 结果删除功能已启用。
+                  disable_success_message: 结果删除功能已禁用。
+                protocol_steps_deletion_enabled:
+                  label: 允许从归档中删除规程步骤
+                  enable_success_message: 规程步骤删除功能已启用。
+                  disable_success_message: 规程步骤删除功能已禁用。
+        show:
+          enter_description: 输入工作区描述
+        index:
+          description_label: 工作区是一组使用相同项目并共享库存的 SciNote 用户。
+          member_of:
+            one: 你当前是 %{count} 个工作区的成员。
+            other: 你当前是 %{count} 个工作区的成员。
+          no_teams: 你不是任何工作区的成员。
+          new_team: 新建工作区
+          thead_name: 工作区
+          thead_role: 角色
+          thead_created_at: 创建于
+          thead_joined_on: 加入时间
+          thead_members: 成员
+          na: n/a
+          leave: 退出工作区
+        new:
+          name_label: 工作区名称
+          name_placeholder: 我的工作区
+          name_sublabel: 取一个最能描述你的工作区的名称（例如“某某大学，某某系”）。
+          description_label: 描述
+          description_sublabel: 描述你的工作区。
+          create: 创建
+        edit:
+          header_created_at: 创建于：
+          header_created_by: 创建者：
+          header_created_by_name_email: '%{name}（%{email}）'
+          header_space_taken: 空间使用情况：
+          header_no_description: 无描述
+          name_title: 编辑工作区名称
+          name_label: 名称
+          description_title: 编辑工作区描述
+          description_label: 描述
+          team_members_title: 工作区成员
+          add_user: 添加工作区成员
+          thead_user_name: 名称
+          thead_email: 邮箱
+          thead_joined_on: 加入时间
+          thead_status: 状态
+          thead_role: 角色
+          thead_actions: 操作
+          user_dropdown:
+            role_label: 用户角色
+            remove_label: 移除
+          delete_team_heading: 删除工作区
+          can_delete_message: 该工作区可删除，因为它没有任何项目。
+          delete_text: 删除工作区。
+          cannot_delete_message_projects: 无法删除此工作区。只有空工作区（不包含任何项目）才能被删除。
+          modal_destroy_team:
+            title: 删除工作区
+            message: 确定要删除工作区 %{team} 吗？所有用户也将从工作区中移除。此操作不可撤销。
+            confirm: 删除工作区
+            flash_success: 工作区 %{team} 已成功删除。
+      user_teams:
+        leave_uo_heading: 退出工作区 %{team}
+        leave_message: 你将失去对工作区所有相关内容的访问权限，包括项目、库存和规程模板。
+        destroy_message: 移除工作区 %{role} 将撤销其对工作区所有相关内容的访问权限，包括项目、库存和规程模板。
+        leave_uo_confirm: 退出工作区
+        destroy_uo_heading: 将工作区 %{role} %{user} 从工作区 %{team} 移除
+        message_owner: 其他工作区所有者将能够查看和管理该内容的访问权限。
+        message_alert: 此操作不可撤销。
+        destroy_uo_alert_line_3: 此操作不可撤销。
+        destroy_uo_confirm: 移除
+        leave_flash: 你已退出 %{team}。
+        remove_flash: '%{user} 已成功从工作区 %{team} 中移除'
+        general_error: 出错了
+  user_roles:
+    predefined:
+      owner: 所有者
+      normal_user: 用户
+      technician: 技术员
+      viewer: 查看者
+      unchangable_error_message: 预定义角色不可更改！
+  protocols:
+    draft: 草稿
+    draft_name: （草稿）%{name}
+    no_text_placeholder: 无规程描述
+    protocol: 规程
+    results: 结果 [%{count}]
+    print_label: 打印规程
+    rearrange_steps_label: 重排步骤
+    manage_steps: 管理步骤
+    manage_steps_disclaimer: 如果有单个步骤被锁定，则在任务规程上添加新步骤的功能将被禁用
+    lock_step: 锁定步骤
+    unlock_step: 解锁步骤
+    all_steps: 所有步骤
+    lock_all_steps: 锁定所有步骤
+    unlock_all_steps: 解锁所有步骤
+    allow_adding_steps: 允许添加步骤
+    action_disabled: 此操作不可用，因为规程包含已锁定的步骤
+    empty_results_placeholder: 此模板未添加任何结果。请创建新草稿以添加。
+    table:
+      filters:
+        label_name_and_keywords: 名称和关键词
+        published_on: 发布于
+        modified_on: 修改于
+        has_draft: 有草稿
+        published_by:
+          label: 发布者
+          placeholder: 选择发布者
+        members:
+          label: 访问权限
+          placeholder: 选择有权访问的人员
+    reorder_steps:
+      button: 重排步骤
+      modal:
+        title: 重排规程步骤
+    manage_items_modal:
+      title_step: 管理步骤 %{position}
+      title_result: 管理结果
+      lock_all: 全部锁定
+      attachments: 附件
+    print:
+      title: 打印规程
+      button: 打印
+      modal:
+        title: 打印选项
+        include_comments: 打印时包含评论
+        include_assigned_items: 打印时包含任务已分配条目
+      header:
+        printed_from: 打印自
+        print_info: 于 %{datetime} 由 %{full_name}
+      forms:
+        single_choice_html: <em>（单选）</em>
+        multiple_choice_html: <em>（多选）</em>
+      assigned_items:
+        title: 已分配条目
+        headers:
+          item_id: 条目 ID
+          name: 名称
+          stock: 库存
+          consumed: 已消耗
+    protocols_io_import:
+      title_too_long: ……文本过长，我们不得不将其截断。
+      too_long: …… <span class='label label-warning'>文本过长，我们不得不将其截断。</span>
+      import_description_notice: 规程描述列于下方“规程信息”中。
+      preview:
+        description: 规程描述：
+        before_start: 开始规程前的信息：
+        warning: 规程警告：
+        guidelines: 指南：
+        link: 链接：
+        s_nobr_link: 链接：
+        s_link: 链接：
+        s_desc: 描述：
+        strng_s_desc: 描述：
+        s_exp_res: 预期结果：
+        sw_name: <strong>软件包：</strong>
+        dev: 开发者：
+        vers: 版本：
+        repo: 代码仓库：
+        os: 操作系统名称、版本：
+        command_name: <strong>命令：</strong>
+        sub_prot: <strong>此规程还包含附加的子规程：</strong>
+        safety_info: <strong>安全信息：</strong>
+        auth: 作者：
+        dataset_name: <strong>数据集：</strong>
+        manuscript_citation: 手稿引用：
+        published_on: 发布日期：
+        vendor_name: 厂商名称：
+        vendor_link: 厂商链接：
+        keywords: 关键词：
+        tags: 标签：
+      comp_append:
+        table_moved: <br><strong><i>此处原本有一个表格，已移至该步骤末尾。</i></strong>
+        missing_step: 步骤
+        missing_desc: 缺少描述
+        general_link: <br>链接：
+        expected_result: <br><strong>预期结果：</strong>
+        soft_packg:
+          name: <br><strong>软件包：</strong>
+          developer: <br>开发者：
+          version: <br>版本：
+          link: <br>链接：
+          repository: <br>代码仓库：
+          os: <br>操作系统名称、版本：
+        dataset:
+          name: <br><strong>数据集：</strong>
+          link: <br>链接：
+        command:
+          name: <br><strong>命令：</strong>
+          description: <br>描述：
+          os: <br>操作系统名称、版本：
+        sub_protocol:
+          title: <br><strong>此步骤还包含附加的子规程：</strong>
+          title_html: <br>作者：
+          uri: <br>链接：
+        safety_infor:
+          body: <br><strong>安全信息：</strong>
+          link: <br>链接：
+    import_export:
+      load_file_error: 加载规程文件失败。
+      import_modal:
+        title_import: 导入规程
+        title_import_into_protocol: 从文件加载规程
+        title_import_into_protocol_protocols_io: 从 protocols.io 文件加载规程
+        import_into_protocol_message: 这将覆盖当前规程！
+        import_into_protocol_confirm: 确定要从文件加载规程吗？此操作将覆盖当前规程。
+        import_to_linked_task_file: 确定要从文件加载规程吗？此操作将覆盖任务中的当前规程，并取消其与模板的关联。当前规程在模板中保持不变。
+        name_label: 规程名称
+        authors_label: 作者
+        description_label: 描述
+        published_on_label: 发布于
+        created_at_label: 创建于
+        updated_at_label: 最后修改于
+        preview_title: 规程预览
+        preview_title_position: '| 共 %{total} 个中的第 %{current} 个'
+        assets_header: 文件
+        import_current: 加载当前
+        import_all: 加载全部
+        import: 加载
+        import_to_team_protocols_label: 导入到工作区规程
+        import_to_private_protocols_label: 导入到我的规程
+        import_protocols_label: 导入
+        forms_error: 表单 %{form_id} 不存在或你无权访问，因此不会被导入。
+      import_protocol_notification:
+        title: 导入过程已成功完成。你可以在此处下载原始文件：%{link}
+      import_protocol_notification_error:
+        title: 导入失败
+        message: 很抱歉，文件导入过程遇到错误。请再试一次，如果问题仍然存在，请联系技术支持获取进一步帮助。
+    export:
+      export_results:
+        title: 导出结果
+        message_failed: 导出 %{nr} 个规程失败。
+        message_ok: 已成功导出 %{nr} 个规程。
+        row_success: 已导出
+        row_failed: 失败
+    delete_draft_modal:
+      title: 删除草稿
+      description_1: 你将丢失草稿中的所有内容。删除后将无法恢复。
+      description_2: 确定吗？
+      confirm: 是，删除
+      success: 草稿已成功删除。
+    publish_modal:
+      title: 发布规程模板的第 %{nr} 版
+      name: 规程模板名称
+      comment: 修订说明
+      comment_placeholder: 此版本有什么更新？
+      publish: 发布
+    new_protocol_modal:
+      title_new: 创建新规程模板
+      title_copy: 另存为新规程模板
+      name_label: 规程模板名称
+      name_placeholder: 输入规程模板名称……
+      description: 将创建此规程的副本并保存到规程模板。
+      access_label: 向全体工作区成员授予访问权限
+      role_label: 默认用户角色
+      create_new: 创建
+      create_copy: 保存
+      include_results: 包含结果
+      include_assigned_items: 包含已分配条目
+    header:
+      details: 详情
+      versions: 版本
+      protocol: 规程
+      results: 结果 [%{count}]
+      repository_rows: 条目 [%{count}]
+      draft_with_from_version: 草稿（来自版本 %{nr}）
+      protocol_description: 规程描述
+      lock_description: 锁定标题和描述
+      unlock_description: 解锁标题和描述
+      protocol_steps: 规程步骤
+      publish: 发布
+      save_as_draft: 创建新草稿
+      draft: 草稿
+      version: 版本：
+      published_on: 发布于：
+      published_by: 发布者：
+      created_at: 创建于：
+      updated_at: 最后修改于：
+      added_by: 创建者：
+      keywords: 关键词：
+      authors: 作者：
+      authors_list: 作者列表
+      no_authors: 无作者
+      add_authors: + 添加作者
+      add_keywords: + 添加关键词
+      description: 描述
+      no_description: 无描述
+      keywords_modal: 输入一个或多个关键词，每个关键词按回车键确认
+      edit_name_modal:
+        title: 编辑规程 %{protocol} 的名称
+        label: 名称
+      edit_keywords_modal:
+        title: 编辑规程 %{protocol} 的关键词
+        update_failed: 无法更新规程关键词。
+      edit_authors_modal:
+        title: 编辑规程 %{protocol} 的作者
+        label: 作者
+      edit_description_modal:
+        title: 编辑规程 %{protocol} 的描述
+        label: 描述
+    index:
+      head_title: 规程模板
+      head_title_archived: 已归档规程模板
+      default_name: 新规程
+      back_to_active_protocols: 返回进行中的规程
+      search_bar_placeholder: 搜索规程
+      navigation:
+        archive: 归档
+      toolbar:
+        versions: 版本
+        access: 访问权限
+        duplicate: 复制
+        export: 导出
+        archive: 归档
+        restore: 恢复
+        empty_placeholder: 暂无可用操作
+      public_description: 工作区规程对工作区中的所有人可见且可使用。
+      private_description: 我的规程仅你可见。
+      create_new: 新规程模板
+      create_new_tooltip: 创建新规程模板
+      import_tooltip: 导入
+      edit: 编辑
+      clone_btn: 复制
+      import: 导入
+      import_eln: SciNote 文件（.eln）
+      import_with_ai: 用 AI 创建
+      beta: BETA
+      import_protocols_io: 来自 Protocols.io
+      modal_import_json_upload: 上传
+      modal_import_json_title: 导入 protocols.io 文件
+      modal_import_json_notice: 上传你的 protocols.io 规程文件
+      export: 导出
+      make_private: 移动到我的规程
+      publish: 移动到工作区规程
+      archive_action: 归档
+      archive_flash_html: <b>%{count} 个规程</b>模板已成功归档。
+      thead:
+        name: 规程名称
+        id: ID
+        keywords: 关键词
+        nr_of_linked_children: 关联任务
+        versions: 版本
+        access: 访问权限
+        published_by: 发布者
+        added_by: 添加者
+        archived_by: 归档者
+        published_on: 发布于
+        created_at: 创建于
+        archived_on: 归档于
+        updated_at: 更新于
+      table:
+        draft: 草稿
+      preview:
+        title: '%{protocol} 预览'
+      linked_children:
+        title: 关联到规程 %{protocol} 的任务
+        used_in: 关联到此规程的任务数量：%{nr}
+        no_linked_children: 此规程未关联到任何任务。
+        length_menu: 每页显示 %{number} 条
+        show_version: 显示版本：
+      restore: 恢复
+      restore_flash_html: <b>%{count} 个规程</b>模板已成功恢复。
+      make_private_unauthorized: 你无权将所选规程移动到我的规程。
+      make_private_error: 将所选规程移动到我的规程时出错。
+      publish_unauthorized: 你无权将所选规程移动到工作区规程。
+      publish_error: 将所选规程移动到工作区规程时出错。
+      row_renamed_html: '%{old_name}<i> 改为 </i>%{new_name}'
+      no_protocol_name: （无名称）
+      create:
+        title: 创建新规程
+        name_label: 规程名称
+        name_placeholder: 我的规程
+        message_public: 当你创建新的“工作区规程”时，它将立即对工作区所有成员可见。
+        message_private: 当你创建新的“我的规程”时，只有你能看到它。
+        submit: 创建
+      clone:
+        success_flash: 已成功从“%{original}”复制出规程模板“%{new}”。
+        error_flash: 复制规程模板“%{original}”失败。
+      import_results:
+        title: 导入结果
+        message_failed: 导入规程模板失败。
+        message_ok_html: <strong>%{count} 个规程</strong>模板已成功导入。
+        message_ok_pio: 已成功从 protocols.io 文件导入规程。
+        message_warn_truncated: 已成功从 protocols.io 文件导入规程。但部分字段文本过长，我们不得不将其截断。
+        row_success: 已导入
+        row_renamed: 已导入并重命名
+        row_failed: 失败
+        row_file_too_large: （规程过大）
+      versions:
+        title: '%{protocol} 版本'
+        first_draft_html: <b>草稿</b>
+        draft_html: <b>草稿</b>（来自版本 %{parent_version}）
+        draft_full_modification_info: 修改于 %{modified_on}，由 %{modified_by}
+        draft_update_modification_info: 修改于 %{modified_on}
+        revision: 版本 %{version}
+        revision_publishing_info: 发布于 %{published_on}，由 %{published_by}
+        publish: 发布
+        save_as_draft: 创建新草稿
+        comment_placeholder: 点击此处输入修订说明
+      protocolsio:
+        search_bar_placeholder: 搜索规程
+        title: 从 Protocols.io 导入
+        convert: 转换为 SciNote 格式
+        list_panel:
+          empty_text: 在上方搜索规程以在此处列出
+        preview_panel:
+          empty_title: 规程预览
+          empty_subtext: 点击列表中的规程以在此处预览
+          powered_by: 由 protocols.io 提供支持
+          banner_text: 规程预览
+        import:
+          public: 工作区规程
+          private: 我的规程
+          success_flash: 规程 <strong>%{name}</strong> 已成功导入。
+        sort:
+          new_html: <i class="fas fa-sort-numeric-up"></i>&nbsp;&nbsp;最新在上
+          old_html: <i class="fas fa-sort-numeric-down"></i>&nbsp;&nbsp;最早在上
+          atoz_html: <i class="fas fa-sort-alpha-down"></i>&nbsp;&nbsp;名称 A 到 Z
+          ztoa_html: <i class="fas fa-sort-alpha-up"></i>&nbsp;&nbsp;名称 Z 到 A
+    repository_rows:
+      index:
+        disclaimer: 将此模板加载到任务时，用户必须能访问所有项目；否则部分项目可能不会显示。
+        assign_item: 分配项目
+        unassign_item: 取消分配
+      assign_modal:
+        description: 选择要分配的项目
+      table:
+        id: 条目 ID
+        name: 名称
+        repository: 库存
+        private_inventory: 私有库存
+        private_item: 私有条目
+        archived: 已归档
+        deleted_item: 该项目已被删除
+      delete_modal:
+        title: 移除已分配项目
+        description_html: 你将从此规程模板中移除 %{count} 个项目。<br></br>你可随时将这些项目重新添加回模板。
+        confirm: 移除
+    steps:
+      label: 步骤 %{position} - %{name}
+      placeholder: 步骤名称
+      default_name: 未命名步骤
+      completed: 已完成
+      uncompleted: 未完成
+      skipped: 已跳过
+      expand_label: 全部展开
+      collapse_label: 全部折叠
+      new_step: 新步骤
+      show_repositories: 已分配项目
+      add_step: 添加步骤
+      new_step_title: 创建新步骤
+      subtitle: 规程步骤
+      no_steps: 规程没有步骤。
+      published_on_html: 发布于 <em>%{timestamp}</em>，由 <em>%{user}</em>
+      info_tab: 信息
+      comments_tab: 评论
+      no_description: 此步骤没有描述。
+      tables: 表格
+      files: 文件（%{count}）
+      comments: 评论
+      empty_checklist: 无项目
+      comment_title: '%{user} 于 %{time}：'
+      drop_message: 拖放文件以添加到步骤 %{position}
+      space_used_label: 已使用 %{used} / %{limit} 空间。
+      space_used_label_unlimited: 已使用 %{used} / 无限制 空间。
+      step_duplicated: 步骤复制成功。
+      component_duplicated: 步骤内容复制成功。
+      step_duplication_failed: 步骤复制失败，请稍后重试。
+      component_duplication_failed: 步骤内容复制失败，请稍后重试。
+      timestamp: 于 %{date} 由 %{user} 创建
+      timestamp_archived: 于 %{date} 由 %{user} 归档
+      timestamp_iso_html: 于 <span class='iso-formatted-date'>%{date}</span> 由 %{user}
+        创建
+      manage_links: 管理链接
+      archived_result: 已归档
+      link_results: 将结果关联到此步骤
+      linked_results: 已关联结果
+      no_steps_placeholder: 此处无步骤
+      archived: 已归档
+      rearrange_content: 重排步骤内容
+      manage_content: 管理与锁定步骤内容
+      status:
+        complete: 标记为完成
+        uncomplete: 取消标记为完成
+        skip: 跳过步骤
+        unskip: 取消跳过步骤
+      options_dropdown:
+        title: 步骤选项
+        duplicate: 复制
+        delete: 删除
+        archive: 归档
+        restore: 恢复
+      insert:
+        button: 插入内容
+        title: 插入步骤内容
+        table: 表格
+        well_plate: 孔板
+        text: 文本
+        checklist: 检查清单
+        form: 表单
+        attachment: 文件
+        add_file: 来自你的电脑
+        checklist_item: 添加新项
+        well_plate_options:
+          custom: 自定义
+          32_x_48: 1536（32 × 48）
+          16_x_24: 384（16 × 24）
+          8_x_12: 96（8 × 12）
+          6_x_8: 48（6 × 8）
+          6_x_4: 24（6 × 4）
+          4_x_6: 24（4 × 6）
+          3_x_4: 12（3 × 4）
+          2_x_3: 6（2 × 3）
+      table:
+        default_name: 表格 %{position}
+        edit_message: 使用右键可查看表格选项
+        name_modal:
+          title: 请输入表格标题
+          description: 表格已成为内容块，需要命名。要编辑该表格，请现在添加名称：
+          save: 保存表格标题
+          error: 表格名称不能为空
+        archive_modal:
+          title: 归档表格
+          description_1: 此表格可能包含被其他表格交叉引用的单元格。
+          description_2: 归档它会保留这些交叉引用，但在表格恢复前，其他表格中被引用的单元格可能无法正确显示，因为归档数据不可访问。
+          description_3: 确定要归档此表格吗？
+          confirm: 归档
+        restore_modal:
+          title: 恢复表格
+          description_1_step: 该表格将恢复到其原先所属规程步骤的底部。
+          description_1_result: 该表格将恢复到其原先所属结果的底部。
+          description_2: 确定要继续吗？
+          confirm: 恢复
+        table_name: 表格名称
+      checklist:
+        placeholder: 输入检查清单名称
+        default_name: 检查清单 %{position}
+        checklist_name: 检查清单名称
+        empty_checklist: 不包含任何检查清单项
+        restore_modal:
+          title: 恢复检查清单
+          description_1_step: 该检查清单将恢复到其原先所属的规程步骤底部。
+          description_2: 确定要继续吗？
+          confirm: 恢复
+      text:
+        placeholder: 输入步骤文本
+        empty_text: 未输入文本
+        text_name: 输入文本名称
+        restore_modal:
+          title: 恢复文本
+          description_1_step: 该文本将恢复到其原先所属规程步骤的底部。
+          description_1_result: 该文本将恢复到其原先所属结果的底部。
+          description_2: 确定要继续吗？
+          confirm: 恢复
+      plate:
+        default_name: 孔板 %{position}
+      form_response:
+        restore_modal:
+          title: 恢复表单
+          description_1_step: 该表单将恢复到其原先所属规程步骤的底部。
+          description_2: 确定要继续吗？
+          confirm: 恢复
+      file:
+        restore_modal:
+          title: 恢复文件
+          description_1_step: 该文件将恢复到其原先所属规程步骤的底部。
+          description_1_result: 该文件将恢复到其原先所属结果的底部。
+          description_2: 确定要继续吗？
+          confirm: 恢复
+      modals:
+        restore_modal:
+          restore_element_general: '%{content_type} 已从归档中成功恢复。'
+          restore_text: 文本已从归档中成功恢复。
+          restore_form_response: 表单已从归档中成功恢复。
+          restore_asset: 文件已从归档中成功恢复。
+          restore_error: 从归档恢复元素时出错，请重试。
+        delete_element:
+          title: 删除内容
+          description_repository: 你将删除规程中的一个内容块。其中可能包含你不想丢失的数据，删除后无法恢复。
+          description_task: 你将删除归档中的一个内容块。其中可能包含你不想丢失的数据，删除后无法恢复。
+          description_2: 确定要删除它吗？
+          confirm: 永久删除
+        form_modal:
+          title: 插入表单
+          no_forms_title: 未找到可用表单
+          description: 选择要添加到规程中的表单
+          label: 表单
+          placeholder: 选择表单
+          no_forms: 请创建并发布一个表单，或向你的工作区申请访问权限。
+          add_form: 添加表单
+          take_me_there: 带我去
+          recently_used: 最近使用
+        move_element:
+          step:
+            title: 移动到其他步骤
+            targets_label: 选择步骤
+            search_placeholder: 输入步骤名称
+          result:
+            title: 移动到其他结果
+            targets_label: 选择结果
+            untitled_result: 未命名结果
+            search_placeholder: 输入结果名称
+        archive_step:
+          title: 归档步骤
+          description_1: 此步骤中的表格可能包含被其他表格交叉引用的单元格。
+          description_2: 归档该步骤会保留这些交叉引用，但在步骤恢复前，其他表格中被引用的单元格可能无法正确显示，因为归档数据不可访问。
+          description_3: 确定要归档此步骤吗？
+          confirm: 归档
+        restore_step:
+          title: 恢复步骤
+          description_1: 该步骤将恢复到你当前活动规程的底部。
+          description_2: 注意：此步骤中单独归档的组件不会自动恢复，你可随后分别恢复它们。
+          description_3: 确定要继续吗？
+          confirm: 恢复
+          success: '%{name} 已从归档中成功恢复。'
+        delete_step:
+          title: 删除步骤
+          description_1: 你将删除规程中的整个步骤。其中可能包含你不想丢失的数据，删除后无法恢复。
+          description_2: 确定要删除它吗？
+          confirm: 永久删除
+        delete_steps:
+          title: 删除所有规程步骤
+          description_1: 你将丢失规程中的所有步骤，且删除后无法恢复。
+          description_2: 确定吗？
+          confirm: 是，删除它们
+        archive_steps:
+          title: 归档所有规程步骤
+          description_1: 你将丢失当前规程中的所有步骤。如果你改变主意，稍后可从归档中恢复它们。
+          description_2: 确定吗？
+          confirm: 是，归档它们
+        reorder_elements:
+          title: 重排步骤 %{step_position} 的内容
+        link_results:
+          title: 将结果关联到此步骤
+          description: 你可以将多个结果关联到一个步骤
+          empty_description: 未找到结果。请先添加一个结果，才能与步骤关联。
+          result_label: 结果
+          placeholder: 选择结果
+          link_results: 关联结果
+          go_to_results: 前往结果
+          success: 步骤与结果链接已成功更新。
+          error: 将结果关联到步骤时出现问题。
+        custom_well_plate:
+          title: 插入自定义孔板
+          name_label: 孔板名称
+          name_placeholder: 微孔板
+          dimension_label: 尺寸（行 × 列）
+        add_protocol_steps:
+          title: 从其他模板添加步骤
+          description_html: <p>从另一个规程模板中选择一个或多个步骤，将其作为新步骤添加到你当前规程的末尾。</p><p><strong>警告</strong>：如果所加载的步骤包含带引用的表格，引用可能无法正常工作，因为表格的工作表名称会被重命名。</p>
+          confirm: 添加步骤
+          protocol_label: 规程
+          protocol_placeholder: 选择规程模板
+          protocol_steps_label: 规程步骤
+          protocol_steps_placeholder: 选择步骤
+          success_flash:
+            one: '%{count} 个步骤已成功添加。'
+            other: '%{count} 个步骤已成功添加。'
+          error_flash: 导入步骤时出错，请重试。
+      options:
+        up_arrow_title: 将步骤上移
+        down_arrow_title: 将步骤下移
+        comment_title: 评论
+        no_comments: 无评论
+        new_comments: 新评论
+        edit_title: 编辑步骤
+        delete_title: 删除步骤
+        duplicate_title: 复制步骤
+        complete_title: 完成步骤
+        uncomplete_title: 重新开始步骤
+      new:
+        add_step_title: 添加新步骤
+        tab_checklists: 检查清单
+        tab_assets: 文件
+        tab_tables: 表格
+        add_step: 添加
+        name: 步骤名称
+        name_placeholder: mRNA 测序
+        description: 描述
+        description_placeholder: 在此填写应执行的内容……
+        checklist_name: 检查清单名称
+        checklist_name_placeholder: 检查清单名称
+        checklist_items: 项目
+        checklist_item_placeholder: 任务
+        checklist_add_item: 添加项目
+        add_checklist: 添加检查清单
+        table_name: 表格标题
+        table_name_placeholder: 表格标题
+        add_table: 添加表格
+        asset_panel_title: 文件
+        add_asset: 添加文件
+      edit:
+        edit_step_title: 编辑步骤
+        edit_step: 保存
+      destroy:
+        confirm: 确定要删除步骤 %{step} 吗？
+        success_flash: 步骤 %{step} 已成功删除。
+        error_flash: 步骤 %{step} 无法删除，因为有一个或多个文件处于锁定状态。
+    edit:
+      head_title: 编辑规程
+    no_keywords: —
+  user_groups:
+    promo:
+      head_title: 用户群组
+      promo_title: 此功能在开源版 SciNote 中默认禁用
+    create:
+      success: 群组创建成功。
+      error: 创建群组时出错。请重试。
+    delete:
+      success: 群组删除成功。
+      error: 删除群组时出错。请重试。
+    index:
+      new_group: 新群组
+      group_name: 群组名称
+      members: 成员
+      created_by: 创建者
+      created_on: 创建于
+      updated_on: 更新于
+      create_modal:
+        title: 创建新群组
+        description: 你可以添加本工作区中任意数量的成员。
+        name: 群组名称
+        name_placeholder: 为你的群组添加一个名称
+        select_members: 选择成员
+        select_members_placeholder: 为成员选择
+        create_button: 创建群组
+      delete_modal:
+        title: 删除群组
+        description_html: 你即将删除 <b>%{group}</b>。添加到该群组的所有成员将失去对本工作区中所有相关内容访问权限。<br><br>授予该群组之外成员的访问权限不受影响。<br><br>此操作不可撤销。<b>确定要删除该群组吗？</b>
+        confirm: 删除群组
+      toolbar:
+        delete: 删除
+    show:
+      title: 群组
+      add_members: 添加成员
+      name: 名称
+      email: 邮箱
+      created_at: 添加于
+      remove: 移除
+      add_members_modal:
+        title: 添加成员
+        select_members: 选择成员
+        select_members_placeholder: 搜索成员
+        success: 成员添加成功。
+        error: 添加成员时出错。请重试。
+      remove_modal:
+        title: 从 %{group} 移除成员
+        description_html: 你即将从群组中移除 %{number} 名成员。<br><br>基于群组的对内容的访问权限将被移除。<br><br><b>确定要从群组中移除成员吗？</b>
+        confirm: 移除
+        success: 成员移除成功。
+        error: 移除成员时出错。请重试。
+  invite_users:
+    to_team:
+      title: 邀请成员加入 %{team}
+      heading: 邀请更多人加入工作区 %{team} 以开始使用 SciNote。
+    no_team:
+      title: 邀请用户加入 SciNote
+      heading: 邀请更多人开始使用 SciNote。
+    new_members:
+      description: 邀请组织成员开始使用 SciNote
+      input_placeholder: jsmith@someemail.com
+      input_label: 新成员邮箱
+      input_subtitle: 你可以输入一个或多个邮箱。
+    input_subtitle: 你可以输入一个或多个邮箱。
+    invite_to_team_heading: 邀请用户加入我的工作区：
+    invite_btn: 邀请成员
+    invite_as: 作为 %{role}
+    invite_guest: 作为访客
+    invite_user: 作为普通用户
+    invite_admin: 作为管理员
+    new_member_email: 新成员邮箱
+    select_team: 选择工作区
+    select_team_blank: 不将该用户添加到任何工作区
+    select_team_role: 选择工作区角色
+    default: 默认
+    errors:
+      recaptcha: reCAPTCHA 验证失败，请重试
+    results:
+      heading: 邀请结果：
+      user_exists: 该用户已是 SciNote 成员。
+      user_exists_unconfirmed_invited_to_team: 该用户已是 SciNote 成员但尚未确认，已成功邀请其加入工作区 %{team}，角色为
+        %{role}。
+      user_exists_and_in_team: 该用户已是 SciNote 成员，且在工作区 %{team} 中的角色为 %{role}。
+      user_exists_invited_to_team: 该用户已是 SciNote 成员，已成功邀请其加入工作区 %{team}，角色为 %{role}。
+      user_created: 已成功邀请用户加入 SciNote。
+      user_created_invited_to_team: 已成功邀请用户加入 SciNote 和工作区 %{team}，角色为 %{role}。
+      user_invalid: 邮箱无效。
+      too_many_emails: 仅邀请了前 %{nr} 个邮箱。如需邀请更多用户，
+  number:
+    format:
+      separator: '.'
+      delimiter: ','
+      precision: 3
+      round_mode: default
+      significant: false
+      strip_insignificant_zeros: false
+    currency:
+      format:
+        format: '%u%n'
+        negative_format: '-%u%n'
+        unit: '¥'
+        separator: '.'
+        delimiter: ','
+        precision: 2
+        significant: false
+        strip_insignificant_zeros: false
+    percentage:
+      format:
+        delimiter: ''
+        format: '%n%'
+    precision:
+      format:
+        delimiter: ''
+    human:
+      format:
+        delimiter: ''
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: '%n %u'
+        units:
+          byte:
+            one: 字节
+            other: 字节
+          kb: KB
+          mb: MB
+          gb: GB
+          tb: TB
+          pb: PB
+          eb: EB
+          zb: ZB
+      decimal_units:
+        format: '%n %u'
+        units:
+          unit: ''
+          thousand: 千
+          million: 百万
+          billion: 十亿
+          trillion: 万亿
+          quadrillion: 千万亿
+  datetime:
+    distance_in_words:
+      half_a_minute: 半分钟
+      less_than_x_seconds:
+        one: 不到 1 秒
+        other: 不到 %{count} 秒
+      x_seconds:
+        one: 1 秒
+        other: '%{count} 秒'
+      less_than_x_minutes:
+        one: 不到 1 分钟
+        other: 不到 %{count} 分钟
+      x_minutes:
+        one: 1 分钟
+        other: '%{count} 分钟'
+      about_x_hours:
+        one: 大约 1 小时
+        other: 大约 %{count} 小时
+      x_days:
+        one: 1 天
+        other: '%{count} 天'
+      about_x_months:
+        one: 大约 1 个月
+        other: 大约 %{count} 个月
+      x_months:
+        one: 1 个月
+        other: '%{count} 个月'
+      about_x_years:
+        one: 大约 1 年
+        other: 大约 %{count} 年
+      over_x_years:
+        one: 超过 1 年
+        other: 超过 %{count} 年
+      almost_x_years:
+        one: 将近 1 年
+        other: 将近 %{count} 年
+    prompts:
+      year: 年
+      month: 月
+      day: 日
+      hour: 时
+      minute: 分
+      second: 秒
+  support:
+    array:
+      words_connector: '、'
+      two_words_connector: 和
+      last_word_connector: 和
+  flash:
+    actions:
+      create:
+        notice: '%{resource_name} 已成功创建。'
+      update:
+        notice: '%{resource_name} 已成功更新。'
+      destroy:
+        notice: '%{resource_name} 已成功删除。'
+        alert: '%{resource_name} 删除失败。'
+  recaptcha:
+    errors:
+      verification_failed: reCAPTCHA 验证失败，请重试。
+      recaptcha_unreachable: 糟糕，我们无法验证你的 reCAPTCHA 响应，请重试。
+  date:
+    formats:
+      default: '%Y-%m-%d'
+      short: '%m-%d'
+      long: '%Y年%m月%d日'
+      full: '%{date_format}'
+      full_date: '%{date_format}'
+    day_names: [星期日, 星期一, 星期二, 星期三, 星期四, 星期五, 星期六]
+    abbr_day_names: [周日, 周一, 周二, 周三, 周四, 周五, 周六]
+    month_names: [~, 一月, 二月, 三月, 四月, 五月, 六月, 七月, 八月, 九月, 十月, 十一月, 十二月]
+    abbr_month_names: [~, 1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]
+    order: [年, 月, 日]
+  time:
+    formats:
+      full_js: 日.月.年 时:分
+      full: '%{date_format} %H:%M'
+      default: '%Y/%m/%d %H:%M'
+      full_with_tz: '%{date_format} %H:%M %z'
+      full_with_comma: '%{date_format}，%H:%M'
+      full_date: '%{date_format}'
+      time: '%H:%M'
+      short: '%H'
+      long: '%Y年%m月%d日 %H:%M'
+    am: 上午
+    pm: 下午
+  team_automations:
+    description: 自动化重复性工作以提升效率。已启用的设置适用于当前工作区中的所有项目、实验和任务。自动化在启用时开始生效，不影响历史数据。手动更改仍然可用，并会覆盖自动更新。
+    groups:
+      tasks: 任务自动化
+      experiments: 实验自动化
+      projects: 项目自动化
+    sub_groups:
+      task_status_in_progress: 当以下条件满足时，自动将任务状态更新为“进行中”：
+      task_status_completed: 当以下条件满足时，自动将任务状态更新为“已完成”：
+      task_status_done: 当以下条件满足时，自动将任务状态更新为“已完成”：
+      experiment_status_in_progress: 当以下条件满足时，自动将实验状态更新为“进行中”：
+      experiment_status_done: 当以下条件满足时，自动将实验状态更新为“已完成”：
+      project_status_in_progress: 当以下条件满足时，自动将项目状态更新为“进行中”：
+      project_status_done: 当以下条件满足时，自动将项目状态更新为“已完成”：
+    sub_group_element:
+      on_protocol_content_change: 添加或修改了规程内容（含步骤评论）
+      on_step_completion: 至少有一个步骤被标记为完成或跳过
+      on_result_created_or_changed: 添加或修改了任务结果（含结果评论）
+      on_task_in_progress: 至少有一个任务从“未开始”变为“进行中”或其他状态
+      on_all_tasks_done: 内部所有任务均达到最终状态。
+      on_experiment_in_progress: 至少有一个实验变为“进行中”或“已完成”
+      on_all_experiments_done: 内部所有实验均标记为“已完成”
+      on_all_steps_completion: 所有步骤均标记为完成或跳过
+  notifications:
+    title: 通知
+    sub_title: 选择你想要接收通知的更新类型以及接收方式。
+    in_app: 应用内
+    email: 邮箱
+    breadcrumb: 偏好设置
+    groups:
+      my_module: 任务
+      project_experiment: 项目与实验
+      repository: 库存与条目
+      other: 其他
+    sub_groups:
+      my_module_designation: 你被分配或取消分配到某任务
+      my_module_due_date: 已分配任务的截止日期与时间提醒（提前 24 小时）
+      my_module_comments: 在你被分配的任务中新增或编辑了评论
+      project_experiment_access: 你被加入或移出某个项目
+      project_experiment_role_change: 你在项目、实验或任务中的角色被更改
+      repository_stock: 若你对某库存拥有所有者或用户访问权限，则发送库存不足提醒
+      repository_date_reminder: 若你对某库存拥有所有者或用户访问权限，则发送日期提醒
+      other_smart_annotation: 有人 @ 了你
+      other_team_invitation: 你被邀请加入或被移出工作区
+      experiment_due_date: 若你对某实验拥有所有者或用户访问权限，则发送截止日期提醒
+      project_due_date: 若你对某项目拥有所有者访问权限，则发送截止日期提醒
+      other_user_group_member: 你被加入或移出某个群组
+      equipment_scheduling: 设备排期提醒
+    content:
+      my_module_due_date_reminder:
+        title_html: 任务截止日期提醒
+        message_html: 任务 %{my_module_name} 的截止日期即将到来。
+      item_low_stock_reminder:
+        title_html: 条目库存提醒
+        message_html: 库存 %{repository} 中的条目 %{repository_row_name} 库存不足。
+      item_date_reminder:
+        title_html: 条目日期提醒
+        message_html: '%{repository_row_name} 的日期提醒将在 %{value} %{units} 后到期。'
+      project_due_date_reminder:
+        title_html: 项目截止日期提醒
+        message_html: 项目 %{project_name} 的截止日期即将到来。
+      experiment_due_date_reminder:
+        title_html: 实验截止日期提醒
+        message_html: 实验 %{experiment_name} 的截止日期即将到来。
+      equipment_booking_reminder:
+        title_html: 排程事件提醒
+        message_html: 你在 %{repository_row_name} 上安排的事件 %{event_name}（时间：%{date_time}）将在
+          24 小时内发生！
+    deliver:
+      download_link: 下载链接：
+      download_text: 点击链接下载文件。
+      email_subject: 你的 SciNote 数据已就绪！
+      email_body_1: 你请求的 SciNote 数据已就绪！
+      email_body_2: 你可以在下方找到下载文件的链接，或查看你的 SciNote 通知。请注意，出于安全原因该链接将在 7 天后过期。
+    show_all: 显示所有通知
+    show_more: 显示更多通知
+    no_notifications: 无通知。
+    no_recent: 无最近通知。
+    types:
+      assignment: 分配
+      recent_changes: 最近变更
+      system_message: SciNote 系统消息
+      deliver: 可导出内容
+      deliver_error: 可导出内容
+    experiment_annotation_title: '%{user} 在实验 %{experiment} 中提到了你。'
+    experiment_annotation_message_html: 项目：%{project} | 实验：%{experiment}
+    storage_location_annotation_title: '%{user} 在库位 %{storage_location} 中提到了你。'
+    storage_location_annotation_message_html: 库位：%{storage_location}
+    project_comment_annotation_title: '%{user} 在项目 %{project} 的评论中提到了你。'
+    project_annotation_message_html: 项目：%{project}
+    project_description_annotation_title: '%{user} 在项目 %{project} 描述中提到了你。'
+    my_module_description_annotation_title: '%{user} 在任务 %{my_module} 的备注中提到了你。'
+    my_module_description_annotation_message_html: 项目：%{project} | 实验：%{experiment}
+      | 任务：%{my_module}
+    my_module_comment_annotation_title: '%{user} 在任务 %{my_module} 的评论中提到了你。'
+    my_module_comment_annotation_message_html: 项目：%{project} | 实验：%{experiment} |
+      任务：%{my_module}
+    my_module_protocol_annotation_title: '%{user} 在任务 %{my_module} 的规程描述中提到了你。'
+    my_module_protocol_annotation_message_html: 项目：%{project} | 实验：%{experiment} |
+      任务：%{my_module}
+    my_module_consumption_comment_annotation_title: '%{user} 在库存 %{repository} 中条目
+      %{repository_item} 的消耗记录备注里提到了你。'
+    my_module_consumption_comment_annotation_message_html: 项目：%{project} | 实验：%{experiment}
+      | 任务：%{my_module}
+    step_comment_annotation_title: '%{user} 在步骤 %{step} 的评论中提到了你。'
+    step_description_title: '%{user} 在步骤 %{step} 的描述中提到了你。'
+    form_field_title: '%{user} 在表单 %{form} 的 %{field} 中提到了你。'
+    form_field_value_title: '%{user} 在步骤 %{step} 的 %{field} 中提到了你。'
+    checklist_title: '%{user} 在步骤 %{step} 的检查清单中提到了你。'
+    step_text_title: '%{user} 在步骤 %{step} 的文本中提到了你。'
+    step_table_title: '%{user} 在步骤 %{step} 的表格中提到了你。'
+    step_well_plate_title: '%{user} 在步骤 %{step} 的孔板中提到了你。'
+    step_annotation_message_html: 项目：%{project} | 实验：%{experiment} | 任务：%{my_module}
+      | 步骤：%{step}
+    result_annotation_title: '%{user} 在结果 %{result} 中提到了你。'
+    result_table_annotation_title: '%{user} 在结果 %{result} 的表格中提到了你。'
+    result_well_plate_annotation_title: '%{user} 在结果 %{result} 的孔板中提到了你。'
+    result_comment_annotation_title: '%{user} 在结果 %{result} 的评论中提到了你。'
+    result_annotation_message_html: 项目：%{project} | 实验：%{experiment} | 任务：%{my_module}
+    repository_annotation_title: '%{user} 在库存 %{repository} 中条目 %{record} 的列 %{column}
+      里提到了你。'
+    repository_annotation_message_html: 条目：%{record} | 列：%{column}
+    protocol_description_annotation_title: '%{user} 在规程 %{protocol} 的描述中提到了你。'
+    protocol_description_annotation_message_html: 规程：%{protocol}
+    protocol_step_annotation_message_html: 规程：%{protocol}
+    email_title: 你收到一条 SciNote 通知！
+    assign_user_to_team: <i>%{assigned_user}</i> 已被 <i>%{assigned_by_user}</i> 添加为工作区
+      <strong>%{team}</strong> 的 %{role} 角色。
+    unassign_user_from_team: <i>%{unassigned_user}</i> 已被 <i>%{unassigned_by_user}</i>
+      从工作区 <strong>%{team}</strong> 中移除。
+    task_completed: '%{user} 完成了任务 %{module}。%{date} | 项目：%{project} | 实验：%{experiment}'
+  assets:
+    file_deleted: 文件“%{file_name}”已删除
+    head_title:
+      edit: SciNote | %{file_name} | 编辑
+      view: SciNote | %{file_name} | 查看
+    drag_n_drop:
+      label_html: 拖放至此。可复制并粘贴图片。
+      browse_label: 选择上传……
+      drop_label: 拖放到步骤中添加
+      file_label: 文件
+    from_clipboard:
+      modal_title: 从剪贴板插入图片
+      image_preview: 粘贴图片预览
+      select_step: 选择要将图片附加到的步骤
+      select_result: 选择要将图片附加到的结果
+      add_image: 插入
+      file_name: 文件名
+      file_name_placeholder: 图片
+    placeholder:
+      modified_label: 修改时间：
+      size_label: 大小：%{size}
+      archived_on_label: '%{user} 于 %{date} 归档'
+    wopi_supported_text_formats_title: 网页版 Word 仅支持 .docx、.docm、.odt 格式的文件编辑。
+    wopi_supported_table_formats_title: 网页版 Excel 仅支持 .xlsx、.xlsm、.xlsb、.ods 格式的文件编辑。
+    wopi_supported_presentation_formats_title: 网页版 PowerPoint 仅支持 .pptx、.ppsx、.odp
+      格式的文件编辑。
+    create_wopi_file:
+      button_text: 新建 Microsoft 365 文件
+      li_text: Microsoft 365 文件
+      modal_title: 新建 Microsoft 365 文档
+      text_field_label: 文档名称
+      type_select_label: 文档类型
+      text_field_placeholder: 输入文档名称……
+      ms_word: Microsoft<br/>Word
+      ms_excel: Microsoft<br/>Excel
+      ms_powerpoint: Microsoft<br/>PowerPoint
+      create_document_button: 创建文档
+      errors:
+        forbidden: 你没有权限添加文件。
+        not_found: 未找到元素。
+    file_preview:
+      edit_in_scinote: 在图片编辑器中打开
+      edit_in_marvinjs: 在 Marvin JS 中打开
+    context_menu:
+      set_view_size: 设置预览大小
+      rename: 重命名
+      delete: 删除
+      duplicate: 复制
+      move: 移动
+      inline_html: 大
+      thumbnail_html: 缩略图
+      list_html: 列表
+      archive: 归档
+      restore: 恢复
+      versions: 版本历史
+    file_versions_modal:
+      title: 版本历史
+      download: 下载
+      restore: 恢复此版本
+      size: 大小
+      restored_from_version: 已从 v%{version} 恢复
+      original_file: 原始文件
+      enable_button: 启用
+      disabled_disclaimer: 该功能当前已禁用
+    rename_modal:
+      title: 重命名文件
+      min_length_error: 文件名至少需 1 个字符。
+      max_length_error: 文件名过长（最多 255 个字符）。
+    delete_file_modal:
+      title: 删除文件
+      description_1_html: 你即将删除 <b>%{file_name}</b></p>
+      description_2: 确定要继续吗？
+      confirm_button: 删除
+    empty_office_file:
+      description: 文件为空，请在保存前添加一些数据。
+      reload: 重新加载文件
+    no_predefined_app_modal:
+      body_text_html: 访问 <b>%{file_name}</b> 的指定应用未预先配置。要成功打开此文件，请先在本地环境中设置好相应应用。</p>
+      understand_button: 我知道了
+      set_up_app: 设置用于打开此文件的应用
+    restricted_extension_modal:
+      title: 打开文件 - 安全警告
+      body: 该文件类型看似为可执行文件，可能损害你的计算机，无法使用 SciNote Edit 打开。如需打开，请手动下载。
+      action: 我知道了
+    update_version_modal:
+      title: SciNote Edit 版本不兼容
+      body_text_html: 你当前使用的 SciNote Edit 版本已不再受支持。为确保流畅且安全的体验，请点击下方“下载”按钮获取相应版本——系统会自动为你提供正确的版本。
+    edit_launching_application_modal:
+      title: 正在启动应用
+      description: '%{file_name} 将在 %{application} 中打开。在 %{application} 中保存的更改将自动同步到
+        SciNote。'
+    conflict_error: 你编辑期间，该文件已在 SciNote 网页端被更新。你的版本将作为最新版本保存，旧版本会保留在版本历史中。
+    default_error: 保存至 SciNote 时出错。请使用“另存为…”保存你打开的文档中的更改，以免丢失编辑内容。
+    default_error_with_filename: 保存“%{filename}”至 SciNote 时出错。请使用“另存为…”保存你打开的文档中的更改，以免丢失编辑内容。
+  atwho:
+    no_results:
+      projects: 未找到使用该名称/ID 的项目
+      experiments: 未找到使用该名称/ID 的实验
+      my_modules: 未找到使用该名称/ID 的任务
+      repository_rows: 该库存当前为空。
+      users: 未找到使用该名称的用户
+      description: 你在库存中创建条目后，它们会显示在这里。
+    buttons:
+      insert: 插入
+      assign: 分配到任务
+    projects: 项目
+    experiments: 实验
+    tasks: 任务
+    inventories: 库存
+    more_results: 如需查看更多结果，请输入更多字符
+    users:
+      title: 成员
+      header: 输入你想提及的用户姓名或邮箱（对方会收到通知）
+      help: 导航：↑ ↓    •    插入：Enter / Tab    •    取消：Esc
+      not_in_this_team: 不在本工作区
+      popover_html: <span class='silver'>工作区：</span>&nbsp;%{team} <br> <span class='silver'>角色：</span>&nbsp;%{role}
+        <br> <span class='silver'>加入时间：</span>&nbsp;%{time}
+    res:
+      archived: （已归档）
+      removed: （已移除）
+      deleted: （已删除）
+  dropdown_selector:
+    nothing_found: 未找到任何内容……
+  create_task_service:
+    default_task_name: 新建任务
+  user_assignment:
+    current_assignee: （你）
+    change_project_role: 更改项目角色
+    change_protocol_role: 更改规程角色
+    change_role: 更改角色
+    select_default_user_role: 选择默认用户角色
+    change_experiment_role: 更改实验角色
+    change_my_module_role: 更改任务角色
+    select_role: 选择角色
+    assign_all_team_members: 向全体工作区成员授予访问权限
+    from_project: '%{user_role} [继承自项目]'
+    from_experiment: '%{user_role} [继承自实验]'
+    experiment_select_role: 更改实验角色
+  move_to_project_service:
+    project_permission_error: 与工作区共享
+    my_modules_permission_error: 在分配个别团队前请先保存更改。
+    general_error: 可编辑
+  access_permissions:
+    all_team: 整个工作区
+    everyone_else: '%{team_name} 的全体成员'
+    reset: 继承角色
+    remove_access: 移除访问权限
+    grant_access: 授予新访问权限
+    you: 你
+    no_results: 无结果
+    create:
+      success: 你已成功向 %{member_name} 授予访问权限。
+      failure: 出错了
+    destroy:
+      success: 你已成功移除 %{member_name}。
+      failure: 出错了
+    update:
+      failure: 出错了
+      revoke_all_team_members: 你已成功移除所有工作区成员的访问权限
+    partials:
+      edit_assignments_content:
+        title: 管理 %{resource_name} 的访问权限
+        new_resource_assignments: 向 %{resource} 授予新访问权限
+      new_assignments_form:
+        title: 选择成员
+        submit: 授予访问权限
+        submit_singular: 向 1 名成员授予访问权限
+        submit_plural: 向 {num} 名成员授予访问权限
+        find_people_html: 搜索成员
+        grant_access: 授予新访问权限
+        people_with_access: 有权限的人员
+      new_protocol_assignments_form:
+        title: 选择成员
+        submit: 授予访问权限
+        submit_singular: 向 1 名成员授予访问权限
+        submit_plural: 向 {num} 名成员授予访问权限
+        find_people_html: 搜索成员
+      experiment_member_field:
+        reset: 继承角色
+        reset_description: 将应用从项目继承的角色
+      my_module_member_field:
+        reset: 继承角色
+        reset_description: 将应用从项目或实验继承的角色
+      projects: 项目
+      project_tooltip: 此角色在该项目上设置。
+      project_tooltip_inherit: 此角色继承自项目。
+      protocol: 规程
+      protocol_tooltip: 此角色在该规程上设置。
+      protocol_tooltip_inherit: 此角色继承自规程。
+      experiment: 实验
+      experiment_tooltip: 此角色在该实验上设置。
+      experiment_tooltip_inherit: 此角色继承自实验。
+      mymodule: 任务
+      mymodule_tooltip: 此角色在该任务上设置
+      form_tooltip: 此角色在该表单上设置。
+      form_tooltip_inherit: 此角色继承自表单。
+      repository_tooltip: 此角色在该库存上设置。
+      repository_tooltip_inherit: 此角色继承自库存。
+      softlockedrepository_tooltip: 此角色在该库存上设置。
+      softlockedrepository_tooltip_inherit: 此角色继承自库存。
+      public_members_dropdown:
+        title: '%{team} 工作区的成员'
+    projects:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+    protocols:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+    repositories:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+    soft_locked_repositories:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+    experiments:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+          description: 更改角色将取消从项目继承的所有权限。新权限仅适用于该特定实验及其任务。
+    my_modules:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+          description: 更改角色将取消从项目或实验继承的所有权限。新权限仅适用于该特定任务。
+    forms:
+      modals:
+        show_modal:
+          title: 对 %{resource_name} 的访问权限
+        edit_modal:
+          title: 管理 %{resource_name} 的访问权限
+  zip_export:
+    repositories_modal_label: 导出库存
+    notification_title: 你请求的导出包已就绪！
+    expired_title: 看起来你的链接已过期。
+    expired_description: 请重新导出数据以获取新链接。
+    modal_html: <p>你的导出请求正在处理中。</p><p>完成后，我们将<strong>向 %{email}</strong> 收件箱发送一封包含导出条目链接的邮件。请注意该链接将在
+      7 天后过期。</p>
+    repository_header_html: 你即将导出库存 %{repository} 中选中的条目。导出将排除上传到条目的文件（仅导出文件名）。
+    files_alert: 上传到库存条目的文件不会被导出。仅导出文件名。
+    repository_footer_html: 下载文件就绪后，你将收到<strong>邮件和通知</strong>。出于安全原因，该链接将在 7 天后过期。
+    export_request_success: 已收到导出请求。你的导出请求正在处理中。
+    export_error: 创建 zip 导出时出错。
+    consumption_modal_label: 导出消耗记录
+    consumption_header_html: 你即将为库存 %{repository} 中选中的条目生成消耗报告。报告将以 .csv 文件格式保存。
+    consumption_body_html: 报告准备好后，你可在 SciNote 通知和邮箱收件箱中找到<strong>下载链接</strong>。
+    consumption_footer_html: 出于安全原因，请注意该链接<strong>仅在 7 天内有效</strong>。
+    consumption_generate: 导出
+  webhooks:
+    index:
+      title: Webhooks
+      description: 已保存的活动筛选条件在下方以可折叠的分区形式列出。你可以在“动态”页面添加更多已保存筛选条件。每个已保存筛选条件可包含多个 webhook。
+      new_webhook: 新建 webhook
+      applied_filters: 已应用的活动筛选条件
+      webhook_options: Webhook 选项
+      delete_filter_modal:
+        title: 删除筛选条件
+        description_html: 确定要删除 <b></b> 吗？
+      webhook_text_html: 触发 <b class="method">%{method}</b> 目标 <b>%{url}</b>
+      enable: 启用
+      disable: 禁用
+      active: 活动中
+      disabled: 已禁用
+      webhook_trigger: Webhook 触发器
+      target: 目标
+      url_placeholder: 输入 url 或其他 html 目标
+      webhook_created: Webhook 创建成功
+      webhook_updated: Webhook 更新成功
+      webhook_deleted: Webhook 删除成功
+      delete_webhook_confimration: 确定要删除该 webhook 吗？
+      include_serialized_subject: 包含序列化主题
+      include_serialized_subject_hint: （可选）使用 API 序列化器包含完整的 webhook 主题信息
+      secret_key: 密钥
+      secret_key_hint: （可选）一个密钥，将包含在 Webhook-Secret-Key 请求头中，用于身份验证。
+  datatable:
+    entries:
+      filtered:
+        one: '%{count} 条'
+        other: '%{count} 条'
+      selected: 已选择 %{selected} / %{count} 项
+      total: 共 %{count} 项
+    show: 显示：
+    rows: 行
+  tiny_mce:
+    upload_window_title: 从你的电脑插入图片
+    upload_window_label: 选择图片
+    choose_file: 选择文件
+    no_image_chosen: 未选择图片
+    unsupported_image_format: 不支持的图片格式
+    insert_btn: 插入
+    error_message: 你必须选择一个文件
+    server_not_respond: 未收到服务器响应
+    saved_label: 已保存
+    leaving_warning: 你已做了一些更改，确定要离开此页面吗？
+    older_version_available: 浏览器中已保存了下方文本的较早版本。是否要恢复？
+    newer_version_available: 浏览器中已保存了下方文本的较新版本。是否要恢复？
+  general:
+    save: 保存
+    move: 移动
+    clear: 清除
+    select_all: 全选
+    update: 更新
+    edit: 编辑
+    delete: 删除
+    cancel: 取消
+    confirm: 确认
+    copy: 复制
+    duplicate: 复制
+    okay: 好的
+    done: 完成
+    back: 返回
+    close: 关闭
+    create: 创建
+    change: 更改
+    remove: 移除
+    clone_label: 克隆
+    download: 下载
+    access: 访问权限
+    select: 选择
+    selected: 已选
+    loading: 加载中……
+    replace: 替换
+    archive: 归档
+    assign: 分配
+    insert: 插入
+    options_selected: 个选项已选
+    output: 输出
+    restore: 恢复
+    locked: 已锁定
+    'yes': 是
+    'no': 否
+    from: 从
+    to: 至
+    leaving_unsaved_warning: 你已做了一些更改，确定要离开此页面吗？
+    no_comments: 暂无评论！
+    more_comments: 更多评论
+    comment_placeholder: 你的留言
+    comment_placeholder_new: 添加新评论……
+    archived: 已归档
+    archive_error: 归档该元素时出现问题。
+    invalid_params: 参数无效
+    sort:
+      title: 排序
+      new_html: 开始最晚
+      old_html: 开始最早
+      atoz_html: 名称 A 到 Z
+      ztoa_html: 名称 Z 到 A
+      archived_new_html: 归档置后
+      archived_old_html: 归档置前
+      id_asc_html: ID 升序
+      id_desc_html: ID 降序
+      due_first_html: 截止最早
+      due_last_html: 截止最晚
+    sort_new:
+      new: 最近添加
+      old: 最先添加
+      new_updated: 最近修改
+      old_updated: 最先修改
+      atoz: 名称 A 到 Z
+      ztoa: 名称 Z 到 A
+    module:
+      one: 任务
+      other: 任务
+    public: 公开
+    private: 私有
+    view: 查看
+    set_view_type: 设置视图类型
+    search: 搜索
+    file:
+      choose: 选择文件
+      no_file_chosen: 未选择文件
+      processing: 文件仍在处理中，暂时无法下载。
+      total_size: 你一次最多可上传 %{size} MB 文件。请移除一个或多个文件后重新提交。
+      size_exceeded: 文件大小必须小于 %{file_size} MB。
+      blank: 你未选择任何文件
+      uploading: 如果离开此页面，当前正在上传的文件将不会被保存！确定要继续吗？
+      upload_failure: 文件上传出错。请重试或联系管理员。
+      file_name_too_long: 过长（最多 %{limit} 个字符，含扩展名）
+    text:
+      name: 文本
+      not_blank: 不能为空
+      length_too_long_general: 过长
+      length_too_long: 过长（最多 %{max_length} 个字符）
+      length_too_short: 过短（最少 %{min_length} 个字符）
+    query:
+      wrong_query: 搜索词中的所有词要么过短（最少 %{min_length} 个字符），要么过长（最多 %{max_length} 个字符）
+      length_too_long: 搜索词过长（最多 %{max_length} 个字符）
+      length_too_short: 搜索词过短（最少 %{min_length} 个字符）
+    busy: 服务器仍在处理你的请求。如果离开此页面，更改将丢失！确定要继续吗？
+    no_name: （无名）
+    error: 发生错误，请稍后重试。
+    no_permissions: 你无权访问
+    filter: 筛选：
+    no_teams:
+      title: 你的仪表盘是空的！
+      text: 你需要向工作区管理员申请访问权限。
+    select_dropdown:
+      placeholder: 选择一个选项
+      few_options_placeholder: 个选项已选
+      all_options_placeholder: 已选择全部选项
+      no_options_placeholder: 未找到选项
+  api:
+    webhooks:
+      errors:
+        subject_not_serializable: 主题不可序列化。
+    core:
+      status_ok: 确定
+      invalid_api_key: API 密钥无效或已过期
+      invalid_api_key_detail: 你使用的 API 密钥不存在或已过期。
+      expired_token: 令牌已过期
+      invalid_token: 令牌无效
+      missing_token: 核心：请求头中缺少令牌
+      no_iss: 核心：令牌中缺少 ISS
+      wrong_iss: 默认：令牌中的 ISS 错误
+      no_user_mapping: 默认：未找到用户映射
+      no_azure_user_mapping: Azure AD：未找到用户映射
+      errors:
+        general:
+          title: 错误
+          detail: 出错了，请联系资源所有者
+        filter_parameter:
+          title: 筛选参数错误
+          detail: 筛选参数包含不正确的值
+        parameter:
+          title: 缺少参数
+        parameter_incorrect:
+          title: 参数不正确
+        validation:
+          title: 校验错误
+        read_permission:
+          title: 权限不足
+          detail: 你没有权限访问 %{model}
+        create_permission:
+          title: 权限不足
+          detail: 你没有权限创建 %{model}
+        manage_permission:
+          title: 权限不足
+          detail: 你没有权限管理 %{model}
+        archive_permission:
+          title: 权限不足
+          detail: 你没有权限归档/恢复 %{model}
+        delete_permission:
+          title: 权限不足
+          detail: 你没有权限删除 %{model}
+        toggle_completion_permission:
+          title: 权限不足
+          detail: 你没有权限切换 %{model} 的完成状态
+        read_users_permission:
+          title: 权限不足
+          detail: 你没有权限读取 %{model} 上的用户
+        mutually_exclusive_params_error:
+          title: 互斥参数
+          detail: 参数 %{first_param} 和 %{second_param} 不能同时指定。
+        update_stock_consumption_permission:
+          title: 权限不足
+          detail: 你没有权限更新该任务条目的库存消耗。
+        assing_repository_item_to_task_permission:
+          title: 权限不足
+          detail: 你没有权限在该任务上分配/取消分配库存条目。
+        record_not_found:
+          title: 未找到
+          detail: 在指定范围内未找到 ID 为 %{id} 的 %{model} 记录
+        not_implemented:
+          title: 未实现
+          detail: 该端点尚未实现
+        include_not_supported:
+          title: 不支持
+          detail: 该端点不支持 include 参数
+        id_mismatch:
+          title: 对象 ID 不匹配
+          detail: URL 与请求体中的对象 ID 不匹配
+        type:
+          title: 类型错误
+          detail: 参数中的对象类型错误
+          user_projects_detail: 参数中的对象类型错误。该端点已变更，应使用“user_assignments”代替“user_projects”
+        inventory_column_type:
+          detail: 不允许更新 data_type 属性
+        result_missing_tinymce:
+          detail: 文本中包含对已不存在的 TinyMCE 图片的引用
+        result_wrong_tinymce:
+          detail: 文本中未找到图片引用
+        table:
+          metadata:
+            detail_too_many_cells: 元数据字段中的单元格数量错误
+    service:
+      errors:
+        missing_task_ids: 缺少 task_ids
+        callback_missing: 缺少回调
+        url:
+          not_valid: URL 无效
+  breadcrumbs:
+    templates: 模板
+    projects: 项目
+    inventories: 库存
+    protocols: 规程模板
+    labels: 标签模板
+    teams: 所有工作区
+    addons: 附加组件
+    locations: 库位
+    label_printer: 标签打印机
+    fluics_printer: Fluics 打印机
+    forms: 表单
+    settings: 设置
+    equipment_bookings: 设备排期
+  Add: 添加
+  Asset: 文件
+  Assets: 文件
+  Download: 下载
+  Edit: 编辑
+  Save: 保存
+  SaveClose: 保存并关闭
+  Module: 任务
+  Modules: 任务
+  Project: 项目
+  Projects: 项目
+  ProjectFolders: 文件夹
+  Experiments: 实验
+  Result: 结果
+  Results: 结果
+  Protocol: 规程
+  Protocols: 规程
+  Checklist: 检查清单
+  ChecklistItem: 检查清单条目
+  Checklists: 检查清单
+  Table: 表格
+  Text: 文本
+  Tables: 表格
+  Repositories_team: 库存 - %{team}
+  Repository: 库存
+  Reports: 报告
+  Comments: 评论
+  Step: 步骤
+  Steps: 步骤
+  Tag: 标签
+  Tags: 标签
+  Workflow: 工作流
+  Workflows: 工作流
+  More: 更多
+  Added: 已添加
+  by: 由
+  name: 名称
+  From: 来自
+  To: 至
+  input:
+    errors:
+      invalid_value: 无效值
+  marvinjs:
+    new_sketch: 新建化学结构图
+    new_button: 你对该仓库没有权限
+    new_li_button: 新建化学结构图
+    structure_placeholder: 化学结构图
+    modal_name_title: 化学结构图名称：
+    chemical_drawing: 化学结构图
+    no_sketches_found: 未找到草图
+  open_vector_editor:
+    new_sequence: 序列
+    new_sequence_file: 新序列
+    default_sequence_name: 新序列
+    edit_sequence: 在序列编辑器中打开
+    sequence_name_placeholder: 点击此处输入序列名称
+    editor:
+      tooltips:
+        importTool: 点击或拖放以导入并查看文件（.fasta .gb .dna .json）
+  pdf_preview:
+    fit_to_screen: 适应屏幕
+    pages:
+      of: 的
+    blocked:
+      title: 你正在查看的文件非常大。
+      description: 为确保 SciNote 的最佳性能，我们未自动加载它。
+      submit_button: 仍然加载
+  views:
+    pagination:
+      first: 首页
+      last: 末页
+      previous: 上一页
+      next: 下一页
+      truncate: ……
+  filters_modal:
+    title: 输入搜索词……
+    text:
+      label: 显示结果
+      placeholder: 包含文本
+    from_placeholder: 截止日期
+    to_placeholder: 筛选条件
+    created_on:
+      label: 清除
+    updated_on:
+      label: 至
+    archived_on:
+      label: 无法更新该实验。
+    due_date:
+      label: 开始日期
+    recent_searches_label: 从
+    show_btn:
+      one: 最近搜索
+    clear_btn: 归档于
+  inline_edit:
+    errors:
+      over_limit: '%{attribute} 过长（最多 %{limit} 个字符）'
+      below_limit: '%{attribute} 过短（最少 %{limit} 个字符）'
+      blank: '%{attribute} 不能为空'
+  toolbar:
+    table_view: 表格视图
+    cards_view: 卡片视图
+    canvas_view: 画布视图
+    active_state: 活动状态
+    archived_state: 已归档状态
+  modal_share:
+    title: 共享 %{object_name}
+    submit: 点击此处输入化学结构图名称
+    share_with_team: 未找到草图
+    can_edit: 化学结构图
+    all_teams: 化学结构图名称：
+    all_teams_tooltip: 新建化学结构图
+    success_message: '%{object_name} 的所选共享选项已保存。'
+    save_before_individual_assign: 新建化学结构图
+  errors:
+    format: '%{attribute}%{message}'
+    messages:
+      model_invalid: 验证失败：%{errors}
+      inclusion: 不在列表中
+      exclusion: 是被保留的
+      invalid: 是无效的
+      confirmation: 与 %{attribute} 不一致
+      accepted: 必须被接受
+      empty: 不能为空
+      blank: 不能为空白
+      present: 必须为空白
+      too_long:
+        one: 太长（最多 1 个字符）
+        other: 太长（最多 %{count} 个字符）
+      password_too_long: 太长
+      too_short:
+        one: 太短（最少 1 个字符）
+        other: 太短（最少 %{count} 个字符）
+      wrong_length:
+        one: 长度错误（应为 1 个字符）
+        other: 长度错误（应为 %{count} 个字符）
+      not_a_number: 不是数字
+      not_an_integer: 必须是整数
+      greater_than: 必须大于 %{count}
+      greater_than_or_equal_to: 必须大于或等于 %{count}
+      equal_to: 必须等于 %{count}
+      less_than: 必须小于 %{count}
+      less_than_or_equal_to: 必须小于或等于 %{count}
+      other_than: 不能等于 %{count}
+      in: 必须在 %{count} 中
+      odd: 必须是奇数
+      even: 必须是偶数
+      required: 必须存在
+      taken: 已被占用
+      email: 不是有效的邮箱地址
+    general: 出错了。
+    general_text_too_long: 文本过长
+    general_saving_data: 保存数据时出错
+    forbidden:
+      title: 访问此页面被拒绝（403）。
+      dialog:
+        title: 看起来你无权访问此处。
+        text: 你需要向工作区管理员申请访问权限。
+        button: 返回
+    not_found:
+      title: 未找到该页面（404）。
+      dialog:
+        title: 如果你是应用所有者，请查看日志以获取更多信息。
+        text_1: 你可能输错了地址，或该页面已被移动。
+        text_2_html: 你可以通过 <a href="%{home_url}">主页</a> 返回，或尝试 <a href="%{search_url}">搜索。</a>
+    unprocessable_entity:
+      title: 糟糕，出错了。
+      dialog:
+        title: 请联系你的 SciNote 管理员。
+        text: 未找到该页面（404）。

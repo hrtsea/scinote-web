@@ -1,0 +1,65 @@
+zh-CN:
+  devise:
+    confirmations:
+      confirmed: 你的邮箱地址已成功验证。
+      send_instructions: 几分钟内你将收到一封邮件，其中包含验证邮箱地址的操作说明。
+      send_paranoid_instructions: 如果你的邮箱地址存在于我们的数据库中，几分钟内你将收到一封包含邮箱验证说明的邮件。
+    failure:
+      already_authenticated: ''
+      inactive: 你的账户尚未激活。
+      invalid: '%{authentication_keys} 或密码无效。'
+      locked: 你的账户已被锁定。
+      last_attempt: 再尝试一次，你的账户将被锁定。
+      not_found_in_database: '%{authentication_keys} 或密码无效。'
+      timeout: 你的会话已过期，请重新登录以继续。
+      unauthenticated: 你需要登录或注册后才能继续。
+      unconfirmed: 你需要先验证邮箱地址才能继续。
+      auth_method_disabled: 此验证方式已被禁用。
+    mailer:
+      confirmation_instructions:
+        subject: 验证说明
+      reset_password_instructions:
+        subject: 重置密码说明
+      unlock_instructions:
+        subject: 解锁说明
+      email_changed:
+        subject: 邮箱已更改
+      password_change:
+        subject: 密码已更改
+    omniauth_callbacks:
+      failure: 无法通过 %{kind} 验证你的身份，原因：“%{reason}”。
+      success: 已通过 %{kind} 账户成功登录。
+      missing_attribute: '%{attribute} 属性缺失或为空。'
+    passwords:
+      no_token: 你必须在收到密码重置邮件后才能访问此页面。如果你确实是通过该邮件访问的，请确认使用的是邮件中提供的完整链接。
+      send_instructions: 如果该邮箱已注册账户，重置密码的说明将很快发送。
+      send_paranoid_instructions: 如果你的邮箱地址存在于我们的数据库中，几分钟内你将收到发送至该邮箱的密码找回链接。
+      updated: 你的密码已修改成功，现在已登录。
+      updated_not_active: 你的密码已修改成功。
+    registrations:
+      destroyed: 再见！你的账户已成功注销，期待再次见到你。
+      signed_up: 欢迎！你已注册成功。
+      updated_but_not_signed_in: 你的账户已更新成功，但由于密码已更改，请重新登录。
+      signed_up_but_inactive: 你已注册成功，但由于账户尚未激活，暂时无法登录。
+      signed_up_but_locked: 你已注册成功，但由于账户已被锁定，暂时无法登录。
+      signed_up_but_unconfirmed: 一封包含验证链接的邮件已发送至你的邮箱，请点击链接激活账户。
+      update_needs_confirmation: 账户信息已更新成功，但我们需要验证你的新邮箱地址。请查收邮件并点击确认链接以完成验证。
+      updated: 你的账户已更新成功。
+    sessions:
+      signed_in: 已成功登录。
+      signed_out: 已成功退出登录。
+      already_signed_out: 已成功退出登录。
+    unlocks:
+      send_instructions: 几分钟内你将收到一封包含账户解锁说明的邮件。
+      send_paranoid_instructions: 如果你的账户存在，几分钟内你将收到一封包含解锁说明的邮件。
+      unlocked: 你的账户已成功解锁，请登录以继续。
+  errors:
+    messages:
+      already_confirmed: 该邮箱已验证，请尝试登录
+      confirmation_period_expired: 需在 %{period} 内完成验证，请重新申请
+      expired: 已过期，请重新申请
+      not_found: 未找到
+      not_locked: 未被锁定
+      not_saved:
+        one: 保存 %{resource} 时遇到 1 个错误：
+        other: 保存 %{resource} 时遇到 %{count} 个错误：

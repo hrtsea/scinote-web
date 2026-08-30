@@ -1,0 +1,1344 @@
+zh-CN:
+  global_activities:
+    index:
+      teams: 工作区
+      activity: 动态已创建
+      period_label: 动态已创建：
+      today: 今天
+      yesterday: 昨天
+      this_week: 本周
+      last_week: 上周
+      this_month: 本月
+      last_month: 上月
+      from_label: 选择结束日期
+      to_label: 选择开始日期
+      clear: 清除
+      activity_type: 动态类型
+      user: 用户
+      clear_filters: 清除筛选条件
+      select_teams: 选择工作区
+      select_activity_groups: 选择动态分组
+      select_activity_types: 选择动态类型
+      select_users: 选择用户
+      projects_experiments_tasks: 项目、实验、任务
+      select_projects: 选择项目
+      select_experiments: 选择实验
+      disable_experiments: 选择项目以启用实验
+      select_tasks: 选择任务
+      disable_tasks: 选择实验以启用任务
+      inventories: 库存
+      select_inventories: 选择库存
+      select_inventory_items: 选择库存条目
+      disable_inventory_items: 选择库存以启用库存条目
+      protocols: 规程
+      select_protocols: 选择规程
+      reports: 报告
+      select_reports: 选择报告
+      no_name: （未命名）
+      content_generation_error: 渲染动态内容失败，ID：%{activity_id}
+      activity_filter_saved: 筛选条件已成功保存到 Webhooks 页面！
+      save_filter: 保存筛选条件
+      save_filter_modal:
+        title: 保存筛选条件
+        description: 已保存的筛选条件将位于“设置”的 Webhooks 分区，可用于触发 webhook。
+        filter_name_label: 筛选条件名称
+        filter_name_placeholder: 为筛选条件命名
+    content:
+      create_project_html: '%{user} 创建了项目 %{project}。'
+      edit_project_html: '%{user} 编辑了项目 %{project}。'
+      change_project_visibility_html: '%{user} 将项目 %{project} 的可见性更改为 %{visibility}。'
+      project_grant_access_to_all_team_members_html: '%{user} 向项目 %{project} 授予了 %{team}
+        工作区全体成员的 %{role} 用户角色访问权限。'
+      project_remove_access_from_all_team_members_html: '%{user} 从项目 %{project} 移除了
+        %{team} 工作区中角色为 %{role} 的成员。'
+      archive_project_html: '%{user} 归档了项目 %{project}。'
+      restore_project_html: '%{user} 从归档恢复了项目 %{project}。'
+      add_comment_to_project_html: '%{user} 在项目 %{project} 上发表了评论。'
+      edit_project_comment_html: '%{user} 编辑了项目 %{project} 上的评论。'
+      delete_project_comment_html: '%{user} 删除了项目 %{project} 上的评论。'
+      create_report_html: '%{user} 创建了报告 %{report}。'
+      edit_report_html: '%{user} 编辑了报告 %{report}。'
+      delete_report_html: '%{user} 删除了报告 %{report}。'
+      add_result_old_html: '%{user} 添加了 %{type_of_result} 结果 %{result}。'
+      add_result_html: '%{user} 添加了结果 %{result}。'
+      edit_result_old_html: '%{user} 编辑了 %{type_of_result} 结果 %{result}。'
+      edit_result_html: '%{user} 编辑了结果 %{result}。'
+      add_comment_to_result_html: '%{user} 在结果 %{result} 上发表了评论。'
+      edit_result_comment_html: '%{user} 编辑了结果 %{result} 上的评论。'
+      delete_result_comment_html: '%{user} 删除了结果 %{result} 上的评论。'
+      archive_result_old_html: '%{user} 归档了 %{type_of_result} 结果 %{result}。'
+      archive_result_html: '%{user} 归档了结果 %{result}。'
+      destroy_result_old_html: '%{user} 删除了 %{type_of_result} 结果 %{result}。'
+      destroy_result_html: '%{user} 删除了结果 %{destroyed_result}。'
+      result_restored_html: '%{user} 从归档恢复了结果 %{result}。'
+      result_file_added_html: '%{user} 向结果 <strong>%{result}</strong> 添加了文件 <strong>%{file}</strong>。'
+      result_file_deleted_html: '%{user} 删除了结果 <strong>%{result}</strong> 中的文件 <strong>%{file}</strong>。'
+      sequence_on_result_added_html: '%{user} 在结果 %{result} 上创建了序列 %{file}。'
+      sequence_on_result_edited_html: '%{user} 在结果 %{result} 上编辑了序列 %{file}。'
+      sequence_on_result_deleted_html: '%{user} 在结果 %{result} 上删除了序列 %{file}。'
+      sequence_on_result_moved_html: '%{user} 将序列 %{file} 从结果 %{result_original} 移动到结果
+        %{result_destination}。'
+      result_text_added_html: '%{user} 在结果 <strong>%{result}</strong> 中创建了文本 <strong>%{text_name}</strong>。'
+      result_text_edited_html: '%{user} 编辑了结果 <strong>%{result}</strong> 中的文本 <strong>%{text_name}</strong>。'
+      result_text_deleted_html: '%{user} 删除了结果 <strong>%{result}</strong> 中的文本 <strong>%{text_name}</strong>。'
+      result_table_added_html: '%{user} 在结果 <strong>%{result}</strong> 中创建了表格 <strong>%{table_name}</strong>。'
+      result_table_edited_html: '%{user} 编辑了结果 <strong>%{result}</strong> 中的表格 <strong>%{table_name}</strong>。'
+      result_table_deleted_html: '%{user} 删除了结果 <strong>%{result}</strong> 中的表格 <strong>%{table_name}</strong>。'
+      result_table_duplicated_html: '%{user} 复制了结果 <strong>%{result}</strong> 中的表格
+        <strong>%{table_name}</strong>。'
+      result_text_duplicated_html: '%{user} 复制了结果 <strong>%{result}</strong> 中的文本
+        <strong>%{text_name}</strong>。'
+      result_duplicated_html: '%{user} 复制了结果 <strong>%{result}</strong>。'
+      create_module_html: '%{user} 创建了任务 %{my_module}。'
+      clone_module_html: '%{user} 以 %{my_module_original} 为模板复制出任务 %{my_module_new}。'
+      restore_module_html: '%{user} 从归档恢复了任务 %{my_module}。'
+      add_comment_to_module_html: '%{user} 在任务 %{my_module} 上发表了评论。'
+      edit_module_comment_html: '%{user} 编辑了任务 %{my_module} 上的评论。'
+      delete_module_comment_html: '%{user} 删除了任务 %{my_module} 上的评论。'
+      change_module_description_html: '%{user} 编辑了任务 %{my_module} 的描述。'
+      create_step_html: '%{user} 在任务 %{my_module} 上创建了规程步骤 %{step_position} <strong>%{step}</strong>。'
+      edit_step_html: '%{user} 编辑了任务 %{my_module} 的规程步骤 %{step_position} <strong>%{step}</strong>。'
+      destroy_step_html: '%{user} 删除了任务 %{my_module} 上的规程步骤 %{step_position} <strong>%{step}</strong>。'
+      load_protocol_to_task_from_repository_html: '%{user} 从规程库 %{protocol_repository}
+        将规程加载到任务 %{my_module}。'
+      load_protocol_to_task_from_file_html: '%{user} 从文件将规程加载到任务 %{my_module}。'
+      update_protocol_in_task_from_repository_html: '%{user} 用规程库 %{protocol_repository}
+        的版本更新了任务 %{my_module} 上的规程。'
+      update_protocol_in_repository_from_task_html: '%{user} 用任务 %{my_module} 的版本更新了规程库中的规程
+        %{protocol_repository}。'
+      check_step_checklist_item_html: '%{user} 完成了规程步骤 %{step_position} <strong>%{step}</strong>
+        上任务 %{my_module} 的检查清单项 <strong>%{checkbox}</strong>（已完成 %{num_completed}/%{num_all}）。'
+      uncheck_step_checklist_item_html: '%{user} 取消了规程步骤 %{step_position} %{step}
+        上任务 %{my_module} 的检查清单项 <strong>%{checkbox}</strong> 的完成状态（已完成 %{num_completed}/%{num_all}）。'
+      add_comment_to_step_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position} <strong>%{step}</strong>
+        上发表了评论。'
+      edit_step_comment_html: '%{user} 编辑了任务 %{my_module} 的规程步骤 %{step_position} <strong>%{step}</strong>
+        上的评论。'
+      delete_step_comment_html: '%{user} 删除了任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 上的评论。'
+      complete_step_html: '%{user} 完成了任务 %{my_module} 上的规程步骤 %{step_position} <strong>%{step}</strong>（已完成
+        %{num_completed}/%{num_all}，已跳过 %{num_skipped}）。'
+      uncomplete_step_html: '%{user} 取消了任务 %{my_module} 上规程步骤 %{step_position} <strong>%{step}</strong>
+        的完成状态（已完成 %{num_completed}/%{num_all}，已跳过 %{num_skipped}）。'
+      complete_task_html: '%{user} 完成了任务 %{my_module}。'
+      uncomplete_task_html: '%{user} 取消了任务 %{my_module} 的完成状态。'
+      assign_repository_record_html: '%{user} 将库存 %{repository} 中的条目 %{record_names}
+        分配给了任务 %{my_module}。'
+      unassign_repository_record_html: '%{user} 将库存 %{repository} 的条目 %{record_names}
+        从任务 %{my_module} 解除分配。'
+      assign_user_to_project_html: '%{user} 向项目 %{project} 授予了 %{user_target} 用户角色
+        %{role} 的访问权限。'
+      unassign_user_from_project_html: '%{user} 从项目 %{project} 移除了角色为 %{role} 的 %{user_target}。'
+      change_user_role_on_project_html: '%{user} 将 %{user_target} 在项目 %{project} 上的角色更改为
+        %{role}。'
+      change_user_role_on_experiment_html: '%{user} 将 %{user_target} 在实验 %{experiment}
+        上的角色更改为 %{role}。'
+      change_user_role_on_my_module_html: '%{user} 将 %{user_target} 在任务 %{my_module}
+        上的角色更改为 %{role}。'
+      designate_user_to_my_module_html: '%{user} 将用户 %{user_target} 分配到了任务 %{my_module}。'
+      undesignate_user_from_my_module_html: '%{user} 将用户 %{user_target} 从任务 %{my_module}
+        移除。'
+      create_experiment_html: '%{user} 创建了实验 %{experiment}。'
+      rename_experiment_html: '%{user} 重命名了实验 %{experiment}。'
+      edit_experiment_html: '%{user} 编辑了实验 %{experiment}。'
+      move_experiment_html: '%{user} 将实验 %{experiment} 从项目 %{project_original} 移动到项目
+        %{project_new}。'
+      clone_experiment_html: '%{user} 以 %{experiment_original} 为模板复制出实验 %{experiment_new}。'
+      archive_experiment_html: '%{user} 归档了实验 %{experiment}。'
+      edit_wopi_file_on_result_html: '%{user} 编辑了结果 %{result} 上的 Microsoft 365 文件
+        %{asset_name}：%{action}。'
+      export_protocol_from_task_html: '%{user} 从任务 %{my_module} 导出了规程'
+      copy_protocol_in_repository_html: '%{user} 以 %{protocol_original} 为模板复制出规程 %{protocol_new}。'
+      user_leave_team_html: '%{user} 退出了工作区 %{team}'
+      edit_wopi_file_on_step_html: '%{user} 编辑了任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 上的 Microsoft 365 文件 %{asset_name}：%{action}。'
+      edit_wopi_file_on_step_in_repository_html: '%{user} 编辑了规程库中规程 %{protocol} 的步骤
+        %{step_position} %{step} 上的 Microsoft 365 文件 %{asset_name}：%{action}。'
+      restore_experiment_html: '%{user} 恢复了实验 %{experiment}。'
+      rename_task_html: '%{user} 重命名了任务 %{my_module}。'
+      move_task_html: '%{user} 将任务 %{my_module} 从实验 %{experiment_original} 移动到实验 %{experiment_new}。'
+      archive_module_html: '%{user} 归档了任务 %{my_module}。'
+      set_task_start_date_html: '%{user} 为任务 %{my_module} 设置了开始日期 %{my_module_started_on}。'
+      change_task_start_date_html: '%{user} 更改了任务 %{my_module} 的开始日期 %{my_module_started_on}。'
+      remove_task_start_date_html: '%{user} 移除了任务 %{my_module} 的开始日期 %{my_module_started_on}。'
+      set_task_due_date_html: '%{user} 为任务 %{my_module} 设置了截止日期 %{my_module_duedate}。'
+      change_task_due_date_html: '%{user} 更改了任务 %{my_module} 的截止日期 %{my_module_duedate}。'
+      remove_task_due_date_html: '%{user} 移除了任务 %{my_module} 的截止日期 %{my_module_duedate}。'
+      add_task_tag_html: '%{user} 将标签 <strong>%{tag}</strong> 添加到了任务 %{my_module}。'
+      remove_task_tag_html: '%{user} 从任务 %{my_module} 移除了标签 <strong>%{tag}</strong>。'
+      create_inventory_html: '%{user} 创建了库存 %{repository}。'
+      rename_inventory_html: '%{user} 重命名了库存 %{repository}。'
+      archive_inventory_html: '%{user} 归档了库存 %{repository}。'
+      restore_inventory_html: '%{user} 恢复了库存 %{repository}。'
+      delete_inventory_html: '%{user} 删除了库存 %{repository}。'
+      share_inventory_html: '%{user} 以 %{permission_level} 权限将库存 %{repository} 与工作区
+        %{team} 共享。'
+      unshare_inventory_html: '%{user} 停止了库存 %{repository} 与工作区 %{team} 的共享。'
+      update_share_inventory_html: '%{user} 将库存 %{repository} 与工作区 %{team} 共享的权限更改为
+        %{permission_level}。'
+      share_inventory_with_all_html: '%{user} 以 %{permission_level} 权限将库存 %{repository}
+        与所有工作区（当前及未来）共享。'
+      unshare_inventory_with_all_html: '%{user} 停止了库存 %{repository} 与所有工作区（当前及未来）的共享。'
+      update_share_with_all_permission_level_html: '%{user} 将库存 %{repository} 与所有工作区共享的权限更改为
+        %{permission_level}。'
+      create_item_inventory_html: '%{user} 创建了库存条目 %{repository_row}。'
+      edit_item_inventory_html: '%{user} 编辑了库存条目 %{repository_row}。'
+      delete_item_inventory_html: '%{user} 删除了库存条目 %{repository_row}。'
+      edit_item_field_inventory_html: '%{user} 编辑了库存条目 %{repository_row} 上的 %{repository_column}。'
+      inventory_item_relationships_linked_html: '%{user} 将 %{repository_row_linked}
+        作为 %{relationship_type} 关联到 %{repository_row}。'
+      inventory_item_relationships_unlinked_html: '%{user} 解除了 %{repository_row} 与
+        %{repository_row_unlinked} 的关联。'
+      archive_inventory_item_html: '%{user} 归档了库存条目 %{repository_row}。'
+      restore_inventory_item_html: '%{user} 恢复了库存条目 %{repository_row}。'
+      create_column_inventory_html: '%{user} 在库存 %{repository} 中创建了列 %{repository_column}。'
+      edit_column_inventory_html: '%{user} 编辑了库存 %{repository} 中的列 %{repository_column}。'
+      copy_inventory_html: '%{user} 以 %{repository_original} 为模板复制出库存 %{repository_new}。'
+      copy_inventory_item_html: '%{user} 从库存条目 %{repository_row_original} 复制出库存条目
+        %{repository_row_new}。'
+      delete_column_inventory_html: '%{user} 删除了库存 %{repository} 中的列 %{repository_column}。'
+      create_protocol_in_repository_html: '%{user} 在规程库中创建了规程 %{protocol}。'
+      edit_protocol_name_in_repository_html: '%{user} 在规程库更新了规程名称'
+      add_step_to_protocol_repository_html: '%{user} 在规程库中创建了规程 %{protocol} 的步骤 %{step_position}
+        <strong>%{step}</strong>。'
+      edit_step_in_protocol_repository_html: '%{user} 在规程库中编辑了规程 %{protocol} 的步骤 %{step_position}
+        <strong>%{step}</strong>。'
+      delete_step_in_protocol_repository_html: '%{user} 删除了规程库中规程 %{protocol} 的步骤
+        %{step_position} <strong>%{step}</strong>。'
+      edit_description_in_protocol_repository_html: '%{user} 在规程库中编辑了规程 %{protocol}
+        的描述。'
+      edit_keywords_in_protocol_repository_html: '%{user} 在规程库中编辑了规程 %{protocol} 的关键词。'
+      edit_authors_in_protocol_repository_html: '%{user} 在规程库中编辑了规程 %{protocol} 的作者。'
+      archive_protocol_in_repository_html: '%{user} 归档了规程库中的规程 %{protocol}。'
+      restore_protocol_in_repository_html: '%{user} 在规程库中将规程 %{protocol} 从归档恢复。'
+      move_protocol_in_repository_html: '%{user} 在规程库中将规程 %{protocol} 从 %{storage}
+        移动。'
+      import_protocol_in_repository_html: '%{user} 从文件将规程 %{protocol} 导入到规程库。'
+      export_protocol_in_repository_html: '%{user} 从规程库导出了规程 %{protocol}。'
+      invite_user_to_team_html: '%{user} 以 %{role} 用户角色邀请了用户 %{user_invited} 加入工作区
+        %{team}。'
+      remove_user_from_team_html: '%{user} 将用户 %{user_removed} 从工作区 %{team} 移除。'
+      change_users_role_on_team_html: '%{user} 将用户 %{user_changed} 在工作区 %{team} 中的角色更改为
+        %{role}。'
+      export_projects_html: '%{user} 将项目 %{projects} 导出为 .zip。'
+      export_inventory_items_html: '%{user} 从 %{repository} 导出了库存条目。'
+      create_tag_html: '%{user} 在项目 %{project} 中创建了标签 <strong>%{tag}</strong>。'
+      edit_tag_html: '%{user} 编辑了项目 %{project} 中的标签 <strong>%{tag}</strong>。'
+      delete_tag_html: '%{user} 删除了项目 %{project} 中的标签 <strong>%{tag}</strong>。'
+      import_inventory_items_legacy_html: '%{user} 导入了 %{num_of_items} 个库存条目到 %{repository}。'
+      inventory_items_added_or_updated_with_import_html: '%{user} 通过导入在 %{repository}
+        中新增了 %{created_rows_count} 个条目并更了 %{updated_rows_count} 个已有条目。'
+      edit_image_on_result_html: '%{user} 编辑了结果 %{result} 上的图片 %{asset_name}：%{action}。'
+      edit_image_on_step_html: '%{user} 编辑了任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 上的图片 %{asset_name}：%{action}。'
+      edit_image_on_step_in_repository_html: '%{user} 编辑了规程库中规程 %{protocol} 的步骤 %{step_position}
+        %{step} 上的图片 %{asset_name}：%{action}。'
+      edit_chemical_structure_on_step_html: '%{user} 编辑了任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 上的化学结构 %{asset_name}：%{action}。'
+      edit_chemical_structure_on_result_html: '%{user} 编辑了结果 %{result} 上的化学结构 %{asset_name}：%{action}。'
+      edit_chemical_structure_on_step_in_repository_html: '%{user} 编辑了规程 %{protocol}
+        的步骤 %{step_position} %{step} 上的化学结构 %{asset_name}：%{action}。'
+      edit_chemical_structure_on_task_protocol_html: '%{user} 编辑了任务 %{my_module} 的规程上的化学结构
+        %{asset_name}：%{action}。'
+      edit_chemical_structure_on_protocol_html: '%{user} 编辑了规程 %{protocol} 上的化学结构
+        %{asset_name}：%{action}。'
+      edit_chemical_structure_on_task_html: '%{user} 编辑了任务 %{my_module} 上的化学结构 %{asset_name}：%{action}。'
+      create_chemical_structure_on_step_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 上创建了化学结构 %{asset_name}。'
+      create_chemical_structure_on_result_html: '%{user} 在结果 %{result} 上创建了化学结构 %{asset_name}。'
+      create_chemical_structure_on_step_in_repository_html: '%{user} 在规程 %{protocol}
+        的步骤 %{step_position} %{step} 上创建了化学结构 %{asset_name}。'
+      create_chemical_structure_on_task_protocol_html: '%{user} 在任务 %{my_module} 的规程上创建了化学结构
+        %{asset_name}。'
+      create_chemical_structure_on_protocol_html: '%{user} 在规程 %{protocol} 上创建了化学结构
+        %{asset_name}。'
+      create_chemical_structure_on_task_html: '%{user} 在任务 %{my_module} 上创建了化学结构 %{asset_name}。'
+      delete_chemical_structure_on_step_html: '%{user} 删除了任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 上的化学结构 %{asset_name}。'
+      delete_chemical_structure_on_result_html: '%{user} 删除了结果 %{result} 上的化学结构 %{asset_name}。'
+      delete_chemical_structure_on_step_in_repository_html: '%{user} 删除了规程 %{protocol}
+        的步骤 %{step_position} %{step} 上的化学结构 %{asset_name}。'
+      delete_chemical_structure_on_task_protocol_html: '%{user} 删除了任务 %{my_module}
+        的规程上的化学结构 %{asset_name}。'
+      delete_chemical_structure_on_protocol_html: '%{user} 删除了规程 %{protocol} 上的化学结构
+        %{asset_name}。'
+      delete_chemical_structure_on_task_html: '%{user} 删除了任务 %{my_module} 上的化学结构 %{asset_name}。'
+      protocol_description_in_task_edited_html: '%{user} 编辑了任务 %{my_module} 上的规程描述。'
+      protocol_name_in_task_edited_html: '%{user} 在任务 %{my_module} 上更新了规程名称。'
+      export_inventory_items_assigned_to_task_html: '%{user} 从库存 %{repository} 导出了分配给任务
+        %{my_module} 的库存条目：实时版本。'
+      export_inventory_snapshot_items_assigned_to_task_html: '%{user} 从库存 %{repository_snapshot}
+        导出了分配给任务 %{my_module} 的库存条目：%{created_at} 的快照。'
+      change_status_on_task_flow_html: '%{user} 将任务 %{my_module} 的状态由 <strong>%{my_module_status_old}</strong>
+        更改为 <strong>%{my_module_status_new}</strong>。'
+      move_project_html: '%{user} 将项目 %{project} 从文件夹 %{project_folder_from} 移动到文件夹
+        %{project_folder_to}。'
+      create_project_folder_html: '%{user} 创建了项目文件夹 %{project_folder}。'
+      rename_project_folder_html: '%{user} 重命名了项目文件夹 %{project_folder}。'
+      delete_project_folder_html: '%{user} 删除了项目文件夹 %{project_folder}。'
+      move_project_folder_html: '%{user} 将项目文件夹 %{project_folder} 从文件夹 %{project_folder_from}
+        移动到文件夹 %{project_folder_to}。'
+      generate_pdf_report_html: '%{user} 生成了 PDF 报告 %{report}。'
+      generate_docx_report_html: '%{user} 生成了 DOCX 报告 %{report}。'
+      inventory_item_stock_set_html: '%{user} 将库存 %{repository} 中库存条目 %{repository_row}
+        的总库存设置为 %{new_amount} %{unit}。
+
+        %{comment}'
+      inventory_item_stock_add_html: '%{user} 为库存 %{repository} 中的库存条目 %{repository_row}
+        增加了 %{change_amount} %{unit} 库存，总计 %{new_amount} %{unit}。
+
+        %{comment}'
+      inventory_item_stock_remove_html: '%{user} 为库存 %{repository} 中的库存条目 %{repository_row}
+        减少了 %{change_amount} %{unit} 库存，总计 %{new_amount} %{unit}。
+
+        %{comment}'
+      task_inventory_item_stock_consumed_html: '%{user} 在任务 %{my_module} 上将库存条目 %{repository_row}
+        的消耗量从 %{stock_consumption_was} %{unit} 更改为 %{stock_consumption} %{unit}。
+
+        %{comment}'
+      task_steps_rearranged_html: '%{user} 重排了任务 %{my_module} 上的规程步骤'
+      task_step_content_rearranged_html: '%{user} 重排了任务 %{my_module} 上规程步骤 %{step_position}
+        <strong>%{step}</strong> 的内容'
+      result_content_rearranged_html: '%{user} 重排了任务 %{my_module} 上结果的内容'
+      task_step_file_added_html: '%{user} 向任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 添加了文件 <strong>%{file}</strong>。'
+      task_step_file_deleted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 删除了文件 <strong>%{file}</strong>。'
+      protocol_steps_rearranged_html: '%{user} 在规程库中重排了规程 %{protocol} 的规程步骤'
+      protocol_step_content_rearranged_html: '%{user} 在规程库中重排了规程 %{protocol} 的规程步骤
+        %{step_position} <strong>%{step}</strong> 的内容'
+      protocol_step_file_added_html: '%{user} 在规程库中向规程步骤 %{step_position} <strong>%{step}</strong>
+        添加了文件 <strong>%{file}</strong>。'
+      protocol_step_file_deleted_html: '%{user} 在规程库中删除了规程步骤 %{step_position} <strong>%{step}</strong>
+        的文件 <strong>%{file}</strong>。'
+      task_step_text_added_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 创建了文本 <strong>%{text_name}</strong>。'
+      task_step_text_edited_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 编辑了文本 <strong>%{text_name}</strong>。'
+      task_step_text_deleted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 删除了文本 <strong>%{text_name}</strong>。'
+      task_step_table_added_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 创建了表格 <strong>%{table_name}</strong>。'
+      task_step_table_edited_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 编辑了表格 <strong>%{table_name}</strong>。'
+      task_step_table_deleted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 删除了表格 <strong>%{table_name}</strong>。'
+      task_step_checklist_added_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 创建了检查清单 <strong>%{checklist_name}</strong>。'
+      task_step_checklist_edited_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 编辑了检查清单 <strong>%{checklist_name}</strong>。'
+      task_step_checklist_deleted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 删除了检查清单 <strong>%{checklist_name}</strong>。'
+      task_step_checklist_item_added_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 的检查清单 <strong>%{checklist_name}</strong> 中创建了检查清单项
+        <strong>%{checklist_item}</strong>。'
+      task_step_checklist_item_edited_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 的检查清单 <strong>%{checklist_name}</strong> 中编辑了检查清单项
+        <strong>%{checklist_item}</strong>。'
+      task_step_checklist_item_deleted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 的检查清单 <strong>%{checklist_name}</strong> 中删除了检查清单项
+        <strong>%{checklist_item}</strong>。'
+      protocol_step_text_added_html: '%{user} 在规程库中创建了规程步骤 %{step_position} <strong>%{step}</strong>
+        的文本 <strong>%{text_name}</strong>。'
+      protocol_step_text_edited_html: '%{user} 在规程库中编辑了规程步骤 %{step_position} <strong>%{step}</strong>
+        的文本 <strong>%{text_name}</strong>。'
+      protocol_step_text_deleted_html: '%{user} 在规程库中删除了规程步骤 %{step_position} <strong>%{step}</strong>
+        的文本 <strong>%{text_name}</strong>。'
+      protocol_step_table_added_html: '%{user} 在规程库中创建了规程步骤 %{step_position} <strong>%{step}</strong>
+        的表格 <strong>%{table_name}</strong>。'
+      protocol_step_table_edited_html: '%{user} 在规程库中编辑了规程步骤 %{step_position} <strong>%{step}</strong>
+        的表格 <strong>%{table_name}</strong>。'
+      protocol_step_table_deleted_html: '%{user} 在规程库中删除了规程步骤 %{step_position} <strong>%{step}</strong>
+        的表格 <strong>%{table_name}</strong>。'
+      protocol_step_checklist_added_html: '%{user} 在规程库中创建了规程步骤 %{step_position} <strong>%{step}</strong>
+        的检查清单 <strong>%{checklist_name}</strong>。'
+      protocol_step_checklist_edited_html: '%{user} 在规程库中编辑了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的检查清单 <strong>%{checklist_name}</strong>。'
+      protocol_step_checklist_deleted_html: '%{user} 在规程库中删除了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的检查清单 <strong>%{checklist_name}</strong>。'
+      protocol_step_checklist_item_added_html: '%{user} 在规程库中创建了检查清单 <strong>%{checklist_name}</strong>
+        中的检查清单项 <strong>%{checklist_item}</strong>，位于规程步骤 %{step_position} <strong>%{step}</strong>。'
+      protocol_step_checklist_item_edited_html: '%{user} 在规程库中编辑了检查清单 <strong>%{checklist_name}</strong>
+        中的检查清单项 <strong>%{checklist_item}</strong>，位于规程步骤 %{step_position} <strong>%{step}</strong>。'
+      protocol_step_checklist_item_deleted_html: '%{user} 在规程库中删除了检查清单 <strong>%{checklist_name}</strong>
+        中的检查清单项 <strong>%{checklist_item}</strong>，位于规程步骤 %{step_position} <strong>%{step}</strong>。'
+      task_step_duplicated_html: '%{user} 复制了任务 %{my_module} 上的规程步骤 <strong>%{step}</strong>。'
+      protocol_step_duplicated_html: '%{user} 在规程库中复制了规程 %{protocol} 的步骤 <strong>%{step}</strong>。'
+      task_step_text_duplicated_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 复制了文本 <strong>%{text_name}</strong>。'
+      task_step_table_duplicated_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 复制了表格 <strong>%{table_name}</strong>。'
+      task_step_checklist_duplicated_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 复制了检查清单 <strong>%{checklist_name}</strong>。'
+      protocol_step_text_duplicated_html: '%{user} 在规程库中复制了规程步骤 %{step_position} <strong>%{step}</strong>
+        的文本 <strong>%{text_name}</strong>。'
+      protocol_step_table_duplicated_html: '%{user} 在规程库中复制了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的表格 <strong>%{table_name}</strong>。'
+      protocol_step_checklist_duplicated_html: '%{user} 在规程库中复制了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的检查清单 <strong>%{checklist_name}</strong>。'
+      label_template_created_html: '%{user} 在标签模板中创建了 %{type} 标签模板 %{label_template}。'
+      label_template_edited_html: '%{user} 在标签模板中编辑了 %{type} 标签模板 %{label_template}。'
+      label_template_deleted_html: '%{user} 在标签模板中删除了 %{type} 标签模板 %{label_template}。'
+      label_template_copied_html: '%{user} 在标签模板中从 %{label_template_original} 复制出
+        %{type} 标签模板 %{label_template_new}。'
+      protocol_template_published_html: '%{user} 发布了规程模板 %{protocol} 的第 %{version_number}
+        版。'
+      protocol_template_revision_notes_updated_html: '%{user} 编辑了 %{protocol} 的修订说明。'
+      protocol_template_draft_deleted_html: '%{user} 删除了 %{protocol} 的草稿。'
+      protocol_template_draft_created_html: '%{user} 创建了 %{protocol} 的草稿。'
+      protocol_template_access_granted_html: '%{user} 向规程模板 %{protocol} 授予了 %{user_target}
+        的 %{role} 用户角色访问权限。'
+      protocol_template_access_changed_html: '%{user} 将规程模板 %{protocol} 上 %{user_target}
+        的角色更改为 %{role}。'
+      protocol_template_access_revoked_html: '%{user} 从规程模板 %{protocol} 移除了角色为 %{role}
+        的 %{user_target}。'
+      protocol_template_access_granted_all_team_members_html: '%{user} 向规程模板 %{protocol}
+        授予了 %{team} 工作区全体成员的 %{role} 用户角色访问权限。'
+      protocol_template_access_changed_all_team_members_html: '%{user} 将规程模板 %{protocol}
+        上 %{team} 的角色更改为 %{role}。'
+      protocol_template_access_revoked_all_team_members_html: '%{user} 从规程模板 %{protocol}
+        移除了 %{team} 工作区中角色为 %{role} 的成员。'
+      task_protocol_save_to_template_html: '%{user} 从任务创建了新规程模板 %{protocol}。'
+      project_access_changed_all_team_members_html: '%{user} 将项目 %{project} 上 %{team}
+        的角色更改为 %{role}。'
+      team_sharing_tasks_enabled_html: '%{user} 在工作区 %{team} 中启用了任务共享。'
+      team_sharing_tasks_disabled_html: '%{user} 在工作区 %{team} 中禁用了任务共享。'
+      task_link_sharing_enabled_html: '%{user} 启用了任务 %{my_module} 的链接共享。'
+      task_link_sharing_disabled_html: '%{user} 禁用了任务 %{my_module} 的链接共享。'
+      shared_task_message_edited_html: '%{user} 编辑了共享任务 %{my_module} 的消息。'
+      task_sequence_asset_added_html: '%{user} 在任务 <strong>%{my_module}</strong> 的规程步骤
+        <strong>%{step_position}</strong> <strong>%{step}</strong> 上创建了序列 <strong>%{asset_name}</strong>。'
+      task_sequence_asset_edit_started_html: '%{user} 在任务 <strong>%{my_module}</strong>
+        的规程步骤 <strong>%{step_position}</strong> <strong>%{step}</strong> 上编辑了序列 <strong>%{asset_name}</strong>：编辑开始。'
+      task_sequence_asset_edit_finished_html: '%{user} 在任务 <strong>%{my_module}</strong>
+        的规程步骤 <strong>%{step_position}</strong> <strong>%{step}</strong> 上编辑了序列 <strong>%{asset_name}</strong>：编辑完成。'
+      task_sequence_asset_deleted_html: '%{user} 在任务 <strong>%{my_module}</strong>
+        的规程步骤 <strong>%{step_position}</strong> <strong>%{step}</strong> 上删除了序列 <strong>%{asset_name}</strong>。'
+      protocol_sequence_asset_added_html: '%{user} 在规程库中创建了规程步骤 %{step_position} <strong>%{step}</strong>
+        的序列 <strong>%{asset_name}</strong>。'
+      protocol_sequence_asset_edit_started_html: '%{user} 在规程库中编辑了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的序列 <strong>%{asset_name}</strong>：编辑开始。'
+      protocol_sequence_asset_edit_finished_html: '%{user} 在规程库中编辑了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的序列 <strong>%{asset_name}</strong>：编辑完成。'
+      protocol_sequence_asset_deleted_html: '%{user} 在规程库中删除了规程步骤 %{step_position}
+        <strong>%{step}</strong> 的序列 <strong>%{asset_name}</strong>。'
+      task_step_file_moved_html: '%{user} 在任务 %{my_module} 上将文件 <strong>%{file}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      task_step_text_moved_html: '%{user} 在任务 %{my_module} 上将文本 <strong>%{text_name}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      task_step_table_moved_html: '%{user} 在任务 %{my_module} 上将表格 <strong>%{table_name}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      task_step_checklist_moved_html: '%{user} 在任务 %{my_module} 上将检查清单 <strong>%{checklist_name}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      move_chemical_structure_on_step_html: '%{user} 将化学结构 <strong>%{file}</strong>
+        从任务 %{my_module} 的规程步骤 %{step_position_original} <strong>%{step_original}</strong>
+        移动到步骤 %{step_position_destination} <strong>%{step_destination}</strong>。'
+      protocol_step_file_moved_html: '%{user} 在规程库中将文件 <strong>%{file}</strong> 从规程步骤
+        %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      protocol_step_text_moved_html: '%{user} 在规程库中将文本 <strong>%{text_name}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      protocol_step_table_moved_html: '%{user} 在规程库中将表格 <strong>%{table_name}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      protocol_step_checklist_moved_html: '%{user} 在规程库中将检查清单 <strong>%{checklist_name}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      move_chemical_structure_on_step_in_repository_html: '%{user} 在规程库中将化学结构 <strong>%{file}</strong>
+        从规程步骤 %{step_position_original} <strong>%{step_original}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      result_file_moved_html: '%{user} 将文件 <strong>%{file}</strong> 从结果 %{result_original}
+        移动到结果 %{result_destination}。'
+      result_text_moved_html: '%{user} 将文本 <strong>%{text_name}</strong> 从结果 %{result_original}
+        移动到结果 %{result_destination}。'
+      result_table_moved_html: '%{user} 将表格 <strong>%{table_name}</strong> 从结果 %{result_original}
+        移动到结果 %{result_destination}。'
+      move_chemical_structure_on_result_html: '%{user} 将化学结构 <strong>%{file}</strong>
+        从结果 %{result_original} 移动到结果 %{result_destination}。'
+      edit_task_step_file_locally_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position_original}
+        %{step} 上本地编辑了文件 %{file}'
+      edit_protocol_template_file_locally_html: '%{user} 在规程库中使用 SciNote Edit 于本地编辑了规程步骤
+        %{step_position_original} %{step} 上的文件 %{file}'
+      edit_task_result_file_locally_html: '%{user} 在结果 %{result} 上本地编辑了文件 %{file}'
+      export_inventories_html: '%{user} 导出了库存 %{inventories}'
+      edit_image_on_inventory_item_html: '%{user} 编辑了库存 %{repository} 中库存条目 %{repository_row}
+        上的图片 %{asset_name}：%{action}。'
+      edit_wopi_file_on_inventory_item_html: '%{user} 编辑了库存 %{repository} 中库存条目 %{repository_row}
+        上的 Microsoft 365 文件 %{asset_name}：%{action}。'
+      export_inventory_stock_consumption_html: '%{user} 从库存 %{repository} 导出了库存条目
+        %{inventory_items} 的消耗记录。'
+      task_step_file_duplicated_html: '%{user} 复制了任务 <strong>%{my_module}</strong>
+        的规程步骤 <strong>%{step}</strong> 上的文件 <strong>%{file}</strong>。'
+      result_file_duplicated_html: '%{user} 复制了任务 <strong>%{my_module}</strong> 上结果
+        <strong>%{result}</strong> 中的文件 <strong>%{file}</strong>。'
+      protocol_step_file_duplicated_html: '%{user} 在规程库中复制了规程步骤 <strong>%{step}</strong>
+        上的文件 <strong>%{file}</strong>。'
+      task_step_asset_renamed_html: '%{user} 在任务 <strong>%{my_module}</strong> 的规程步骤
+        <strong>%{step}</strong> 上将文件 %{old_name} 重命名为 %{new_name}。'
+      protocol_step_asset_renamed_html: '%{user} 在规程库中重命名了规程步骤 <strong>%{step}</strong>
+        的文件 %{old_name} 为 %{new_name}。'
+      result_asset_renamed_html: '%{user} 将任务 <strong>%{my_module}</strong> 上结果 <strong>%{result}</strong>
+        的文件 %{old_name} 重命名为 %{new_name}。'
+      item_added_with_import_html: '%{user} 编辑了 %{repository} 中的 %{num_of_items} 个库存条目。'
+      storage_location_created_html: '%{user} 创建了库位 %{storage_location}。'
+      storage_location_deleted_html: '%{user} 删除了库位 %{storage_location}。'
+      storage_location_edited_html: '%{user} 编辑了库位 %{storage_location}。'
+      storage_location_moved_html: '%{user} 将库位 %{storage_location} 从 %{storage_location_original}
+        移动到 %{storage_location_destination}。'
+      storage_location_shared_html: '%{user} 以 %{permission_level} 权限将库位 %{storage_location}
+        与工作区 %{team} 共享。'
+      storage_location_unshared_html: '%{user} 取消了库位 %{storage_location} 与工作区 %{team}
+        的共享。'
+      storage_location_sharing_updated_html: '%{user} 将库位 %{storage_location} 与工作区
+        %{team} 共享的权限更改为 %{permission_level}。'
+      storage_location_duplicated_html: '%{user} 复制了库位 %{storage_location}。'
+      container_storage_location_created_html: '%{user} 创建了盒 %{storage_location}。'
+      container_storage_location_deleted_html: '%{user} 删除了盒 %{storage_location}。'
+      container_storage_location_edited_html: '%{user} 编辑了盒 %{storage_location}。'
+      container_storage_location_moved_html: '%{user} 将盒 %{storage_location} 从 %{storage_location_original}
+        移动到 %{storage_location_destination}。'
+      container_storage_location_shared_html: '%{user} 以 %{permission_level} 权限将盒
+        %{storage_location} 与工作区 %{team} 共享。'
+      container_storage_location_unshared_html: '%{user} 取消了盒 %{storage_location}
+        与工作区 %{team} 的共享。'
+      container_storage_location_sharing_updated_html: '%{user} 将盒 %{storage_location}
+        与工作区 %{team} 共享的权限更改为 %{permission_level}。'
+      container_storage_location_duplicated_html: '%{user} 复制了盒 %{storage_location}。'
+      storage_location_repository_row_created_html: '%{user} 将 %{repository_row} 分配到盒
+        %{storage_location} 的 %{position}。'
+      storage_location_repository_row_deleted_html: '%{user} 将 %{repository_row} 从盒
+        %{storage_location} 的 %{position} 解除分配。'
+      storage_location_repository_row_moved_html: '%{user} 将条目 %{repository_row} 从盒
+        %{storage_location_original} 的 %{position_original} 移动到盒 %{storage_location}
+        的 %{position}。'
+      container_storage_location_imported_html: '%{user} 通过导入将 %{storage_location}
+        分配了 %{assigned_count} 个条目、取消分配了 %{unassigned_count} 个条目。'
+      task_step_restore_asset_version_html: '%{user} 恢复了任务 %{my_module} 的规程步骤 <strong>%{step}</strong>
+        的文件 <strong>%{file}</strong> 的 <strong>%{version}</strong> 版本。'
+      task_result_restore_asset_version_html: '%{user} 恢复了任务 %{my_module} 上结果 %{result}
+        的文件 <strong>%{file}</strong> 的 <strong>%{version}</strong> 版本。'
+      repository_column_restore_asset_version_html: '%{user} 在库存 %{repository} 的库存列
+        %{repository_column} 中恢复了文件 <strong>%{file}</strong> 的 <strong>%{version}</strong>
+        版本。'
+      protocol_step_restore_asset_version_html: '%{user} 在规程库中恢复了规程模板 %{protocol}
+        步骤 <strong>%{step}</strong> 的文件 <strong>%{file}</strong> 的 <strong>%{version}</strong>
+        版本。'
+      form_access_granted_html: '%{user} 向表单 %{form} 授予了 %{user_target} 的 %{role}
+        用户角色访问权限。'
+      form_access_changed_html: '%{user} 将表单 %{form} 上 %{user_target} 的角色更改为 %{role}。'
+      form_access_revoked_html: '%{user} 从表单 %{form} 移除了角色为 %{role} 的 %{user_target}。'
+      form_access_granted_all_team_members_html: '%{user} 向表单模板 %{form} 授予了 %{team}
+        工作区全体成员的 %{role} 用户角色访问权限。'
+      form_access_changed_all_team_members_html: '%{user} 将表单模板 %{form} 上 %{team}
+        工作区成员的角色更改为 %{role}。'
+      form_access_revoked_all_team_members_html: '%{user} 从表单模板 %{form} 移除了 %{team}
+        工作区中角色为 %{role} 的成员。'
+      form_created_html: '%{user} 在表单模板中创建了表单 %{form}。'
+      form_archived_html: '%{user} 在表单模板中归档了表单 %{form}。'
+      form_restored_html: '%{user} 在表单模板中从归档恢复了表单 %{form}。'
+      form_published_html: '%{user} 发布了表单 %{form} 的第 %{version_number} 版。'
+      form_name_changed_html: '%{user} 在表单模板中编辑了表单名称。'
+      form_block_added_html: '%{user} 在表单模板的表单 %{form} 中创建了表单区块 %{block_name}。'
+      form_block_edited_html: '%{user} 在表单模板的表单 %{form} 中编辑了表单区块 %{block_name}。'
+      form_block_deleted_html: '%{user} 在表单模板的表单 %{form} 中删除了表单区块 %{block_name}。'
+      form_block_rearranged_html: '%{user} 在表单模板的表单 %{form} 中重排了表单区块。'
+      export_form_responses_html: '%{user} 从表单模板 %{form} 导出了数据（表单模板）。'
+      task_step_form_added_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 添加了表单 <strong>%{form}</strong>。'
+      task_step_form_deleted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 删除了表单 <strong>%{form}</strong>。'
+      task_step_form_moved_html: '%{user} 在任务 %{my_module} 上将表单 <strong>%{form}</strong>
+        从规程步骤 %{step_position} <strong>%{step}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      task_step_form_field_edited_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 编辑了表单 <strong>%{form}</strong> 中的表单字段 <strong>%{form_field_name}</strong>。'
+      task_step_form_field_submitted_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 提交了表单 <strong>%{form}</strong>。'
+      task_step_form_field_reopened_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        <strong>%{step}</strong> 重新打开了表单 <strong>%{form}</strong>。'
+      protocol_step_form_added_html: '%{user} 在规程库中的规程步骤 %{step_position} <strong>%{step}</strong>
+        添加了表单 <strong>%{form}</strong>。'
+      protocol_step_form_deleted_html: '%{user} 在规程库中删除了规程步骤 %{step_position} <strong>%{step}</strong>
+        的表单 <strong>%{form}</strong>。'
+      protocol_step_form_moved_html: '%{user} 在规程库中将表单 <strong>%{form}</strong> 从规程步骤
+        %{step_position} <strong>%{step}</strong> 移动到步骤 %{step_position_destination}
+        <strong>%{step_destination}</strong>。'
+      form_duplicated_html: '%{user} 从 Forms 中的 %{form_old} 复制出表单 %{form}。'
+      form_block_duplicated_html: '%{user} 在表单模板的表单 %{form} 中复制了表单区块 %{block_name}。'
+      form_unpublished_html: '%{user} 取消了表单 %{form} 的发布。'
+      change_experiment_status_html: '%{user} 将实验 %{experiment} 的状态由 <strong>%{old_status}</strong>
+        更改为 <strong>%{status}</strong>。'
+      set_experiment_due_date_html: '%{user} 为实验 %{experiment} 设置了截止日期 %{due_date}。'
+      change_experiment_due_date_html: '%{user} 更改了实验 %{experiment} 的截止日期 %{due_date}。'
+      remove_experiment_due_date_html: '%{user} 移除了实验 %{experiment} 的截止日期 %{due_date}。'
+      set_experiment_start_date_html: '%{user} 为实验 %{experiment} 设置了开始日期 %{start_date}。'
+      change_experiment_start_date_html: '%{user} 更改了实验 %{experiment} 的开始日期 %{start_date}。'
+      remove_experiment_start_date_html: '%{user} 移除了实验 %{experiment} 的开始日期 %{start_date}。'
+      change_project_status_html: '%{user} 将项目 %{project} 的状态由 <strong>%{old_status}</strong>
+        更改为 <strong>%{status}</strong>。'
+      set_project_due_date_html: '%{user} 为项目 %{project} 设置了截止日期 %{due_date}。'
+      change_project_due_date_html: '%{user} 更改了项目 %{project} 的截止日期 %{due_date}。'
+      remove_project_due_date_html: '%{user} 移除了项目 %{project} 的截止日期 %{due_date}。'
+      set_project_start_date_html: '%{user} 为项目 %{project} 设置了开始日期 %{start_date}。'
+      change_project_start_date_html: '%{user} 更改了项目 %{project} 的开始日期 %{start_date}。'
+      remove_project_start_date_html: '%{user} 移除了项目 %{project} 的开始日期 %{start_date}。'
+      set_head_of_project_html: '%{user} 将用户 %{user_target} 添加为项目 %{project} 的负责人。'
+      remove_head_of_project_html: '%{user} 移除了作为项目 %{project} 负责人的用户 %{user_target}。'
+      task_steps_loaded_from_template_html: '%{user} 向任务 %{my_module} 添加了来自模板 %{protocol}
+        的 %{count} 个步骤。'
+      protocol_steps_loaded_from_template_html: '%{user} 向模板 %{protocol_target} 添加了来自模板
+        %{protocol} 的 %{count} 个步骤。'
+      create_user_group_html: '%{user} 在工作区 %{team} 中创建了群组 %{user_group}。'
+      update_user_group_html: '%{user} 更新了工作区 %{team} 中的群组 %{user_group}。'
+      delete_user_group_html: '%{user} 删除了工作区 %{team} 中的群组 %{user_group}。'
+      add_group_user_member_html: '%{user} 将 %{user_target} 添加到了工作区 %{team} 的群组 %{user_group}
+        中。'
+      remove_group_user_member_html: '%{user} 将 %{user_target} 从工作区 %{team} 的群组 %{user_group}
+        中移除。'
+      form_access_granted_user_group_html: '%{user} 向表单模板 %{form} 授予了 %{user_group}
+        的 %{role} 用户角色访问权限。'
+      form_access_changed_user_group_html: '%{user} 将表单模板 %{form} 上 %{user_group}
+        的角色更改为 %{role}。'
+      form_access_revoked_user_group_html: '%{user} 从表单模板 %{form} 移除了角色为 %{role} 的群组
+        %{user_group}。'
+      protocol_template_access_granted_user_group_html: '%{user} 向规程模板 %{protocol}
+        授予了 %{user_group} 的 %{role} 用户角色访问权限。'
+      protocol_template_access_changed_user_group_html: '%{user} 将规程模板 %{protocol}
+        上 %{user_group} 的角色更改为 %{role}。'
+      protocol_template_access_revoked_user_group_html: '%{user} 从规程模板 %{protocol}
+        移除了角色为 %{role} 的群组 %{user_group}。'
+      project_access_granted_user_group_html: '%{user} 向项目 %{project} 授予了 %{user_group}
+        的 %{role} 用户角色访问权限。'
+      project_access_changed_user_group_html: '%{user} 将项目 %{project} 上 %{user_group}
+        的角色更改为 %{role}。'
+      project_access_revoked_user_group_html: '%{user} 从项目 %{project} 移除了角色为 %{role}
+        的群组 %{user_group}。'
+      experiment_access_changed_user_group_html: '%{user} 将实验 %{experiment} 上 %{user_group}
+        的角色更改为 %{role}。'
+      my_module_access_changed_user_group_html: '%{user} 将任务 %{my_module} 上 %{user_group}
+        的角色更改为 %{role}。'
+      step_and_result_linked_html: '%{user} 在任务 <strong>%{my_module}</strong> 上关联了结果
+        <strong>%{result}</strong> 与步骤 <strong>%{step_position}</strong> <strong>%{step}</strong>。'
+      step_and_result_unlinked_html: '%{user} 在任务 <strong>%{my_module}</strong> 上将结果
+        <strong>%{result}</strong> 与步骤 <strong>%{step_position}</strong> <strong>%{step}</strong>
+        解除关联。'
+      repository_access_granted_html: '%{user} 向库存 %{repository} 授予了 %{user_target}
+        的 %{role} 用户角色访问权限。'
+      repository_access_changed_html: '%{user} 将库存 %{repository} 上 %{user_target}
+        的角色更改为 %{role}。'
+      repository_access_revoked_html: '%{user} 从库存 %{repository} 移除了角色为 %{role} 的
+        %{user_target}。'
+      repository_access_granted_all_team_members_html: '%{user} 向库存 %{repository}
+        授予了 %{team} 工作区全体成员的 %{role} 用户角色访问权限。'
+      repository_access_changed_all_team_members_html: '%{user} 将库存 %{repository}
+        上 %{team} 的角色更改为 %{role}。'
+      repository_access_revoked_all_team_members_html: '%{user} 从库存 %{repository}
+        移除了 %{team} 工作区中角色为 %{role} 的成员。'
+      repository_access_granted_user_group_html: '%{user} 向库存 %{repository} 授予了 %{user_group}
+        的 %{role} 用户角色访问权限。'
+      repository_access_changed_user_group_html: '%{user} 将库存 %{repository} 上 %{user_group}
+        的角色更改为 %{role}。'
+      repository_access_revoked_user_group_html: '%{user} 从库存 %{repository} 移除了角色为
+        %{role} 的群组 %{user_group}。'
+      automation_task_status_changed_html: '%{user} 触发了任务 %{my_module} 的状态自动变更，由 <strong>%{my_module_status_old}</strong>
+        变为 <strong>%{my_module_status_new}</strong>。'
+      automation_experiment_status_changed_html: '%{user} 触发了实验 %{experiment} 的状态自动变更，由
+        <strong>%{experiment_status_old}</strong> 变为 <strong>%{experiment_status_new}</strong>。'
+      automation_project_status_changed_html: '%{user} 触发了项目 %{project} 的状态自动变更，由
+        <strong>%{project_status_old}</strong> 变为 <strong>%{project_status_new}</strong>。'
+      import_protocol_in_repository_from_protocols_io_html: '%{user} 从 protocols.io
+        将规程 %{protocol} 导入到规程库。'
+      experiment_access_changed_all_team_members_html: '%{user} 将实验 %{experiment}
+        上 %{team} 的角色更改为 %{role}。'
+      my_module_access_changed_all_team_members_html: '%{user} 将任务 %{my_module} 上
+        %{team} 的角色更改为 %{role}。'
+      tag_created_html: '%{user} 创建了标签 <strong>%{tag}</strong>。'
+      tag_edited_html: '%{user} 编辑了标签 <strong>%{tag}</strong>。'
+      tag_deleted_html: '%{user} 删除了标签 <strong>%{tag}</strong>。'
+      tag_merged_html: '%{user} 将标签 <strong>%{merged_tags}</strong> 合并到标签 <strong>%{tag}</strong>。'
+      add_result_template_html: '%{user} 在规程库中的规程 %{protocol} 下添加了结果 %{result_template}。'
+      edit_result_template_html: '%{user} 在规程库中编辑了规程 %{protocol} 的结果 %{result_template}。'
+      destroy_result_template_html: '%{user} 删除了规程库中规程 %{protocol} 的结果 %{destroyed_result_template}。'
+      result_template_duplicated_html: '%{user} 在规程库中复制了规程 %{protocol} 的结果 %{result_template}。'
+      result_template_text_added_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        添加文本 <strong>%{text_name}</strong>。'
+      result_template_text_edited_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        编辑文本 <strong>%{text_name}</strong>。'
+      result_template_text_deleted_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        删除文本 <strong>%{text_name}</strong>。'
+      result_template_text_duplicated_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        复制文本 <strong>%{text_name}</strong>。'
+      result_template_text_moved_html: '%{user} 在规程库的结果 %{result_template_original}（属规程
+        %{protocol}）中将文本 <strong>%{text_name}</strong> 移动到结果 %{result_template_destination}。'
+      result_template_table_added_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        添加表格 <strong>%{table_name}</strong>。'
+      result_template_table_edited_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        编辑表格 <strong>%{table_name}</strong>。'
+      result_template_table_deleted_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        删除表格 <strong>%{table_name}</strong>。'
+      result_template_table_duplicated_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        复制表格 <strong>%{table_name}</strong>。'
+      result_template_table_moved_html: '%{user} 在规程库的结果 %{result_template_original}（属规程
+        %{protocol}）中将表格 <strong>%{table_name}</strong> 移动到结果 %{result_template_destination}。'
+      result_template_file_added_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        添加了文件 <strong>%{file}</strong>。'
+      edit_result_template_file_locally_html: '%{user} 在规程库中本地编辑了规程 %{protocol} 的结果
+        %{result_template} 中的文件 <strong>%{file}</strong>。'
+      result_template_file_deleted_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        删除了文件 <strong>%{file}</strong>。'
+      result_template_file_duplicated_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        复制了文件 <strong>%{file}</strong>。'
+      result_template_file_moved_html: '%{user} 在规程库的结果 %{result_template_original}（属规程
+        %{protocol}）中将文件 <strong>%{file}</strong> 移动到结果 %{result_template_destination}。'
+      result_template_asset_renamed_html: '%{user} 在规程库中将规程 %{protocol} 的结果 %{result_template}
+        的文件 %{old_name} 重命名为 %{new_name}。'
+      edit_wopi_file_on_result_template_html: '%{user} 编辑了规程库中规程 %{protocol} 的结果 %{result_template}
+        里的 Microsoft 365 文件 %{asset_name}：%{action}。'
+      sequence_on_result_template_added_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        添加序列 %{file}。'
+      sequence_on_result_template_edited_html: '%{user} 在规程库中的规程 %{protocol} 的结果 %{result_template}
+        编辑序列 %{file}：%{action}。'
+      sequence_on_result_template_deleted_html: '%{user} 在规程库中的规程 %{protocol} 的结果
+        %{result_template} 删除序列 %{asset_name}。'
+      sequence_on_result_template_moved_html: '%{user} 在规程库的结果 %{result_template_original}（属规程
+        %{protocol}）中将序列 %{file} 移动到结果 %{result_template_destination}。'
+      create_chemical_structure_on_result_template_html: '%{user} 在规程库中的规程 %{protocol}
+        的结果 %{result_template} 里添加了化学结构 %{asset_name}。'
+      edit_chemical_structure_on_result_template_html: '%{user} 编辑了规程库中规程 %{protocol}
+        的结果 %{result_template} 里的化学结构 %{asset_name}：%{action}。'
+      delete_chemical_structure_on_result_template_html: '%{user} 删除了规程库中规程 %{protocol}
+        的结果 %{result_template} 里的化学结构 %{asset_name}。'
+      move_chemical_structure_on_result_template_html: '%{user} 在规程库中将化学结构 %{file}
+        从规程 %{protocol} 的结果 %{result_template_original} 移动到结果 %{result_template_destination}。'
+      edit_image_on_result_template_html: '%{user} 编辑了规程库中规程 %{protocol} 的结果 %{result_template}
+        里的图片 %{asset_name}：%{action}。'
+      step_and_result_template_linked_html: '%{user} 在规程库中将规程 %{protocol} 的结果 %{result_template}
+        与步骤 %{step} 关联。'
+      step_and_result_template_unlinked_html: '%{user} 在规程库中将规程 %{protocol} 的结果 %{result_template}
+        与步骤 %{step} 解除关联。'
+      result_template_restore_asset_version_html: '%{user} 在规程库中的规程 %{protocol} 的结果
+        %{result_template} 恢复了文件 <strong>%{file}</strong> 的 <strong>%{version}</strong>
+        版本。'
+      protocol_repository_item_added_html: '%{user} 在规程库中将库存 %{repository} 的条目 %{repository_row}
+        关联到规程 %{protocol}。'
+      protocol_repository_item_removed_html: '%{user} 在规程库中将库存 %{repository} 的条目 %{repository_row}
+        从规程 %{protocol} 解除关联。'
+      skip_step_html: '%{user} 跳过了任务 %{my_module} 的规程步骤 %{step_position} %{step}（已完成
+        %{num_completed}/%{num_all}，已跳过 %{num_skipped}）。'
+      unskip_step_html: '%{user} 取消了任务 %{my_module} 上规程步骤 %{step_position} %{step}
+        的跳过状态（已完成 %{num_completed}/%{num_all}，已跳过 %{num_skipped}）。'
+      load_protocol_to_task_from_repository_merge_html: '%{user} 从规程库将规程 %{protocol_repository}
+        加载到任务 %{my_module}（保留现有内容）'
+      load_protocol_to_task_from_repository_replace_html: '%{user} 从规程库将规程 %{protocol_repository}
+        加载到任务 %{my_module}（覆盖现有内容）'
+      archive_step_html: '%{user} 归档了任务 %{my_module} 上的规程步骤 %{step_position} %{step}。'
+      restore_step_html: '%{user} 从归档恢复了步骤 %{step}。'
+      task_step_text_archived_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 归档了文本 <strong>%{text_name}</strong>。'
+      task_step_table_archived_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 归档了表格 <strong>%{table_name}</strong>。'
+      task_step_file_archived_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 归档了文件 <strong>%{file}</strong>。'
+      task_step_chemical_structure_archived_html: '%{user} 在任务 %{my_module} 的规程步骤
+        %{step_position} %{step} 归档了化学结构 <strong>%{file}</strong>。'
+      task_step_sequence_archived_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 归档了序列 <strong>%{file}</strong>。'
+      task_step_form_archived_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 归档了表单 <strong>%{form}</strong>。'
+      task_step_checklist_archived_html: '%{user} 在任务 %{my_module} 的规程步骤 %{step_position}
+        %{step} 归档了检查清单 <strong>%{checklist_name}</strong>。'
+      task_step_text_restored_html: '%{user} 从归档恢复了文本 <strong>%{text_name}</strong>。'
+      task_step_table_restored_html: '%{user} 从归档恢复了表格 <strong>%{table_name}</strong>。'
+      task_step_file_restored_html: '%{user} 从归档恢复了文件 <strong>%{file}</strong>。'
+      task_step_chemical_structure_restored_html: '%{user} 从归档恢复了化学结构 <strong>%{file}</strong>。'
+      task_step_sequence_restored_html: '%{user} 从归档恢复了序列 <strong>%{file}</strong>。'
+      task_step_form_restored_html: '%{user} 从归档恢复了表单 <strong>%{form}</strong>。'
+      task_step_checklist_restored_html: '%{user} 从归档恢复了检查清单 <strong>%{checklist_name}</strong>。'
+      result_text_archived_html: '%{user} 归档了结果 %{result} 中的文本 <strong>%{text_name}</strong>。'
+      result_table_archived_html: '%{user} 归档了结果 %{result} 中的表格 <strong>%{table_name}</strong>。'
+      result_file_archived_html: '%{user} 归档了结果 %{result} 中的文件 <strong>%{file}</strong>。'
+      result_sequence_archived_html: '%{user} 归档了结果 %{result} 中的序列 <strong>%{file}</strong>。'
+      result_chemical_structure_archived_html: '%{user} 归档了结果 %{result} 中的化学结构 <strong>%{file}</strong>。'
+      result_text_restored_html: '%{user} 从归档恢复了文本 <strong>%{text_name}</strong>。'
+      result_table_restored_html: '%{user} 从归档恢复了表格 <strong>%{table_name}</strong>。'
+      result_file_restored_html: '%{user} 从归档恢复了文件 <strong>%{file}</strong>。'
+      result_sequence_restored_html: '%{user} 从归档恢复了序列 <strong>%{file}</strong>。'
+      result_chemical_structure_restored_html: '%{user} 从归档恢复了化学结构 <strong>%{file}</strong>。'
+      team_repository_deletion_enabled_html: '%{user} 在工作区 %{team} 中启用了从归档删除库存及库存条目。'
+      team_result_deletion_enabled_html: '%{user} 在工作区 %{team} 中启用了从归档删除结果。'
+      team_protocol_steps_deletion_enabled_html: '%{user} 在工作区 %{team} 中启用了从归档删除任务步骤。'
+      team_repository_deletion_disabled_html: '%{user} 在工作区 %{team} 中禁用了从归档删除库存及库存条目。'
+      team_result_deletion_disabled_html: '%{user} 在工作区 %{team} 中禁用了从归档删除结果。'
+      team_protocol_steps_deletion_disabled_html: '%{user} 在工作区 %{team} 中禁用了从归档删除任务步骤。'
+      repository_snapshot_created_html: '%{user} 创建了库存 %{repository} 中任务分配条目的 %{timestamp}
+        快照。'
+      repository_snapshot_deleted_html: '%{user} 删除了库存 %{repository} 中任务分配条目的 %{timestamp}
+        快照。'
+      calendar_event_created_html: '%{user} 为 %{repository_row} 创建了排期事件 %{event}。'
+      calendar_event_updated_html: '%{user} 更新了 %{repository_row} 的排期事件 %{event}。'
+      calendar_event_deleted_html: '%{user} 删除了 %{repository_row} 的排期事件 %{event}。'
+      calendar_event_participant_created_html: '%{user} 将 %{user_target} 添加到了 %{repository_row}
+        的排期事件 %{event}。'
+      calendar_event_participant_deleted_html: '%{user} 将 %{user_target} 从 %{repository_row}
+        的排期事件 %{event} 中移除。'
+      lock_all_protocol_steps_html: '%{user} 锁定了规程库 %{protocol} 中的全部步骤'
+      unlock_all_protocol_steps_html: '%{user} 解锁了规程库 %{protocol} 中的全部步骤'
+      lock_protocol_step_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong>'
+      unlock_protocol_step_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong>'
+      lock_protocol_step_text_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的文本'
+      unlock_protocol_step_text_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的文本'
+      lock_protocol_step_table_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的表格'
+      unlock_protocol_step_table_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的表格'
+      lock_protocol_step_checklist_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的检查清单'
+      unlock_protocol_step_checklist_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的检查清单'
+      lock_protocol_step_form_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的表单'
+      unlock_protocol_step_form_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的表单'
+      lock_protocol_step_file_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的文件'
+      unlock_protocol_step_file_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的文件'
+      lock_protocol_step_files_html: '%{user} 在规程库中锁定了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的文件'
+      unlock_protocol_step_files_html: '%{user} 在规程库中解锁了步骤 <strong>%{step_position}</strong>
+        <strong>%{step}</strong> 的文件'
+      lock_result_template_text_html: '%{user} 在规程库中锁定了规程 %{protocol} 的结果 %{result_template}
+        的文本。'
+      unlock_result_template_text_html: '%{user} 在规程库中解锁了规程 %{protocol} 的结果 %{result_template}
+        的文本。'
+      lock_result_template_table_html: '%{user} 在规程库中锁定了规程 %{protocol} 的结果 %{result_template}
+        的表格。'
+      unlock_result_template_table_html: '%{user} 在规程库中解锁了规程 %{protocol} 的结果 %{result_template}
+        的表格。'
+      lock_result_template_files_html: '%{user} 在规程库中锁定了规程 %{protocol} 的结果 %{result_template}
+        的文件。'
+      unlock_result_template_files_html: '%{user} 在规程库中解锁了规程 %{protocol} 的结果 %{result_template}
+        的文件。'
+    activity_name:
+      create_project: 项目已创建
+      edit_project: 项目已编辑
+      change_project_visibility: 项目可见性已更改（已弃用）
+      project_grant_access_to_all_team_members: 向全体工作区成员授予访问权限
+      project_remove_access_from_all_team_members: 移除全体工作区成员的访问权限
+      archive_project: 项目已归档
+      restore_project: 项目已恢复
+      add_comment_to_project: 项目评论已添加
+      edit_project_comment: 项目评论已编辑
+      delete_project_comment: 项目评论已删除
+      create_report: 报告已创建
+      edit_report: 报告已编辑
+      delete_report: 报告已删除
+      add_result_old: 结果已添加（已弃用）
+      add_result: 结果已添加
+      edit_result_old: 结果已编辑（已弃用）
+      edit_result: 结果已编辑
+      add_comment_to_result: 结果评论已添加
+      edit_result_comment: 结果评论已编辑
+      delete_result_comment: 结果评论已删除
+      archive_result_old: 结果已归档（已弃用）
+      archive_result: 结果已归档
+      destroy_result_old: 结果已删除（已弃用）
+      destroy_result: 结果已删除
+      result_restored: 结果已恢复
+      result_content_rearranged: 结果内容已重排
+      result_file_added: 结果文件已添加
+      result_file_deleted: 结果文件已删除
+      result_text_added: 结果文本已添加
+      result_text_edited: 结果文本已编辑
+      result_text_deleted: 结果文本已删除
+      result_table_added: 结果表格已添加
+      result_table_edited: 结果表格已编辑
+      result_table_deleted: 结果表格已删除
+      result_duplicated: 结果已复制
+      result_text_duplicated: 结果文本已复制
+      result_table_duplicated: 结果表格已复制
+      create_module: 任务已创建
+      clone_module: 任务已复制
+      archive_module: 任务已归档
+      restore_module: 任务已恢复
+      add_comment_to_module: 任务评论已添加
+      edit_module_comment: 任务评论已编辑
+      delete_module_comment: 任务评论已删除
+      change_module_description: 任务描述已编辑
+      create_step: 任务步骤已添加
+      edit_step: 任务步骤已编辑
+      destroy_step: 任务步骤已删除
+      load_protocol_to_task_from_repository: 从规程库加载任务规程
+      load_protocol_to_task_from_file: 从文件加载任务规程（已弃用）
+      update_protocol_in_task_from_repository: 任务规程已从规程库更新
+      check_step_checklist_item: 任务步骤检查清单已完成
+      uncheck_step_checklist_item: 任务步骤检查清单已取消完成
+      add_comment_to_step: 任务步骤评论已添加
+      edit_step_comment: 任务步骤评论已编辑
+      delete_step_comment: 任务步骤评论已删除
+      complete_step: 任务步骤已完成
+      uncomplete_step: 任务步骤已取消完成
+      skip_step: 任务步骤已跳过
+      unskip_step: 任务步骤已取消跳过
+      uncomplete_task: 任务已取消完成（已弃用）
+      complete_task: 任务已完成（已弃用）
+      assign_repository_record: 任务库存已分配
+      unassign_repository_record: 任务库存已解除分配
+      assign_user_to_project: 用户已分配到项目
+      unassign_user_from_project: 已从项目移除用户
+      change_user_role_on_project: 项目上的用户角色已更改
+      change_user_role_on_experiment: 实验上的用户角色已更改
+      change_user_role_on_my_module: 任务上的用户角色已更改
+      designate_user_to_my_module: 用户已分配到任务
+      undesignate_user_from_my_module: 已从任务移除用户
+      create_experiment: 实验已创建
+      rename_experiment: 实验已重命名
+      edit_experiment: 实验已编辑
+      move_experiment: 实验已移动
+      clone_experiment: 实验已复制
+      archive_experiment: 实验已归档
+      edit_wopi_file_on_result: 结果上的 Microsoft 365 文件已编辑
+      edit_wopi_file_on_step: 任务步骤上的 Microsoft 365 文件已编辑
+      edit_wopi_file_on_step_in_repository: 步骤上的 Microsoft 365 文件已编辑
+      restore_experiment: 实验已恢复
+      rename_task: 任务已重命名
+      move_task: 任务已移动
+      export_protocol_from_task: 从任务导出规程
+      set_task_start_date: 任务开始日期已设置
+      change_task_start_date: 任务开始日期已更改
+      remove_task_start_date: 任务开始日期已移除
+      set_task_due_date: 任务截止日期已设置
+      change_task_due_date: 任务截止日期已更改
+      remove_task_due_date: 任务截止日期已移除
+      add_task_tag: 任务标签已添加
+      remove_task_tag: 任务标签已移除
+      create_inventory: 库存已创建
+      rename_inventory: 库存已重命名
+      archive_inventory: 库存已归档
+      restore_inventory: 库存已恢复
+      delete_inventory: 库存已删除
+      share_inventory: 库存已共享
+      unshare_inventory: 库存已取消共享
+      update_share_inventory: 库存共享权限已更新
+      share_inventory_with_all: 库存已与所有人共享
+      unshare_inventory_with_all: 库存已与所有人取消共享
+      update_share_with_all_permission_level: 库存与所有人共享的权限已更新
+      create_item_inventory: 库存条目已创建
+      edit_item_inventory: 库存条目已编辑
+      edit_item_field_inventory: 库存条目字段已编辑
+      inventory_item_relationships_linked: 库存条目关联关系已关联
+      inventory_item_relationships_unlinked: 库存条目关联关系已解除关联
+      delete_item_inventory: 库存条目已删除
+      archive_inventory_item: 库存条目已归档
+      restore_inventory_item: 库存条目已恢复
+      create_column_inventory: 库存列已创建
+      edit_column_inventory: 库存列已编辑
+      copy_inventory: 库存已复制
+      copy_inventory_item: 库存条目已复制
+      delete_column_inventory: 库存列已删除
+      update_protocol_in_repository_from_task: 从任务更新规程（已弃用）
+      create_protocol_in_repository: 规程已创建
+      add_step_to_protocol_repository: 步骤已添加
+      edit_step_in_protocol_repository: 步骤已编辑
+      delete_step_in_protocol_repository: 步骤已删除
+      edit_description_in_protocol_repository: 描述已编辑
+      edit_keywords_in_protocol_repository: 关键词已编辑
+      edit_authors_in_protocol_repository: 作者已编辑
+      edit_protocol_name_in_repository: 规程名称已编辑
+      archive_protocol_in_repository: 规程已归档
+      restore_protocol_in_repository: 规程已从归档中恢复
+      move_protocol_in_repository: 规程已移动（已弃用）
+      copy_protocol_in_repository: 规程已复制
+      import_protocol_in_repository: 从文件导入规程
+      export_protocol_in_repository: 规程已导出
+      invite_user_to_team: 已邀请用户加入工作区
+      remove_user_from_team: 已从工作区移除用户
+      change_users_role_on_team: 工作区上的用户角色已更改
+      user_leave_team: 用户已退出工作区
+      export_projects: 项目已导出
+      export_inventory_items: 库存条目已导出
+      create_tag: 标签已创建（已弃用）
+      edit_tag: 标签已编辑（已弃用）
+      delete_tag: 标签已删除（已弃用）
+      import_inventory_items_legacy: 库存条目已导入（已弃用）
+      inventory_items_added_or_updated_with_import: 通过导入新增或更新了条目
+      item_added_with_import: 通过导入新增了条目
+      edit_image_on_result: 结果上的图片已编辑
+      edit_image_on_step: 任务步骤上的图片已编辑
+      edit_image_on_step_in_repository: 步骤上的图片已编辑
+      edit_chemical_structure_on_step: 任务步骤上的化学结构已编辑
+      edit_chemical_structure_on_result: 结果上的化学结构已编辑
+      edit_chemical_structure_on_step_in_repository: 步骤上的化学结构已编辑
+      edit_chemical_structure_on_task_protocol: 任务规程上的化学结构已编辑
+      edit_chemical_structure_on_protocol: 规程上的化学结构已编辑
+      edit_chemical_structure_on_task: 任务上的化学结构已编辑
+      create_chemical_structure_on_step: 任务步骤上的化学结构已创建
+      create_chemical_structure_on_result: 结果上的化学结构已创建
+      create_chemical_structure_on_step_in_repository: 步骤上的化学结构已创建
+      create_chemical_structure_on_task_protocol: 任务规程上的化学结构已创建
+      create_chemical_structure_on_protocol: 规程上的化学结构已创建
+      create_chemical_structure_on_task: 任务上的化学结构已创建
+      delete_chemical_structure_on_step: 任务步骤上的化学结构已删除
+      delete_chemical_structure_on_result: 结果上的化学结构已删除
+      delete_chemical_structure_on_step_in_repository: 步骤上的化学结构已删除
+      delete_chemical_structure_on_task_protocol: 任务规程上的化学结构已删除
+      delete_chemical_structure_on_protocol: 规程上的化学结构已删除
+      delete_chemical_structure_on_task: 任务上的化学结构已删除
+      protocol_description_in_task_edited: 任务中的规程描述已编辑
+      protocol_name_in_task_edited: 任务中的规程名称已编辑
+      export_inventory_items_assigned_to_task: 任务分配库存条目已导出（实时版本）
+      export_inventory_snapshot_items_assigned_to_task: 任务分配库存条目已导出（快照）
+      change_status_on_task_flow: 任务状态已更改
+      move_project: 项目已移动
+      create_project_folder: 项目文件夹已创建
+      rename_project_folder: 项目文件夹已重命名
+      delete_project_folder: 项目文件夹已删除
+      move_project_folder: 项目文件夹已移动
+      generate_pdf_report: PDF 报告已生成
+      generate_docx_report: DOCX 报告已生成
+      inventory_item_stock_set: 库存条目库存已设置为
+      inventory_item_stock_add: 库存条目库存已增加
+      inventory_item_stock_remove: 库存条目库存已减少
+      task_inventory_item_stock_consumed: 任务分配的库存条目已消耗
+      task_steps_rearranged: 任务步骤已重排
+      task_step_content_rearranged: 任务步骤内容已重排
+      task_step_file_added: 任务步骤文件已添加
+      task_step_file_deleted: 任务步骤文件已删除
+      protocol_steps_rearranged: 规程步骤已重排
+      protocol_step_content_rearranged: 规程步骤内容已重排
+      protocol_step_file_added: 规程步骤文件已添加
+      protocol_step_file_deleted: 规程步骤文件已删除
+      task_step_text_added: 任务步骤文本已添加
+      task_step_text_edited: 任务步骤文本已编辑
+      task_step_text_deleted: 任务步骤文本已删除
+      task_step_table_added: 任务步骤表格已添加
+      task_step_table_edited: 任务步骤表格已编辑
+      task_step_table_deleted: 任务步骤表格已删除
+      task_step_checklist_added: 任务步骤检查清单已添加
+      task_step_checklist_edited: 任务步骤检查清单已编辑
+      task_step_checklist_deleted: 任务步骤检查清单已删除
+      task_step_checklist_item_added: 任务步骤检查清单项已添加
+      task_step_checklist_item_edited: 任务步骤检查清单项已编辑
+      task_step_checklist_item_deleted: 任务步骤检查清单项已删除
+      protocol_step_text_added: 规程步骤文本已添加
+      protocol_step_text_edited: 规程步骤文本已编辑
+      protocol_step_text_deleted: 规程步骤文本已删除
+      protocol_step_table_added: 规程步骤表格已添加
+      protocol_step_table_edited: 规程步骤表格已编辑
+      protocol_step_table_deleted: 规程步骤表格已删除
+      protocol_step_checklist_added: 规程步骤检查清单已添加
+      protocol_step_checklist_edited: 规程步骤检查清单已编辑
+      protocol_step_checklist_deleted: 规程步骤检查清单已删除
+      protocol_step_checklist_item_added: 规程步骤检查清单项已添加
+      protocol_step_checklist_item_edited: 规程步骤检查清单项已编辑
+      protocol_step_checklist_item_deleted: 规程步骤检查清单项已删除
+      task_step_duplicated: 任务步骤已复制
+      protocol_step_duplicated: 步骤已复制
+      task_step_text_duplicated: 任务步骤文本已复制
+      task_step_table_duplicated: 任务步骤表格已复制
+      task_step_checklist_duplicated: 任务步骤检查清单已复制
+      protocol_step_text_duplicated: 规程步骤文本已复制
+      protocol_step_table_duplicated: 规程步骤表格已复制
+      protocol_step_checklist_duplicated: 规程步骤检查清单已复制
+      label_template_created: 标签模板已创建
+      label_template_edited: 标签模板已编辑
+      label_template_deleted: 标签模板已删除
+      label_template_copied: 标签模板已复制
+      protocol_template_published: 规程模板已发布
+      protocol_template_revision_notes_updated: 修订说明已编辑
+      protocol_template_draft_deleted: 正在删除草稿
+      protocol_template_draft_created: 正在创建草稿
+      protocol_template_access_granted: 已向用户授予规程模板访问权限
+      protocol_template_access_changed: 规程上的用户角色已更改
+      protocol_template_access_revoked: 已从规程中移除用户
+      task_protocol_save_to_template: 另存为新规程模板
+      protocol_template_access_granted_all_team_members: 向全体工作区成员授予访问权限
+      protocol_template_access_changed_all_team_members: 更改所有工作区成员的角色
+      protocol_template_access_revoked_all_team_members: 移除全体工作区成员的访问权限
+      project_access_changed_all_team_members: 更改所有工作区成员的角色
+      team_sharing_tasks_enabled: 任务共享功能已启用
+      team_sharing_tasks_disabled: 任务共享功能已禁用
+      task_link_sharing_enabled: 任务链接共享已启用
+      task_link_sharing_disabled: 任务链接共享已禁用
+      shared_task_message_edited: 共享任务消息已编辑
+      task_sequence_asset_added: 任务序列资源已添加
+      task_sequence_asset_edit_started: 任务序列资源编辑已开始
+      task_sequence_asset_edit_finished: 任务序列资源编辑已完成
+      task_sequence_asset_deleted: 任务序列资源已删除
+      protocol_sequence_asset_added: 规程序列资源已添加
+      protocol_sequence_asset_edit_started: 规程序列资源编辑已开始
+      protocol_sequence_asset_edit_finished: 规程序列资源编辑已完成
+      protocol_sequence_asset_deleted: 规程序列资源已删除
+      sequence_on_result_added: 结果上的序列已添加
+      sequence_on_result_edited: 结果上的序列已编辑
+      sequence_on_result_moved: 结果上的序列已移动
+      sequence_on_result_deleted: 结果上的序列已删除
+      task_step_file_moved: 任务步骤文件已移动
+      task_step_text_moved: 任务步骤文本已移动
+      task_step_table_moved: 任务步骤表格已移动
+      task_step_checklist_moved: 任务步骤检查清单已移动
+      move_chemical_structure_on_step: 任务步骤上的化学结构已移动
+      protocol_step_file_moved: 规程步骤文件已移动
+      protocol_step_text_moved: 规程步骤文本已移动
+      protocol_step_table_moved: 规程步骤表格已移动
+      protocol_step_checklist_moved: 规程步骤检查清单已移动
+      move_chemical_structure_on_step_in_repository: 规程模板步骤上的化学结构已移动
+      result_file_moved: 结果文件已移动
+      result_text_moved: 结果文本已移动
+      result_table_moved: 结果表格已移动
+      move_chemical_structure_on_result: 结果上的化学结构已移动
+      edit_task_step_file_locally: 任务步骤上的文件已在本地编辑
+      edit_protocol_template_file_locally: 规程模板上的文件已在本地编辑
+      edit_task_result_file_locally: 任务结果上的文件已在本地编辑
+      export_inventories: 库存已导出
+      edit_image_on_inventory_item: 库存条目图片已编辑
+      edit_wopi_file_on_inventory_item: 库存条目 WOPI 文件已编辑
+      export_inventory_stock_consumption: 库存消耗已导出
+      task_step_asset_renamed: 任务步骤上的附件已重命名
+      protocol_step_asset_renamed: 规程步骤上的附件已重命名
+      result_asset_renamed: 任务结果上的附件已重命名
+      task_step_file_duplicated: 任务步骤上的附件已复制
+      result_file_duplicated: 任务结果上的附件已复制
+      protocol_step_file_duplicated: 规程步骤上的附件已复制
+      storage_location_created: 库位已创建
+      storage_location_deleted: 库位已删除
+      storage_location_edited: 库位已编辑
+      storage_location_moved: 库位已移动
+      storage_location_shared: 库位已共享
+      storage_location_unshared: 库位已取消共享
+      storage_location_duplicated: 库位已复制
+      storage_location_sharing_updated: 库位共享权限已更新
+      container_storage_location_created: 盒已创建
+      container_storage_location_deleted: 盒已删除
+      container_storage_location_edited: 盒已编辑
+      container_storage_location_moved: 盒已移动
+      container_storage_location_shared: 盒已共享
+      container_storage_location_unshared: 盒已取消共享
+      container_storage_location_sharing_updated: 盒共享权限已更新
+      container_storage_location_duplicated: 盒已复制
+      storage_location_repository_row_created: 库存条目库位已分配
+      storage_location_repository_row_deleted: 库存条目库位已解除分配
+      storage_location_repository_row_moved: 库存条目库位已移动
+      container_storage_location_imported: 盒导入
+      task_step_restore_asset_version: 任务步骤文件版本已恢复
+      task_result_restore_asset_version: 结果文件版本已恢复
+      repository_column_restore_asset_version: 库存条目文件版本已恢复
+      protocol_step_restore_asset_version: 规程步骤文件版本已恢复
+      form_access_granted: 用户已获得表单访问权限
+      form_access_changed: 表单上的用户角色已更改
+      form_access_revoked: 用户已从表单中移除
+      form_access_granted_all_team_members: 向全体工作区成员授予访问权限
+      form_access_changed_all_team_members: 更改所有工作区成员的角色
+      form_access_revoked_all_team_members: 移除全体工作区成员的访问权限
+      form_created: 表单已创建
+      form_archived: 表单已归档
+      form_restored: 表单已从归档中恢复
+      form_published: 表单已发布
+      form_name_changed: 表单名称已编辑
+      form_block_added: 表单区块已添加
+      form_block_edited: 表单区块已编辑
+      form_block_deleted: 表单区块已删除
+      form_block_rearranged: 表单区块已重排
+      export_form_responses: 表单数据已导出
+      task_step_form_added: 任务步骤表单已添加
+      task_step_form_deleted: 任务步骤表单已删除
+      task_step_form_moved: 任务步骤表单已移动
+      task_step_form_field_edited: 任务步骤表单字段已编辑
+      task_step_form_field_submitted: 任务步骤表单已提交
+      task_step_form_field_reopened: 任务步骤表单已重新打开
+      protocol_step_form_added: 规程步骤表单已添加
+      protocol_step_form_deleted: 任务步骤表单已删除
+      protocol_step_form_moved: 任务步骤表单已移动
+      form_duplicated: 表单已复制
+      form_block_duplicated: 表单区块已复制
+      form_unpublished: 表单已取消发布
+      change_experiment_status: 实验状态已更改
+      set_experiment_due_date: 实验截止日期已设置
+      change_experiment_due_date: 实验截止日期已更改
+      remove_experiment_due_date: 实验截止日期已移除
+      set_experiment_start_date: 实验开始日期已设置
+      change_experiment_start_date: 实验开始日期已更改
+      remove_experiment_start_date: 实验开始日期已移除
+      change_project_status: 项目状态已更改
+      set_project_due_date: 项目截止日期已设置
+      change_project_due_date: 项目截止日期已更改
+      remove_project_due_date: 项目截止日期已移除
+      set_project_start_date: 项目开始日期已设置
+      change_project_start_date: 项目开始日期已更改
+      remove_project_start_date: 项目开始日期已移除
+      set_head_of_project: 项目负责人已添加
+      remove_head_of_project: 项目负责人已移除
+      task_steps_loaded_from_template: 已从模板加载任务步骤
+      protocol_steps_loaded_from_template: 已从模板加载步骤
+      create_user_group: 群组已创建
+      update_user_group: 群组已更新
+      delete_user_group: 群组已删除
+      add_group_user_member: 群组用户已添加
+      remove_group_user_member: 群组用户已移除
+      form_access_granted_user_group: 向群组授予访问权限
+      form_access_changed_user_group: 更改群组的角色
+      form_access_revoked_user_group: 移除群组的访问权限
+      protocol_template_access_granted_user_group: 向群组授予访问权限
+      protocol_template_access_changed_user_group: 更改群组的角色
+      protocol_template_access_revoked_user_group: 移除群组的访问权限
+      project_access_granted_user_group: 向群组授予访问权限
+      project_access_changed_user_group: 更改群组的角色
+      project_access_revoked_user_group: 移除群组的访问权限
+      experiment_access_changed_user_group: 更改群组的角色
+      my_module_access_changed_user_group: 更改群组的角色
+      step_and_result_linked: 任务结果与任务规程步骤已关联
+      step_and_result_unlinked: 任务结果与任务规程步骤已解除关联
+      repository_access_granted: 已向用户授予库存访问权限
+      repository_access_changed: 库存上的用户角色已更改
+      repository_access_revoked: 已从库存中移除用户
+      repository_access_granted_all_team_members: 向全体工作区成员授予访问权限
+      repository_access_changed_all_team_members: 更改所有工作区成员的角色
+      repository_access_revoked_all_team_members: 移除全体工作区成员的访问权限
+      repository_access_granted_user_group: 向群组授予访问权限
+      repository_access_changed_user_group: 更改群组的角色
+      repository_access_revoked_user_group: 移除群组的访问权限
+      automation_task_status_changed: 任务状态已自动更改
+      automation_experiment_status_changed: 实验状态已自动更改
+      automation_project_status_changed: 项目状态已自动更改
+      import_protocol_in_repository_from_protocols_io: 从 protocols.io 导入规程
+      experiment_access_changed_all_team_members: 更改所有工作区成员的角色
+      my_module_access_changed_all_team_members: 更改所有工作区成员的角色
+      tag_created: 标签已创建
+      tag_edited: 标签已编辑
+      tag_deleted: 标签已删除
+      tag_merged: 标签已合并
+      result_template_text_added: 规程结果文本已添加
+      result_template_text_edited: 规程结果文本已编辑
+      result_template_text_deleted: 规程结果文本已删除
+      result_template_text_duplicated: 规程结果文本已复制
+      result_template_text_moved: 规程结果文本已移动
+      result_template_table_added: 规程结果表格已添加
+      result_template_table_edited: 规程结果表格已编辑
+      result_template_table_deleted: 规程结果表格已删除
+      result_template_table_duplicated: 规程结果表格已复制
+      result_template_table_moved: 规程结果表格已移动
+      result_template_file_added: 规程结果文件已添加
+      edit_result_template_file_locally: 规程结果文件已编辑
+      result_template_file_deleted: 规程结果文件已删除
+      result_template_file_duplicated: 规程结果文件已复制
+      result_template_file_moved: 规程结果文件已移动
+      result_template_asset_renamed: 规程结果文件已重命名
+      edit_wopi_file_on_result_template: 规程结果上的 Microsoft 365 文件已编辑
+      sequence_on_result_template_added: 规程结果上的序列已添加
+      sequence_on_result_template_edited: 规程结果上的序列已编辑
+      sequence_on_result_template_deleted: 规程结果上的序列已删除
+      sequence_on_result_template_moved: 规程结果上的序列已移动
+      create_chemical_structure_on_result_template: 规程结果上的化学结构已添加
+      edit_chemical_structure_on_result_template: 规程结果上的化学结构已编辑
+      delete_chemical_structure_on_result_template: 规程结果上的化学结构已删除
+      move_chemical_structure_on_result_template: 规程结果上的化学结构已移动
+      edit_image_on_result_template: 规程结果上的图片已编辑
+      step_and_result_template_linked: 规程结果与步骤已关联
+      step_and_result_template_unlinked: 规程结果与步骤已解除关联
+      add_result_template: 规程结果已添加
+      edit_result_template: 规程结果已编辑
+      destroy_result_template: 规程结果已删除
+      result_template_duplicated: 规程结果已复制
+      result_template_restore_asset_version: 规程结果文件版本已恢复
+      protocol_repository_item_added: 规程条目已关联
+      protocol_repository_item_removed: 规程条目已解除关联
+      load_protocol_to_task_from_repository_merge: 从规程库加载任务规程（保留）
+      load_protocol_to_task_from_repository_replace: 从规程库加载任务规程（替换）
+      archive_step: 任务步骤已归档
+      restore_step: 任务步骤已恢复
+      task_step_text_archived: 任务步骤文本已归档
+      task_step_table_archived: 任务步骤表格已归档
+      task_step_file_archived: 任务步骤文件已归档
+      task_step_chemical_structure_archived: 任务步骤上的化学结构已归档
+      task_step_sequence_archived: 任务步骤上的序列已归档
+      task_step_form_archived: 任务步骤表单已归档
+      task_step_checklist_archived: 任务步骤检查清单已归档
+      task_step_text_restored: 任务步骤文本已恢复
+      task_step_table_restored: 任务步骤表格已恢复
+      task_step_file_restored: 任务步骤文件已恢复
+      task_step_chemical_structure_restored: 任务步骤上的化学结构已恢复
+      task_step_sequence_restored: 任务步骤上的序列已恢复
+      task_step_form_restored: 任务步骤表单已恢复
+      task_step_checklist_restored: 任务步骤检查清单已恢复
+      result_text_archived: 结果文本已归档
+      result_table_archived: 结果表格已归档
+      result_file_archived: 结果文件已归档
+      result_sequence_archived: 结果上的序列已归档
+      result_chemical_structure_archived: 结果上的化学结构已归档
+      result_text_restored: 结果文本已恢复
+      result_table_restored: 结果表格已恢复
+      result_file_restored: 结果文件已恢复
+      result_sequence_restored: 结果上的序列已恢复
+      result_chemical_structure_restored: 结果上的化学结构已恢复
+      team_repository_deletion_enabled: 库存删除功能已启用
+      team_result_deletion_enabled: 结果删除功能已启用
+      team_protocol_steps_deletion_enabled: 任务步骤删除功能已启用
+      team_repository_deletion_disabled: 库存删除功能已禁用
+      team_result_deletion_disabled: 结果删除功能已禁用
+      team_protocol_steps_deletion_disabled: 任务步骤删除功能已禁用
+      repository_snapshot_created: 任务分配的库存快照已创建
+      repository_snapshot_deleted: 任务分配的库存快照已删除
+      calendar_event_created: 排期事件已创建
+      calendar_event_updated: 排期事件已更新
+      calendar_event_deleted: 排期事件已删除
+      calendar_event_participant_created: 已向排期事件添加人员
+      calendar_event_participant_deleted: 已从排期事件移除人员
+      lock_protocol_step: 规程步骤已锁定
+      unlock_protocol_step: 规程步骤已解锁
+      lock_all_protocol_steps: 已锁定全部规程步骤
+      unlock_all_protocol_steps: 已解锁全部规程步骤
+      lock_protocol_step_text: 规程步骤文本已锁定
+      unlock_protocol_step_text: 规程步骤文本已解锁
+      lock_protocol_step_table: 规程步骤表格已锁定
+      unlock_protocol_step_table: 规程步骤表格已解锁
+      lock_protocol_step_checklist: 规程步骤检查清单已锁定
+      unlock_protocol_step_checklist: 规程步骤检查清单已解锁
+      lock_protocol_step_form: 规程步骤表单已锁定
+      unlock_protocol_step_form: 规程步骤表单已解锁
+      lock_protocol_step_file: 规程步骤文件已锁定
+      unlock_protocol_step_file: 规程步骤文件已解锁
+      lock_protocol_step_files: 规程步骤文件已锁定
+      unlock_protocol_step_files: 规程步骤文件已解锁
+      lock_result_template_text: 规程结果文本已锁定
+      unlock_result_template_text: 规程结果文本已解锁
+      lock_result_template_table: 规程结果表格已锁定
+      unlock_result_template_table: 规程结果表格已解锁
+      lock_result_template_files: 规程结果文件已锁定
+      unlock_result_template_files: 规程结果文件已解锁
+    activity_group:
+      projects: 项目
+      task_results: 任务结果
+      task: 任务
+      task_protocol: 任务规程
+      task_inventory: 任务库存
+      experiment: 实验
+      reports: 报告
+      inventories: 库存
+      protocol_repository: 规程模板
+      team: 工作区
+      exports: 导出
+      label_templates: 标签模板
+      storage_locations: 库存库位
+      container_storage_locations: 库存库位盒
+      storage_location_repository_rows: 条目到库位的分配
+      forms: 表单
+    subject_name:
+      repository: 库存
+      project: 项目
+      experiment: 实验
+      mymodule: 任务
+      result: 结果
+      protocol: 规程
+      step: 步骤
+      report: 报告
+      storage_location: 库位
+      form: 表单

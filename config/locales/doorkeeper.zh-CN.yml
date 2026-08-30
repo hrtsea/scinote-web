@@ -1,0 +1,135 @@
+zh-CN:
+  activerecord:
+    attributes:
+      doorkeeper/application:
+        name: 名称
+        redirect_uri: 重定向 URI
+    errors:
+      models:
+        doorkeeper/application:
+          attributes:
+            redirect_uri:
+              fragment_present: 不能包含片段标识符。
+              invalid_uri: 必须是有效的 URI。
+              relative_uri: 必须是绝对 URI。
+              secured_uri: 必须是 HTTPS/SSL URI。
+              forbidden_uri: 被服务器禁止。
+              unspecified_scheme: 必须指定协议（scheme）。
+            scopes:
+              not_match_configured: 与服务器端配置不匹配。
+  doorkeeper:
+    applications:
+      confirmations:
+        destroy: 确定要执行此操作吗？
+      buttons:
+        edit: 编辑
+        destroy: 删除
+        submit: 提交
+        cancel: 取消
+        authorize: 授权
+      form:
+        error: 出错了！请检查表单中可能的错误
+      help:
+        confidential: 该应用适用于能够保密客户端密钥（client secret）的场景。原生移动应用和单页应用（SPA）被视为不可保密。
+        redirect_uri: 每个 URI 单独占一行
+        native_redirect_uri: 如需为开发环境添加 localhost 地址，请使用 %{native_redirect_uri}。
+        scopes: 使用空格分隔多个权限范围（scope）。留空则使用默认范围。
+        blank_redirect_uri: 如果你的应用配置为使用客户端凭证、资源所有者密码凭证或任何其他不要求重定向 URI 的授权类型，请将此字段留空。
+      edit:
+        title: 编辑应用
+      index:
+        title: 你的应用
+        new: 新建应用
+        name: 名称
+        callback_url: 回调 URL
+        confidential: 保密应用？
+        actions: 操作
+        confidentiality:
+          'yes': 是
+          'no': 否
+      new:
+        title: 新建应用
+      show:
+        title: 应用：%{name}
+        application_id: 应用 ID
+        secret: 密钥
+        secret_hashed: 密钥已加密
+        not_defined: 未定义
+        scopes: 权限范围
+        confidential: 保密
+        callback_urls: 回调地址
+        actions: 操作
+    authorizations:
+      buttons:
+        authorize: 授权
+        deny: 拒绝
+      error:
+        title: 发生错误
+      new:
+        title: 需要授权
+        prompt: 授权 %{client_name} 使用你的账户？
+        able_to: 该应用将能够
+      form_post:
+        title: 提交此表单
+      show:
+        title: 授权码
+    pre_authorization:
+      status: 预授权
+    authorized_applications:
+      confirmations:
+        revoke: 确定要执行此操作吗？
+      buttons:
+        revoke: 撤销
+      index:
+        title: 你已授权的应用
+        application: 应用
+        created_at: 创建时间
+        date_format: '%Y-%m-%d %H:%M:%S'
+    errors:
+      messages:
+        invalid_request: 请求缺少必需参数，包含不支持的参数值，或存在其他格式错误。
+        invalid_redirect_uri: 请求的重定向 URI 格式不正确，或与客户端重定向 URI 不匹配。
+        unauthorized_client: 客户端无权使用此方法执行该请求。
+        access_denied: 资源所有者或授权服务器拒绝了该请求。
+        invalid_scope: 所请求的权限范围无效、未知或格式错误。
+        server_error: 授权服务器遇到意外情况，无法完成该请求。
+        temporarily_unavailable: 授权服务器当前因临时过载或维护而无法处理该请求。
+        credential_flow_not_configured: 资源所有者密码凭证流程失败，因为 Doorkeeper.configure.resource_owner_from_credentials
+          未配置。
+        resource_owner_authenticator_not_configured: 资源所有者查找失败，因为 Doorkeeper.configure.resource_owner_authenticator
+          未配置。
+        unsupported_response_type: 授权服务器不支持该响应类型。
+        invalid_client: 客户端身份验证失败，原因可能是客户端未知、未包含客户端身份验证信息，或使用了不支持的验证方式。
+        invalid_grant: 所提供的授权许可无效、已过期、已撤销、与授权请求中使用的重定向 URI 不匹配，或已发放给其他客户端。
+        unsupported_grant_type: 授权服务器不支持该授权类型。
+        invalid_token:
+          revoked: 访问令牌已被撤销
+          expired: 访问令牌已过期
+          unknown: 访问令牌无效
+        invalid_code_challenge_method: 代码挑战方法必须为 plain 或 S256。
+        admin_authenticator_not_configured: 由于 Doorkeeper.configure.admin_authenticator 未配置，无法访问管理面板。
+        unsupported_response_mode: 授权服务器不支持此响应模式。
+        revoke:
+          unauthorized: 你无权撤销此令牌
+        forbidden_token:
+          missing_scope: 访问此资源需要作用域 "%{oauth_scopes}"。
+    flash:
+      applications:
+        create:
+          notice: 应用已创建。
+        destroy:
+          notice: 应用已删除。
+        update:
+          notice: 应用已更新。
+      authorized_applications:
+        destroy:
+          notice: 应用已撤销授权。
+    layouts:
+      admin:
+        title: Doorkeeper
+        nav:
+          oauth2_provider: OAuth2 提供方
+          applications: 应用
+          home: 主页
+      application:
+        title: 需要 OAuth 授权

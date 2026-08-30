@@ -79,6 +79,6 @@ class UserAssignment < ApplicationRecord
   def assignable_owners
     @assignable_owners ||= assignable.user_assignments
                                      .includes(:user_role)
-                                     .where(user_roles: { name: I18n.t('user_roles.predefined.owner') })
+                                     .where(user_roles: { name: I18n.t('user_roles.predefined.owner', locale: :en) })
   end
 end

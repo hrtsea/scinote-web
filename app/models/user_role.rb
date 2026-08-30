@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class UserRole < ApplicationRecord
+  # Predefined role names are stored/queried in fixed English. They are always
+  # resolved with locale: :en so lookups never depend on the request locale.
   validate :prevent_update, on: :update, if: :predefined?
   validates :name,
             presence: true,
@@ -21,7 +23,7 @@ class UserRole < ApplicationRecord
 
   def self.owner_role
     new(
-      name: I18n.t('user_roles.predefined.owner'),
+      name: I18n.t('user_roles.predefined.owner', locale: :en),
       permissions: PredefinedRoles::OWNER_PERMISSIONS,
       predefined: true
     )
@@ -29,7 +31,7 @@ class UserRole < ApplicationRecord
 
   def self.normal_user_role
     new(
-      name: I18n.t('user_roles.predefined.normal_user'),
+      name: I18n.t('user_roles.predefined.normal_user', locale: :en),
       permissions: PredefinedRoles::NORMAL_USER_PERMISSIONS,
       predefined: true
     )
@@ -37,7 +39,7 @@ class UserRole < ApplicationRecord
 
   def self.technician_role
     new(
-      name: I18n.t('user_roles.predefined.technician'),
+      name: I18n.t('user_roles.predefined.technician', locale: :en),
       permissions: PredefinedRoles::TECHNICIAN_PERMISSIONS,
       predefined: true
     )
@@ -45,7 +47,7 @@ class UserRole < ApplicationRecord
 
   def self.viewer_role
     new(
-      name: I18n.t('user_roles.predefined.viewer'),
+      name: I18n.t('user_roles.predefined.viewer', locale: :en),
       permissions: PredefinedRoles::VIEWER_PERMISSIONS,
       predefined: true
     )
@@ -72,11 +74,11 @@ class UserRole < ApplicationRecord
   end
 
   def owner?
-    predefined? && name == I18n.t('user_roles.predefined.owner')
+    predefined? && name == I18n.t('user_roles.predefined.owner', locale: :en)
   end
 
   def viewer?
-    predefined? && name == I18n.t('user_roles.predefined.viewer')
+    predefined? && name == I18n.t('user_roles.predefined.viewer', locale: :en)
   end
 
   private

@@ -43,6 +43,11 @@ GIT
       omniauth (~> 2.0)
       omniauth-oauth2 (~> 1.7, >= 1.7.1)
 
+PATH
+  remote: addons/i18n
+  specs:
+    scinote_i18n (0.0.1)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -985,6 +990,7 @@ DEPENDENCIES
   rubyzip (>= 2.3.0)
   rufus-scheduler
   sanitize
+  scinote_i18n!
   sdoc (~> 1.0)
   selenium-webdriver
   shoulda-matchers

@@ -43,54 +43,57 @@ namespace :i18n do
     end
   end
 
-  desc "Find and list translation keys that do not exist in all locales"
+  desc "Compare translation keys between the default locale and all other locales (missing / extra / blank values). " \
+       "Works even when I18n fallbacks are enabled, because it compares the raw translation key sets instead of calling I18n.translate."
   task :missing_keys => :environment do
 
-    def collect_keys(scope, translations)
-      full_keys = []
-      translations.to_a.each do |key, translations|
-        new_scope = scope.dup << key
-        if translations.is_a?(Hash)
-          full_keys += collect_keys(new_scope, translations)
+    flatten = lambda do |hash, prefix, out|
+      hash.each do |key, value|
+        current = prefix + [key.to_s]
+        if value.is_a?(Hash)
+          flatten.call(value, current, out)
         else
-          full_keys << new_scope.join('.')
+          out << [current.join('.'), value]
         end
       end
-      return full_keys
     end
 
     # Make sure we've loaded the translations
     I18n.backend.send(:init_translations)
-    puts "#{I18n.available_locales.size} #{I18n.available_locales.size == 1 ? 'locale' : 'locales'} available: #{I18n.available_locales.to_sentence}"
+    translations = I18n.backend.send(:translations)
+    default_locale = I18n.default_locale.to_s
+    locales = translations.keys.map(&:to_s).sort
 
-    # Get all keys from all locales
-    all_keys = I18n.backend.send(:translations).collect do |check_locale, translations|
-      collect_keys([], translations).sort
-    end.flatten.uniq
-    puts "#{all_keys.size} #{all_keys.size == 1 ? 'unique key' : 'unique keys'} found."
-
-    missing_keys = {}
-    all_keys.each do |key|
-
-      I18n.available_locales.each do |locale|
-        I18n.locale = locale
-        begin
-          result = I18n.translate(key, :raise => true)
-        rescue I18n::MissingInterpolationArgument
-          # noop
-        rescue I18n::MissingTranslationData
-          if missing_keys[key]
-            missing_keys[key] << locale
-          else
-            missing_keys[key] = [locale]
-          end
-        end
-      end
+    keysets = {}
+    locales.each do |locale|
+      flat = []
+      flatten.call(translations[locale.to_sym], [], flat)
+      keysets[locale] = flat
     end
 
-    puts "#{missing_keys.size} #{missing_keys.size == 1 ? 'key is missing' : 'keys are missing'} from one or more locales:"
-    missing_keys.keys.sort.each do |key|
-      puts "'#{key}': Missing from #{missing_keys[key].join(', ')}"
+    base = keysets.fetch(default_locale, []).map(&:first)
+    puts "#{locales.size} #{locales.size == 1 ? 'locale' : 'locales'} available: #{locales.to_sentence}"
+    puts "#{base.size} keys in default locale (#{default_locale}):"
+
+    locales.each do |locale|
+      keys = keysets[locale].map(&:first)
+      missing = base - keys
+      extra = keys - base
+      blank = keysets[locale].select { |_k, v| v.is_a?(String) && v.strip.empty? }.map(&:first)
+
+      covered = (keys & base).size
+      coverage = base.empty? ? 100.0 : (covered.to_f / base.size * 100).round(1)
+      puts format('  %-9s keys: %-6d coverage: %-7s missing: %-4d extra: %-4d blank: %d',
+                  locale, keys.size, "#{coverage}%", missing.size, extra.size, blank.size)
+
+      unless missing.empty?
+        puts '    missing:'
+        missing.group_by { |k| k.split('.').first }.sort_by { |_g, ks| -ks.size }.each do |group, ks|
+          puts format('      %-24s %3d  %s', "#{group}:", ks.size, ks.first(5).join(', '))
+        end
+      end
+      puts "    extra: #{extra.join(', ')}" unless extra.empty?
+      puts "    blank: #{blank.join(', ')}" unless blank.empty?
     end
 
   end

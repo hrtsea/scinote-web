@@ -1,0 +1,53 @@
+zh-CN:
+  protocol_importers:
+    errors:
+      cannot_import_protocol: 由于出现问题，我们无法导入该规程
+    new:
+      modal_title: 导入规程 - %{protocol_name}
+    card:
+      views_and_steps: '%{nr_of_views} 次浏览 • %{nr_of_steps} 个步骤'
+      import_button_text: 导入……
+    show_more_button:
+      title: 显示更多规程
+    templates:
+      amount:
+        title: 数量
+      command:
+        title: 命令
+        name: 名称
+        code: 命令
+      concentration:
+        title: 浓度
+      dataset:
+        title: 数据集
+        name: 名称
+        link: 链接
+      details:
+        title: 详情
+      duration:
+        title: 时长
+        unit: 秒
+      gotostep:
+        title: 前往步骤
+        number: 步骤编号
+        reason: 时间
+      link:
+        title: 链接
+      note:
+        title: 备注
+        author: 作者
+      reagent:
+        title: 试剂
+        name: 名称
+        mol_weight: 分子量
+        link: 链接
+      result:
+        title: 预期结果
+      software:
+        title: 软件
+        name: 名称
+        link: 链接
+      temperature:
+        title: 温度
+      warning:
+        title: 警告

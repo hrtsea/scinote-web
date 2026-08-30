@@ -3759,6 +3759,8 @@ en:
             date_format_sublabel: "Date format setting affects all date display throughout application."
             date_format_title: "Date format"
             date_format_managed_note: "This setting is managed by your organization and cannot be changed."
+            language_label: "Language"
+            language_sublabel: "Select the interface display language (简体中文 / English)."
           update_flash: "Preferences successfully updated."
         addons:
           head_title: "Settings | Add-ons"

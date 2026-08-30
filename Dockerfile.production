@@ -103,7 +103,7 @@ RUN \
   DATABASE_URL=postgresql://postgres@db/scinote_production \
   SECRET_KEY_BASE=dummy \
   DEFACE_ENABLED=true \
-  bash -c "rails assets:precompile && rails deface:precompile && rm -rf ./tmp/cache"
+  bash -c "rails i18n:js:export && rails assets:precompile && rails deface:precompile && rm -rf ./tmp/cache"
 
 # Final stage
 FROM ruby:3.4-trixie AS runner

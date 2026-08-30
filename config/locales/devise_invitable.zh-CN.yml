@@ -1,0 +1,31 @@
+zh-CN:
+  devise:
+    failure:
+      invited: 你有一份待接受的邀请，接受后即可完成账户创建。
+    invitations:
+      send_instructions: 邀请邮件已发送至 %{email}。
+      invitation_token_invalid: 提供的邀请令牌无效！
+      updated: 你的密码已设置成功，现在已登录。
+      updated_not_active: 你的密码已设置成功。
+      no_invitations_remaining: 没有剩余邀请名额
+      invitation_removed: 邀请已移除。
+      new:
+        header: 发送邀请
+        submit_button: 发送一封邀请
+      edit:
+        header: 设置密码
+        submit_button: 设置我的密码
+    mailer:
+      invitation_instructions:
+        subject: 邀请说明
+        hello: 你好，%{email}
+        someone_invited_you: 有人邀请你加入 %{url}，可通过下方链接接受。
+        accept: 接受邀请
+        accept_until: 此邀请将于 %{due_date} 到期。
+        ignore: 如果你不想接受该邀请，请忽略此邮件。<br />在点击上方链接并设置密码之前，账户不会被创建。
+  time:
+    formats:
+      devise:
+        mailer:
+          invitation_instructions:
+            accept_until_format: '%B %d, %Y %I:%M %p'
