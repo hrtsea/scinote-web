@@ -1,0 +1,25 @@
+.git
+.gitignore
+Dockerfile
+Dockerfile*
+docker-compose*.yml
+node_modules
+**/node_modules
+tmp
+log
+storage
+spec
+test
+features
+coverage
+.idea
+.vscode
+*.log
+restore.log
+db_dump.sql
+production.env
+config/application.yml
+vendor/bundle
+# 宿主机 Windows 上的 *.git 符号链接会导致 buildkit context 打包报 invalid file request；
+# 容器内由 Dockerfile 的 ln -s 自行创建（见 git config 层）
+vendor/git-mirror/scinote-eln/*.git

@@ -1,6 +1,11 @@
 # Building stage
 FROM ruby:3.4-trixie AS builder
 
+# === 网络环境修复（与 Dockerfile.build 一致）===
+# 容器内 DNS 优先返回 IPv6 但无 IPv6 出口，强制 IPv4 优先；Debian 源替换为阿里云镜像
+RUN echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf && \
+    sed -i 's#http://deb.debian.org/debian#http://mirrors.aliyun.com/debian#g; s#http://deb.debian.org/debian-security#http://mirrors.aliyun.com/debian-security#g' /etc/apt/sources.list.d/debian.sources
+
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -14,6 +19,16 @@ RUN \
   yarnpkg \
   postgresql-client-17
 
+# node-canvas 等原生模块源码编译所需的 -dev 头文件（GitHub 预编译二进制不可达）
+RUN apt-get update -qq && \
+  apt-get install -y --no-install-recommends \
+  libcairo2-dev \
+  libjpeg62-turbo-dev \
+  libpango1.0-dev \
+  libgif-dev \
+  librsvg2-dev && \
+  rm -rf /var/lib/apt/lists/*
+
 ENV APP_HOME=/usr/src/app
 ENV RAILS_ENV=production
 ENV RAILS_SERVE_STATIC_FILES=true
@@ -25,21 +40,66 @@ ENV BUNDLE_BUILD__SASSC=--disable-march-tune-native
 COPY . $APP_HOME
 RUN rm -f $APP_HOME/config/application.yml $APP_HOME/production.env
 WORKDIR $APP_HOME
-RUN bundle config set --system mirror.https://rubygems.org https://mirrors.tuna.tsinghua.edu.cn/rubygems/
+# rubygems 源切换阿里云（tuna 对 gemspec 请求偶发连接挂起导致 bundle install 卡死，阿里云更稳定）：
+# gem sources 覆盖锁定版 bundler(2.5.22) 的下载；
+# mirror 用 local 级（root 下 --system 的 /etc/bundle/config 在 bundle install 时未被读取，导致直连 rubygems.org 失败）
+RUN gem sources --remove https://rubygems.org/ && \
+    gem sources --add https://mirrors.aliyun.com/rubygems/ && \
+    bundle config set mirror.https://rubygems.org https://mirrors.aliyun.com/rubygems/
+# git 源 gem（omniauth-okta/caracal/img2zpl/canaid）及 git 源前端包（tui.image-editor）：容器内 github 全线被阻断，
+# 改为使用构建上下文 vendor/git-mirror 中本机预克隆的仓库（insteadOf 重写为本地路径）。
+# 注意：git-mirror 在 yarn install 完成后再删除（bundle 与 yarn 两阶段都需要）
+RUN git config --global url."/usr/src/app/vendor/git-mirror/scinote-eln/".insteadOf "https://github.com/scinote-eln/" && \
+    ln -s /usr/src/app/vendor/git-mirror/scinote-eln/caracal /usr/src/app/vendor/git-mirror/scinote-eln/caracal.git && \
+    ln -s /usr/src/app/vendor/git-mirror/scinote-eln/omniauth-okta /usr/src/app/vendor/git-mirror/scinote-eln/omniauth-okta.git && \
+    ln -s /usr/src/app/vendor/git-mirror/scinote-eln/img2zpl /usr/src/app/vendor/git-mirror/scinote-eln/img2zpl.git && \
+    ln -s /usr/src/app/vendor/git-mirror/scinote-eln/canaid /usr/src/app/vendor/git-mirror/scinote-eln/canaid.git && \
+    ln -s /usr/src/app/vendor/git-mirror/scinote-eln/tui.image-editor /usr/src/app/vendor/git-mirror/scinote-eln/tui.image-editor.git
 RUN \
   --mount=target=/usr/src/app/tmp/bundle,type=cache \
   bundle config set without 'development test' && \
   bundle config set path '/usr/src/app/tmp/bundle' && \
-  bundle install --jobs `nproc` && \
+  # 防网络挂起：60s 超时 + 自动重试，卡住时快速失败并打印具体 gem，而非无限等待
+  # 完全离线安装：vendor/cache 已由宿主机 curl 预下载全部 gem（buildkit 网络下 bundler 偶发挂起，curl 可靠）
+  bundle install --local --jobs 2 && \
   cp -r tmp/bundle/ vendor && \
   rm -rf vendor/bundle/ruby/3.4.0/cache && \
   find vendor/bundle/ruby -type d -name '.git' -exec rm -rf {} + && \
   ln -s /usr/bin/yarnpkg /usr/bin/yarn && \
   bundle config --local path vendor/bundle
 
+# === 前端资源构建：yarn install + webpack + sass + tailwind ===
+# node-canvas 需源码编译（GitHub 预编译二进制不可达），置 npm_config_build_from_source
+ENV npm_config_build_from_source=true
+# 关键：Node.js 的 DNS 解析器(c-ares)不遵循 /etc/gai.conf，默认按 DNS 返回顺序解析，
+# 本环境 DNS 返回 IPv6 优先但无 IPv6 出口，导致 Node/npm/yarn 的 TLS 握手被断
+# （报 "Client network socket disconnected before secure TLS connection"），
+# 而 curl(OpenSSL+glibc) 正常。NODE_OPTIONS=--dns-result-order=ipv4first 强制 IPv4 优先。
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
+# npm/yarn 统一走 npmmirror 镜像（registry.npmjs.org 偶发 TLS 断开）。
+# 独立 RUN 层，避免使下方 yarn install 缓存层失效重跑。
+# 注意 Debian trixie 的 yarnpkg 是 Yarn 4(Berry)，registry 配置项名为 npmRegistryServer，
+# 两种写法都尝试并用 || true 兜底，保证本层永不因 config 失败
+RUN npm config set registry https://registry.npmmirror.com && \
+    (yarn config set registry https://registry.npmmirror.com 2>/dev/null || true) && \
+    (yarn config set npmRegistryServer https://registry.npmmirror.com 2>/dev/null || true)
+# yarn 4 默认 fetch 无限等待无超时，挂起时无法定位卡在哪个包；
+# 配置短超时 + 少量重试（追加而非覆盖！项目 .yarnrc.yml 里的 npmRegistryServer 必须保留，
+# 否则 yarn 回退默认 registry.npmjs.org——该域名在本网络 TLS 被断，必挂）
+RUN grep -q '^httpTimeout:' .yarnrc.yml || printf 'httpTimeout: 15000\nhttpRetry: 2\n' >> .yarnrc.yml
+# 注意：buildkit cache mount 为 overlayfs，Yarn 4 在缓存目录上使用 flock 锁，
+# overlay 锁异常会导致 yarn install 在网络 Fetch 阶段无限挂起（与 bundler 挂起同因）。
+# 因此 yarn 层不使用 --mount=type=cache，宁可每次重新下载（npmmirror 速度快）
+# tailwindcss:build 依赖 Rails environment，缺 SECRET_KEY_BASE 会报
+# "ArgumentError: Missing `secret_key_base` for 'production'"，故每步显式注入 dummy
 RUN \
-  --mount=type=cache,target=/home/scinote/.cache/yarn/v6,sharing=locked \
-  --mount=type=cache,target=/usr/src/app/node_modules,sharing=locked \
+  npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn install && \
+  npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn build && \
+  npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn build:css && \
+  npm_config_build_from_source=true SECRET_KEY_BASE=dummy rails tailwindcss:build && \
+  rm -rf vendor/git-mirror
+
+RUN \
   DATABASE_URL=postgresql://postgres@db/scinote_production \
   SECRET_KEY_BASE=dummy \
   DEFACE_ENABLED=true \
@@ -52,8 +112,9 @@ MAINTAINER SciNote <info@scinote.net>
 ARG TIKA_DIST_URL="https://mirrors.huaweicloud.com/apache/tika/3.2.3/tika-app-3.2.3.jar"
 ENV TIKA_PATH=/usr/local/bin/tika-app.jar
 
-# Chromium 150.0.7871.46 crashes on startup under Grover/headless (https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1141571)
-ARG CHROMIUM_VERSION=149.0.7827.196-1~deb13u1
+# 与 builder 相同的网络修复：IPv4 优先 + 阿里云 apt 源
+RUN echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf && \
+    sed -i 's#http://deb.debian.org/debian#http://mirrors.aliyun.com/debian#g; s#http://deb.debian.org/debian-security#http://mirrors.aliyun.com/debian-security#g' /etc/apt/sources.list.d/debian.sources
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN \
@@ -89,21 +150,27 @@ RUN \
   graphviz \
   libfile-mimeinfo-perl \
   npm && \
-  echo "deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20260625T165532Z/ trixie-security main" > /etc/apt/sources.list.d/chromium-pin.list && \
+  # 官方通过 snapshot.debian.org pin chromium 149（150 有 Grover crash），
+  # 该源在本网络不可达，改由阿里云源安装默认版本（与 Dockerfile.build 一致）
   apt-get update -qq && \
   apt-get install -y --no-install-recommends \
-  chromium=$CHROMIUM_VERSION \
-  chromium-common=$CHROMIUM_VERSION \
-  chromium-sandbox=$CHROMIUM_VERSION && \
+  chromium \
+  chromium-common \
+  chromium-sandbox && \
   apt-mark hold chromium chromium-common chromium-sandbox && \
-  rm -f /etc/apt/sources.list.d/chromium-pin.list && \
-  apt-get update -qq && \
   wget -O $TIKA_PATH $TIKA_DIST_URL && \
   chmod +x $TIKA_PATH && \
   ln -s /usr/bin/yarnpkg /usr/bin/yarn && \
-  npm install -g npm:puppeteer-core@24.10.0 && \
   apt-get install -y libreoffice && \
   ln -s /usr/lib/x86_64-linux-gnu/libvips.so.42 /usr/lib/x86_64-linux-gnu/libvips.so
+
+# puppeteer-core 单独一层：registry.npmjs.org 偶发 TLS 断开，改用国内 npmmirror 镜像。
+# 注意：config set 写入的 userconfig 优先级低，且 npm:puppeteer-core 的 npm: 前缀在部分
+# npm 版本下会绕开配置直连官方源，因此安装时显式加 --registry（命令行参数优先级最高）。
+# 另外与 builder 相同的原因，Node 的 DNS 解析需强制 IPv4 优先，否则 TLS 握手被断
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install -g --registry=https://registry.npmmirror.com puppeteer-core@24.10.0
 
 ARG BUILD_TIMESTAMP=1
 RUN \

@@ -1,4 +1,23 @@
 version: '2'
+
+# 公共功能开关：web 与 delayed_job 共享，差异项（SCINOTE_SCHEDULER_ENABLED / WEB_SERVER_URL）在各服务内覆盖
+x-common-env: &common-env
+  RAILS_ENV: development
+  # protocols.io 导入：需真实 API 令牌（留空则关闭）
+  PROTOCOLS_IO_ACCESS_TOKEN: ""
+  # AI 协议解析服务地址（同时需在 ApplicationSettings 中开启 ai_protocol_parser_enabled）
+  AI_PROTOCOLS_PARSER: ""
+  # ===== 以下功能开关为布尔型，设为 true 即开启 =====
+  ENABLE_TEMPLATES_SYNC: "true"              # 模板项目同步
+  ENABLE_FLUICS_SYNC: "true"                 # Fluics 标签模板同步
+  ACTIVESTORAGE_ENABLE_PDF_PREVIEWS: "true"  # PDF 预览（需容器内已安装 poppler 等依赖）
+  ACTIVESTORAGE_ENABLE_VIPS: "true"          # Active Storage vips 处理器
+  CORE_API_V1_ENABLED: "true"                # Core API v1 路由门控
+  CORE_API_V2_ENABLED: "true"                # Core API v2 路由门控
+  CORE_API_KEY_ENABLED: "true"               # Core API Key 认证
+  # PWA 跨域（CORS）：需填 PWA 站点的真实来源（留空则关闭）
+  SCINOTE_PWA_DOMAIN_NAME: "https://pwa.example.com"
+
 services:
   db:
     container_name: scinote_db_development
@@ -8,6 +27,12 @@ services:
     environment:
       - "POSTGRES_USER=postgres"
       - "POSTGRES_PASSWORD=mysecretpassword"
+      - PGDATA=/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   web:
     build:
@@ -19,7 +44,8 @@ services:
     tty: true
     user: scinote
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "3000:3000"
     command: >
@@ -27,23 +53,9 @@ services:
                (bundle check || bundle install) &&
                bundle exec rails s -b 0.0.0.0"
     environment:
-      - RAILS_ENV=development
-      # 功能开关依赖的环境变量（按需填写真实值；留空则对应功能保持关闭）
-      # protocols.io 导入：需真实 API 令牌
-      - PROTOCOLS_IO_ACCESS_TOKEN=
-      # AI 协议解析服务地址（同时需在 ApplicationSettings 中开启 ai_protocol_parser_enabled）
-      - AI_PROTOCOLS_PARSER=
-      # ===== 以下功能开关为布尔型，设为 true 即开启 =====
-      - SCINOTE_SCHEDULER_ENABLED=true          # 定时任务（提醒/同步/清理）；其下两项需本项先开启
-      - ENABLE_TEMPLATES_SYNC=true              # 模板项目同步
-      - ENABLE_FLUICS_SYNC=true                 # Fluics 标签模板同步
-      - ACTIVESTORAGE_ENABLE_PDF_PREVIEWS=true  # PDF 预览（需容器内已安装 poppler 等依赖）
-      - ACTIVESTORAGE_ENABLE_VIPS=true          # Active Storage vips 处理器
-      - CORE_API_V1_ENABLED=true                # Core API v1 路由门控
-      - CORE_API_V2_ENABLED=true                # Core API v2 路由门控
-      - CORE_API_KEY_ENABLED=true               # Core API Key 认证
-      # PWA 跨域（CORS）：需填 PWA 站点的真实来源；留空则关闭
-      - SCINOTE_PWA_DOMAIN_NAME=https://pwa.example.com
+      <<: *common-env
+      # 定时任务仅由 delayed_job 进程运行，避免 web 与 worker 重复触发
+      SCINOTE_SCHEDULER_ENABLED: "false"
     volumes:
       - .:/usr/src/app
       - scinote_development_bundler:/usr/local/bundle/
@@ -101,6 +113,33 @@ services:
     volumes:
       - .:/usr/src/app
       - scinote_development_bundler:/usr/local/bundle/
+
+  delayed_job:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+    image: scinote_web_development
+    container_name: scinote_delayed_job_development
+    stdin_open: true
+    tty: true
+    user: scinote
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "rm -f /usr/src/app/tmp/pids/delayed_job.pid &&
+               (bundle check || bundle install) &&
+               bundle exec rake jobs:work"
+    environment:
+      <<: *common-env
+      # PDF 生成所需：worker 内 Chromium 用此 URL 拉取 CSS/图片；否则报 pdf_error
+      WEB_SERVER_URL: "http://web:3000"
+      # 定时任务（提醒/同步/清理）仅由本 worker 进程运行
+      SCINOTE_SCHEDULER_ENABLED: "true"
+    volumes:
+      - .:/usr/src/app
+      - scinote_development_bundler:/usr/local/bundle/
+      - scinote_development_storage:/usr/src/app/storage
 
 volumes:
   scinote_development_postgres:

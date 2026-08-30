@@ -8,6 +8,12 @@ services:
     environment:
       - "POSTGRES_USER=postgres"
       - "POSTGRES_PASSWORD=mysecretpassword"
+      - PGDATA=/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   web:
     build:
@@ -19,12 +25,15 @@ services:
     env_file: ./production.env
     tty: true
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "3000:3000"
     command: bash -c "rm -f /usr/src/app/tmp/pids/server.pid && rails s -b 0.0.0.0"
     environment:
       - RAILS_ENV=production
+      # 定时任务仅由 jobs 进程运行，避免与 jobs 重复触发
+      - SCINOTE_SCHEDULER_ENABLED=false
     volumes:
       - scinote_production_storage:/usr/src/app/storage
 
@@ -33,11 +42,14 @@ services:
     container_name: scinote_jobs_production
     tty: true
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     command: rake jobs:work
     env_file: ./production.env
     environment:
       - RAILS_ENV=production
+      # PDF 生成：worker 内 Chromium 需访问 web 容器内部地址，不能用自己的 localhost（与 dev compose 一致）
+      - WEB_SERVER_URL=http://web:3000
     volumes:
       - scinote_production_storage:/usr/src/app/storage
 
