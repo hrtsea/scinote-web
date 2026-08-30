@@ -47,7 +47,8 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      # 与生产环境（3000）区分：宿主机 3001 -> 容器内 3000
+      - "3001:3000"
     command: >
       bash -c "rm -f /usr/src/app/tmp/pids/server.pid &&
                (bundle check || bundle install) &&
@@ -71,7 +72,10 @@ services:
     tty: true
     user: scinote
     command: >
-      bash -c "yarn install && yarn build --watch"
+      bash -c "git config --global --add safe.directory '*' &&
+               git config --global http.sslVerify false &&
+               git config --global url.\"https://ghproxy.net/https://github.com/\".insteadOf \"https://github.com/\" &&
+               yarn install && yarn build --watch"
     environment:
       - NODE_ENV=development
       - npm_config_build_from_source=true
@@ -141,7 +145,20 @@ services:
       - scinote_development_bundler:/usr/local/bundle/
       - scinote_development_storage:/usr/src/app/storage
 
+networks:
+  default:
+    # 独立于生产环境的默认网络（生产使用 scinote-web_default），避免 db 服务名 DNS 冲突
+    name: scinote_development_network
+
 volumes:
+  # 复用旧 project 名下的数据卷（已装好的 gems / 已迁移的开发库 / 附件），
+  # 配合 -p scinote_dev 独立 project 启动，与生产环境彻底隔离
   scinote_development_postgres:
+    external: true
+    name: scinote-web_scinote_development_postgres
   scinote_development_bundler:
+    external: true
+    name: scinote-web_scinote_development_bundler
   scinote_development_storage:
+    external: true
+    name: scinote-web_scinote_development_storage

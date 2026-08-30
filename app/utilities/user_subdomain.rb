@@ -1,6 +1,6 @@
 class UserSubdomain
   def self.matches?(request)
-    if ENV['USER_SUBDOMAIN']
+    if ENV['USER_SUBDOMAIN'].present?
       return (request.subdomain.present? &&
               request.subdomain == ENV['USER_SUBDOMAIN'])
     else
