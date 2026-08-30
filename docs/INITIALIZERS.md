@@ -27,7 +27,7 @@
 | `grover.rb` | Grover（HTML→PDF，基于 Chromium headless）配置：`executable_path` 取 `CHROMIUM_PATH` 或 `./bin/chromium`，超时取 `Constants::GROVER_TIMEOUT_MS`，启动参数禁用 GPU/沙箱。 |
 | `wopi_startup_check.rb` | 仅当 `WOPI_ENABLED=true` 且以 Server 模式启动时，校验 WOPI 相关环境变量（`WOPI_DISCOVERY_URL` 等）是否齐全，缺失则 `abort` 阻止启动。 |
 | `repositories.rb` | 配置仓库数量限制：`config.x.team_repositories_limit`（`TEAM_REPOSITORIES_LIMIT` 或 `Constants::DEFAULT_TEAM_REPOSITORIES_LIMIT`）与 `config.x.global_repositories_limit`（`GLOBAL_REPOSITORIES_LIMIT`，默认 0=不限）。 |
-| `scheduler.rb` | 基于 `rufus-scheduler` 的定时任务（仅 `SCINOTE_SCHEDULER_ENABLED=true`）：模板同步、Fluics 标签模板同步、各类到期提醒 Job、WOPI token 清理、通知清理；带随机抖动避免并发峰值。 |
+| `scheduler.rb` | 基于 `rufus-scheduler` 的定时任务（仅 `SCINOTE_SCHEDULER_ENABLED=true`）：模板同步、Fluics 标签模板同步、各类到期提醒 Job、WOPI token 清理、通知清理；带随机抖动避免并发峰值。**无独立 UI、仅 ENV 控制**：开启/关闭都需改 `SCINOTE_SCHEDULER_ENABLED` 并重启 web。 |
 | `rubyzip.rb` | 启用 Zip64 支持（`Zip.write_zip64_support = true`），用于大体积导出包。 |
 | `opentelemetry.rb` | 可观测性（`OTEL_ENABLED=true` 时加载）：启用全量 Rails 插桩；`OTEL_XRAY_ENABLED` 时启用 AWS X-Ray 的 ID 生成器与传播器。 |
 | `silencer.rb` | 用 Silencer 替换 Rails 日志中间件，静默 PDF 生成、健康检查 `/api/health`、`/api/status` 等高频/噪音请求日志。 |
