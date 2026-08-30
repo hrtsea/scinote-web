@@ -94,7 +94,9 @@
 
 **团队级开关**
 - `shareable_links_enabled?`（`task_sharing_enabled`）— 默认关闭；存于 `Team#settings` 列，由团队设置 → General → Sharing → "Enable task sharing" 开启（需 `can_manage_team?`）。
-- `Team.deletion_prevention_enabled?` — `ENV['DELETION_PREVENTION_ENABLED'] == 'true'`（全局 ENV）；开启后暴露团队「Data integrity」设置，可逐团队限制仓库/结果/协议步骤的删除。
+
+**全局 ENV 删除防护开关**
+- `Team.deletion_prevention_enabled?` — `ENV['DELETION_PREVENTION_ENABLED'] == 'true'`；开启后暴露团队「Data integrity」设置，可逐团队限制仓库/结果/协议步骤的删除。
 
 **全局 ENV 特性开关（仍默认关闭）**
 - `WOPI_ENABLED`（在线编辑）
