@@ -55,15 +55,19 @@
 - `shareable_links_enabled?`（`task_sharing_enabled`）— 默认关闭
 - `Team.deletion_prevention_enabled?` — `ENV['DELETION_PREVENTION_ENABLED'] == 'true'`
 
-**全局 ENV 特性开关（initializers 中默认关闭）**
-- `WOPI_ENABLED`（在线编辑）
+**全局 ENV 特性开关**
+
+本次已通过 `docker-compose.yml` / `.env.example` 开启（设为 `true`，重启 web 服务后生效）：
 - `SCINOTE_SCHEDULER_ENABLED`（定时任务：提醒/同步/清理）
 - `ENABLE_TEMPLATES_SYNC` / `ENABLE_FLUICS_SYNC`（需调度先开启）
-- `OTEL_ENABLED` / `OTEL_XRAY_ENABLED`（可观测性）
 - `ACTIVESTORAGE_ENABLE_PDF_PREVIEWS` / `ACTIVESTORAGE_ENABLE_VIPS`
 - `CORE_API_V1_ENABLED` / `CORE_API_V2_ENABLED` / `CORE_API_KEY_ENABLED`（路由门控）
-- `SCINOTE_PWA_DOMAIN_NAME`（PWA CORS）
-- `CHROMIUM_PATH` / `GROVER_TIMEOUT_MS`（报告 PDF 生成依赖 Chromium）
+- `SCINOTE_PWA_DOMAIN_NAME`（PWA CORS，需填真实 PWA 域名，当前为占位值）
+
+仍默认关闭（按需开启）：
+- `WOPI_ENABLED`（在线编辑）
+- `OTEL_ENABLED` / `OTEL_XRAY_ENABLED`（可观测性）
+- `CHROMIUM_PATH` / `GROVER_TIMEOUT_MS`（报告 PDF 生成依赖 Chromium，非开关）
 
 ## 五、开启方式汇总
 
