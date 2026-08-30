@@ -159,7 +159,7 @@ class StepSerializer < ActiveModel::Serializer
     url_list[:delete_url] = step_path(object) if can_delete_step?(object)
 
     if can_manage_step_attachments?(current_user, object)
-      url_list[:direct_upload_url] = rails_direct_uploads_url
+      url_list[:direct_upload_url] = rails_direct_uploads_path
       url_list[:upload_attachment_url] = upload_attachment_step_path(object)
     end
 

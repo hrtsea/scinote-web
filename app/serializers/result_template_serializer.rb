@@ -37,7 +37,7 @@ class ResultTemplateSerializer < ResultBaseSerializer
                          update_asset_view_mode_url: update_asset_view_mode_protocol_result_template_path(object.protocol,
                                                                                                           object),
                          update_view_state_url: update_view_state_protocol_result_template_path(object.protocol, object),
-                         direct_upload_url: rails_direct_uploads_url,
+                         direct_upload_url: rails_direct_uploads_path,
                          upload_attachment_url: upload_attachment_protocol_result_template_path(object.protocol, object),
                          reorder_elements_url: reorder_protocol_result_template_result_template_orderable_elements_path(
                            object.protocol, object

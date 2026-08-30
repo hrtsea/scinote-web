@@ -74,7 +74,7 @@ class ResultSerializer < ResultBaseSerializer
     }
 
     if can_manage_result_attachments?(current_user, object)
-      url_list[:direct_upload_url] = rails_direct_uploads_url
+      url_list[:direct_upload_url] = rails_direct_uploads_path
       url_list[:upload_attachment_url] = upload_attachment_my_module_result_path(object.my_module, object)
     end
 

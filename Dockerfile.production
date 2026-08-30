@@ -192,7 +192,11 @@ ENV PATH=$APP_HOME/bin:$GEM_HOME/bin:$PATH
 ENV NODE_PATH=/usr/local/lib/node_modules
 ENV BUNDLE_APP_CONFIG=.bundle
 
-RUN useradd --uid 1000 -m scinote
+RUN useradd --uid 1000 -m scinote && \
+    mkdir -p $APP_HOME/storage $APP_HOME/tmp && \
+    chown -R scinote:scinote $APP_HOME/storage $APP_HOME/tmp
+# 注意：命名卷首次挂载时拷贝的是本目录所有权，若卷在旧镜像（root 属主）时已创建，
+# 需运行 chown 修复：docker exec -u root <容器> chown -R scinote:scinote /usr/src/app/storage
 USER scinote
 
 COPY --from=builder --chown=scinote:scinote $APP_HOME $APP_HOME
