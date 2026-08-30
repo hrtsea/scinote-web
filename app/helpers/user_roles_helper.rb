@@ -5,12 +5,12 @@ module UserRolesHelper
     if (object.respond_to?(:private_shared_with_read?) && object.private_shared_with_read?(current_team)) ||
        (object.respond_to?(:shared_with_read?) && object.shared_with_read?(current_team))
       viewer_role = UserRole.find_predefined_viewer_role
-      roles = [[viewer_role.name, viewer_role.id]]
+      roles = [[viewer_role.display_name, viewer_role.id]]
     else
       permission_group = "#{object.class.permission_class}Permissions".constantize
       permissions = permission_group.constants.map { |const| permission_group.const_get(const) }
 
-      roles = user_roles_subset_by_permissions(permissions).order(id: :asc).pluck(:name, :id)
+      roles = user_roles_subset_by_permissions(permissions).order(id: :asc).map { |r| [r.display_name, r.id] }
     end
 
     if with_inherit
@@ -34,7 +34,7 @@ module UserRolesHelper
   end
 
   def team_user_roles_for_select
-    team_user_roles_collection.pluck(:name, :id)
+    team_user_roles_collection.map { |r| [r.display_name, r.id] }
   end
 
   def managing_team_user_roles_collection

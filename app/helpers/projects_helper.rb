@@ -19,7 +19,7 @@ module ProjectsHelper
   end
 
   def user_name_with_role(user_assignment)
-    "#{escape_input(user_assignment.user.name)} - #{escape_input(user_assignment.user_role.name)}"
+    "#{escape_input(user_assignment.user.name)} - #{escape_input(user_assignment.user_role.display_name)}"
   end
 
   def construct_module_connections(my_module)

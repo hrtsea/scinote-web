@@ -51,7 +51,7 @@ class UserAssignment < ApplicationRecord
   end
 
   def user_name_with_role
-    "#{user.name} - #{user_role.name}"
+    "#{user.name} - #{user_role.display_name}"
   end
 
   private

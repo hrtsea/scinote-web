@@ -197,7 +197,7 @@ invite_with_team_selector = type.in?(%w(invite_new_members invite_with_team_sele
               <% team_user_roles_collection.each do |user_role| %>
                 <li>
                   <%= link_to '#', data: { action: 'invite', 'team-role-id' => user_role.id, remote: true } do %>
-                    <%= t('invite_users.invite_as', role: user_role.name.pluralize) %>
+                    <%= t('invite_users.invite_as', role: user_role.display_name.pluralize) %>
                   <% end %>
                 </li>
               <% end %>

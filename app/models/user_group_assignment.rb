@@ -26,7 +26,7 @@ class UserGroupAssignment < ApplicationRecord
   end
 
   def user_group_name_with_role
-    "#{user_group.name} - #{user_role.name}"
+    "#{user_group.name} - #{user_role.display_name}"
   end
 
   private

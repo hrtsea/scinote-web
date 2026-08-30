@@ -69,6 +69,13 @@ class UserRole < ApplicationRecord
     predefined.find_by(name: UserRole.public_send('technician_role').name)
   end
 
+  PREDEFINED_I18N_KEYS = %w[owner normal_user technician viewer].freeze
+
+  def display_name
+    key = PREDEFINED_I18N_KEYS.find { |k| name == I18n.t("user_roles.predefined.#{k}", locale: :en) }
+    key ? I18n.t("user_roles.predefined.#{key}") : name
+  end
+
   def has_permission?(permission)
     permissions.include?(permission)
   end

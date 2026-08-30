@@ -118,7 +118,7 @@ module Users
                 @user,
                 user,
                 team,
-                @user_role.name
+                @user_role.display_name
               )
 
               Activities::CreateActivityService
@@ -141,7 +141,7 @@ module Users
                                 end
             end
 
-            result[:user_role_name] = @user_role.name
+            result[:user_role_name] = @user_role.display_name
             result[:team_name] = team.name
           end
         end

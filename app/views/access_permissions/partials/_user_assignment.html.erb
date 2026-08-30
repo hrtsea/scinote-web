@@ -11,7 +11,7 @@
   </div>
   <div class="user-assignment-controls">
     <button class="btn btn-light btn-role-select disabled" type="button">
-      <%= assignable.user_assignments.find_by(user: user, team: current_team).user_role.name %>
+      <%= assignable.user_assignments.find_by(user: user, team: current_team).user_role.display_name %>
     </button>
   </div>
 </div>

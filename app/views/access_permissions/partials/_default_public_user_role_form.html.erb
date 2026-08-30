@@ -16,7 +16,7 @@
           <div class="dropdown pull-right">
             <% if editable %>
               <button class="btn btn-light btn-role-select" type="button" id="defaultPublicUserRole" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                <%= f.object.default_public_user_role.name %>
+                <%= f.object.default_public_user_role.display_name %>
                 <span class="caret"></span>
               </button>
               <%= f.hidden_field :default_public_user_role_id, value: f.object.default_public_user_role.id, class: "default-public-user-role-id" %>
@@ -39,7 +39,7 @@
               </ul>
             <% else %>
               <button class="btn btn-light btn-role-select disabled" type="button">
-                <%= f.object.default_public_user_role.name %>
+                <%= f.object.default_public_user_role.display_name %>
               </button>
             <% end %>
           </div>

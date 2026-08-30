@@ -63,7 +63,7 @@ class TeamUsersDatatable < CustomDatatable
         'DT_RowId': record.id,
         '0': escape_input(record.user.full_name),
         '1': escape_input(record.user.email),
-        '2': record.user_role.name,
+        '2': record.user_role.display_name,
         '3': I18n.l(record.created_at, format: :full_date),
         '4': record.user.active_status_str,
         '5': @view.controller.render_to_string(

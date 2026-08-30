@@ -92,14 +92,14 @@
           v-if="params.object.urls.update_access"
           class="ml-auto"
           :listItems="rolesFromatted(userGroupAssignment.attributes.user_role.id)"
-          :btnText="userGroupAssignment.attributes.user_role.name"
+          :btnText="userGroupAssignment.attributes.user_role.display_name"
           :position="'right'"
           :caret="true"
           @setRole="(...args) => this.changeRole('userGroup', userGroupAssignment.attributes.user_group.id, ...args)"
           @removeRole="() => this.removeRole('userGroup', userGroupAssignment.attributes.user_group.id)"
         ></MenuDropdown>
         <div v-else class="ml-auto btn btn-light pointer-events-none">
-          {{ userGroupAssignment.attributes.user_role.name }}
+          {{ userGroupAssignment.attributes.user_role.display_name }}
           <div class="h-6 w-6"></div>
         </div>
       </div>
@@ -135,7 +135,7 @@
           v-if="!userAssignment.attributes.last_owner && params.object.urls.update_access && !(userAssignment.attributes.current_user && userAssignment.attributes.inherit_message)"
           class="ml-auto"
           :listItems="rolesFromatted(userAssignment.attributes.user_role.id)"
-          :btnText="userAssignment.attributes.user_role.name"
+          :btnText="userAssignment.attributes.user_role.display_name"
           :position="'right'"
           :caret="true"
           :data-e2e="`e2e-DD-${dataE2e}-${userAssignment.attributes.user.name.replace(/\W/g, '')}-role`"
@@ -143,7 +143,7 @@
           @removeRole="() => this.removeRole('user', userAssignment.attributes.user.id)"
         ></MenuDropdown>
         <div v-else class="ml-auto btn btn-light pointer-events-none" :data-e2e="`e2e-TX-${dataE2e}-${userAssignment.attributes.user.name.replace(/\W/g, '')}-role`">
-          {{ userAssignment.attributes.user_role.name }}
+          {{ userAssignment.attributes.user_role.display_name }}
           <div class="h-6 w-6"></div>
         </div>
       </div>

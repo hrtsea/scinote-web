@@ -30,7 +30,8 @@ class UserAssignmentSerializer < ActiveModel::Serializer
   def user_role
     {
       id: object.user_role.id,
-      name: object.user_role.name
+      name: object.user_role.name,
+      display_name: object.user_role.display_name
     }
   end
 
