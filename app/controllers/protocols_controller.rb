@@ -950,7 +950,10 @@ class ProtocolsController < ApplicationController
   end
 
   def user_roles
-    render json: { data: user_roles_collection(Protocol.new).map(&:reverse) }
+    render json: {
+      data: user_roles_collection(Protocol.new).map(&:reverse),
+      default_role_id: UserRole.find_predefined_viewer_role.id
+    }
   end
 
   private

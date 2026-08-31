@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="<%= I18n.locale %>">
   <head>
     <meta name="robots" content="noindex,nofollow">
     <%= action_cable_meta_tag %>
     <%= csp_meta_tag %>
     <meta data-hook="head-js">
+    <%# 服务端解析出的 locale，供前端在任何业务脚本执行前同步（比 cookie 更可靠，不受 CSP/拦截影响） %>
+    <meta name="scinote-locale" content="<%= I18n.locale %>">
+    <%= javascript_include_tag 'i18n_bundle' %>
     <title><%=t "head.title", title: (yield :head_title) %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <meta name="tiny-mce-assets-url" content="<%= tiny_mce_assets_path %>">
@@ -21,9 +24,8 @@
     <script src="<%= global_constants_path(format: :js) %>"></script>
 
     <%= javascript_include_tag 'jquery_bundle' %>
-    <%= javascript_include_tag 'application_pack' %>
-
     <%= javascript_include_tag 'application' %>
+    <%= javascript_include_tag 'application_pack' %>
     <%= javascript_include_tag 'session_end' %>
     <%= javascript_include_tag 'sidebar_toggle' %>
     <%= stylesheet_link_tag 'application_pack', media: 'all' %>

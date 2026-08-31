@@ -7,15 +7,16 @@ class RepositoryTemplatesController < ApplicationController
   def index
     repository_templates = current_team.repository_templates.order(:id)
     render json: {
-      data: repository_templates.map { |repository_template| [repository_template.id, repository_template.name] }
+      data: repository_templates.map { |repository_template| [repository_template.id, I18n.t(repository_template.name)] }
     }
   end
 
   def list_repository_columns
     render json: {
-      name: @repository_template.name,
+      name: I18n.t(@repository_template.name),
       columns: @repository_template.column_definitions&.map do |column|
-        [column.dig('params', 'name'), I18n.t("libraries.manange_modal_column.select.#{RepositoryColumn.data_types.key(column['column_type']).underscore}")]
+        [RepositoryTemplate.localize_value(column.dig('params', 'name')),
+         I18n.t("libraries.manange_modal_column.select.#{RepositoryColumn.data_types.key(column['column_type']).underscore}")]
       end
     }
   end

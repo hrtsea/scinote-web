@@ -183,7 +183,8 @@ class RepositoriesController < ApplicationController
 
       repository_template = current_team.repository_templates.find_by(id: repository_params[:repository_template_id])
       if repository_template.present?
-        repository_template.column_definitions&.each do |column_attributes|
+        localized_definitions = RepositoryTemplate.localize_column_definitions(repository_template.column_definitions)
+        localized_definitions&.each do |column_attributes|
           service = RepositoryColumns::CreateColumnService
                     .call(user: current_user, repository: @repository, team: current_team,
                           column_type: column_attributes['column_type'],
@@ -508,7 +509,10 @@ class RepositoriesController < ApplicationController
   end
 
   def user_roles
-    render json: { data: user_roles_collection(Repository.new).map(&:reverse) }
+    render json: {
+      data: user_roles_collection(Repository.new).map(&:reverse),
+      default_role_id: UserRole.find_predefined_viewer_role.id
+    }
   end
 
   def permissions

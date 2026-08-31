@@ -4,7 +4,7 @@ export default {
   watch: {
     visible(newValue) {
       if (newValue) {
-        [this.defaultRole] = this.userRoles.find((role) => role[1] === 'Viewer');
+        this.setDefaultRole();
       } else {
         this.defaultRole = null;
       }
@@ -17,6 +17,7 @@ export default {
     return {
       visible: false,
       defaultRole: null,
+      defaultRoleId: null,
       userRoles: [],
     }
   },
@@ -28,7 +29,14 @@ export default {
       axios.get(this.userRolesUrl())
         .then((response) => {
           this.userRoles = response.data.data;
+          this.defaultRoleId = response.data.default_role_id;
+          this.setDefaultRole();
         });
+    },
+    setDefaultRole() {
+      if (!this.visible || this.defaultRoleId === null) return;
+      const role = this.userRoles.find((r) => r[0] === this.defaultRoleId);
+      this.defaultRole = role ? this.defaultRoleId : null;
     },
   }
 };

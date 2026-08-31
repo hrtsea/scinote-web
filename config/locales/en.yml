@@ -3406,7 +3406,7 @@ en:
         repository_stock_value: "Stock"
         repository_list_value: "Dropdown"
         repository_asset_value: "File"
-        repository_stock_value: "Stock"
+        repository_stock_consumption_value: "Stock consumption"
       new:
         title: "Add New Column"
         button: "Save column"

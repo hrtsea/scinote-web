@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="<%= I18n.locale %>">
   <head>
     <meta name="robots" content="noindex,nofollow">
     <%= csp_meta_tag %>
     <meta data-hook="head-js">
+    <meta name="scinote-locale" content="<%= I18n.locale %>">
+    <%= javascript_include_tag 'i18n_bundle' %>
     <title><%=t "head.title", title: (yield :head_title) %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <script src="<%= global_constants_path(format: :js) %>"></script>

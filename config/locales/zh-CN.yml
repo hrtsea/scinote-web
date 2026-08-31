@@ -3368,19 +3368,20 @@ zh-CN:
       change_multi_select_items_warning: 注意：更改现有的列表项会导致之前选择的项被取消选择。移除列表项也会从所有已保存的库存筛选条件中移除它。
       too_many_items_label: / %{limit} 个条目
       select:
-        repository_text_value: 日期和时间
-        repository_number_value: 检查清单
-        repository_date_value: 小数位数
-        repository_date_range_value: 输入列名称……
-        repository_time_value: 下拉
-        repository_time_range_value: 日期
-        repository_date_time_value: 添加新列
-        repository_date_time_range_value: 保存列
-        repository_checklist_value: 名称
-        repository_status_value: 日期
-        repository_stock_value: 日期和时间
-        repository_list_value: 文件
-        repository_asset_value: 输入下拉列表选项，以空格分隔……
+        repository_text_value: 文本
+        repository_number_value: 数字
+        repository_date_value: 日期
+        repository_date_range_value: 日期
+        repository_time_value: 时间
+        repository_time_range_value: 时间
+        repository_date_time_value: 日期和时间
+        repository_date_time_range_value: 日期和时间
+        repository_checklist_value: 检查清单
+        repository_status_value: 状态
+        repository_stock_value: 库存
+        repository_list_value: 下拉列表
+        repository_asset_value: 文件
+        repository_stock_consumption_value: 库存消耗
       new:
         title: ……
         button: 下拉列表选项 2
