@@ -53,6 +53,18 @@ class RepositoryColumn < ApplicationRecord
     where('repository_columns.name ILIKE ?', "%#{query}%")
   end
 
+  # Column names originating from predefined templates are stored as i18n keys
+  # and localized for the *current* request locale at read time, so they follow
+  # the user's language instead of being frozen at seed / inventory-creation
+  # time. Non-key names (user-customized columns) are returned unchanged.
+  def name
+    RepositoryTemplate.localize_value(read_attribute(:name))
+  end
+
+  def raw_name
+    read_attribute(:name)
+  end
+
   # Add enum check method with underscores (eg repository_list_value)
   data_types.each do |k, _|
     define_method "#{k.underscore}?" do

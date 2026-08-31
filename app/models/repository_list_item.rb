@@ -11,6 +11,16 @@ class RepositoryListItem < ApplicationRecord
             uniqueness: { scope: :repository_column_id },
             length: { maximum: Constants::TEXT_MAX_LENGTH }
 
+  # List item values from predefined templates are stored as i18n keys and
+  # localized at read time (see RepositoryColumn#name for the rationale).
+  def data
+    RepositoryTemplate.localize_value(read_attribute(:data))
+  end
+
+  def raw_data
+    read_attribute(:data)
+  end
+
   before_destroy :update_table_fiter_elements
 
   private

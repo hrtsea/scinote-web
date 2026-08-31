@@ -17,6 +17,16 @@ class RepositoryStatusItem < ApplicationRecord
     "#{icon} #{status}"
   end
 
+  # Status values from predefined templates are stored as i18n keys and
+  # localized at read time (see RepositoryColumn#name for the rationale).
+  def status
+    RepositoryTemplate.localize_value(read_attribute(:status))
+  end
+
+  def raw_status
+    read_attribute(:status)
+  end
+
   private
 
   def update_table_fiter_elements

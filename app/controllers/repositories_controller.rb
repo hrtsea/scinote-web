@@ -183,12 +183,19 @@ class RepositoriesController < ApplicationController
 
       repository_template = current_team.repository_templates.find_by(id: repository_params[:repository_template_id])
       if repository_template.present?
-        localized_definitions = RepositoryTemplate.localize_column_definitions(repository_template.column_definitions)
-        localized_definitions&.each do |column_attributes|
+        # Store i18n keys for names / list / status values (not pre-localized
+        # strings) so they follow the viewer's locale at read time; the model
+        # readers localize them on display. The list delimiter is a fixed symbol,
+        # so it is still localized to its storage representation.
+        repository_template.column_definitions&.each do |column_attributes|
+          params = column_attributes['params'].deep_dup
+          delimiter = params.dig('metadata', 'delimiter')
+          params['metadata']['delimiter'] = RepositoryTemplate.localize_value(delimiter) if delimiter.is_a?(String)
+
           service = RepositoryColumns::CreateColumnService
                     .call(user: current_user, repository: @repository, team: current_team,
                           column_type: column_attributes['column_type'],
-                          params: column_attributes['params'].with_indifferent_access)
+                          params: params.with_indifferent_access)
           unless service.succeed?
             render json: service.errors, status: :unprocessable_entity
             raise ActiveRecord::Rollback
