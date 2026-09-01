@@ -93,7 +93,9 @@ const entryList = {
   vue_shareable_links_my_module_assigned_items: './app/javascript/packs/vue/shareable_links/assigned_repository.js',
   vue_my_module_archive: './app/javascript/packs/vue/my_module_archive.js',
   vue_protocol_report_templates: './app/javascript/packs/vue/protocol_report_templates.js',
-  vue_my_module_reports: './app/javascript/packs/vue/my_module_reports.js'
+  vue_my_module_reports: './app/javascript/packs/vue/my_module_reports.js',
+  // project_insights addon: 在 dashboard 渲染状态饼图等 widget
+  insights_charts: './addons/project_insights/app/javascript/packs/insights_charts.js'
 };
 
 // Engine pack loading based on https://github.com/rails/webpacker/issues/348#issuecomment-635480949
