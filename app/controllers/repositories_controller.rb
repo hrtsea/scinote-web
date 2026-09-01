@@ -185,12 +185,11 @@ class RepositoriesController < ApplicationController
       if repository_template.present?
         # Store i18n keys for names / list / status values (not pre-localized
         # strings) so they follow the viewer's locale at read time; the model
-        # readers localize them on display. The list delimiter is a fixed symbol,
-        # so it is still localized to its storage representation.
+        # readers localize them on display. The list delimiter is a fixed symbol
+        # ('return' / 'comma' / ...), never localized, so it stays stable across
+        # locales.
         repository_template.column_definitions&.each do |column_attributes|
           params = column_attributes['params'].deep_dup
-          delimiter = params.dig('metadata', 'delimiter')
-          params['metadata']['delimiter'] = RepositoryTemplate.localize_value(delimiter) if delimiter.is_a?(String)
 
           service = RepositoryColumns::CreateColumnService
                     .call(user: current_user, repository: @repository, team: current_team,

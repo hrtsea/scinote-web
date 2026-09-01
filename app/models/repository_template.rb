@@ -33,7 +33,7 @@ class RepositoryTemplate < ApplicationRecord
         {
           column_type: Extends::REPOSITORY_DATA_TYPES[:RepositoryListValue],
           params: { name: 'repository_templates.template_columns.morphology',
-                    metadata: { delimiter: 'repository_templates.repository_list_value_delimiter' },
+                    metadata: { delimiter: 'return' },
                     repository_list_items_attributes: [{ data: 'repository_templates.template_columns.repository_list_value.endothelial' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.epithelial' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.fibroblast' },
@@ -42,7 +42,7 @@ class RepositoryTemplate < ApplicationRecord
         {
           column_type: Extends::REPOSITORY_DATA_TYPES[:RepositoryListValue],
           params: { name: 'repository_templates.template_columns.culture_type',
-                    metadata: { delimiter: 'repository_templates.repository_list_value_delimiter' },
+                    metadata: { delimiter: 'return' },
                     repository_list_items_attributes: [{ data: 'repository_templates.template_columns.repository_list_value.adherent' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.suspension' }] }
         },
@@ -173,7 +173,7 @@ class RepositoryTemplate < ApplicationRecord
         {
           column_type: Extends::REPOSITORY_DATA_TYPES[:RepositoryListValue],
           params: { name: 'repository_templates.template_columns.storage_conditions',
-                    metadata: { delimiter: 'repository_templates.repository_list_value_delimiter' },
+                    metadata: { delimiter: 'return' },
                     repository_list_items_attributes: [{ data: 'repository_templates.template_columns.repository_list_value.minus_twenty_celsious' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.two_to_eigth_celsious' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.minus_eigthty' },
@@ -182,7 +182,7 @@ class RepositoryTemplate < ApplicationRecord
         {
           column_type: Extends::REPOSITORY_DATA_TYPES[:RepositoryListValue],
           params: { name: 'repository_templates.template_columns.type',
-                    metadata: { delimiter: 'repository_templates.repository_list_value_delimiter' },
+                    metadata: { delimiter: 'return' },
                     repository_list_items_attributes: [{ data: 'repository_templates.template_columns.repository_list_value.buffer' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.liquid' },
                                                        { data: 'repository_templates.template_columns.repository_list_value.reagent' },
@@ -240,7 +240,8 @@ class RepositoryTemplate < ApplicationRecord
     return definitions if definitions.blank?
 
     definitions.map do |column|
-      params = (column['params'] || column[:params] || {}).deep_dup
+      key = column.key?(:params) ? :params : 'params'
+      params = (column[key] || {}).deep_dup
 
       params['name'] = localize_value(params['name']) if params['name'].is_a?(String)
 
@@ -265,7 +266,7 @@ class RepositoryTemplate < ApplicationRecord
         params['metadata']['reminder_message'] = localize_value(params['metadata']['reminder_message']) if params['metadata']['reminder_message'].is_a?(String)
       end
 
-      column.merge('params' => params)
+      column.merge(key => params)
     end
   end
 end
