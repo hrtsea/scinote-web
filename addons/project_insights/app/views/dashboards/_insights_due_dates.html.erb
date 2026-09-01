@@ -1,0 +1,18 @@
+<%# 截止日期跟踪 Widget（P7）：逾期/今天/本周/即将 四档分组卡片。
+    数字经 AJAX 从 /insights?kind=due_dates 填充（data-count 占位）；
+    下钻交互（点击卡片 → current_tasks 过滤）由 P8 统一实现，此处留 data-drilldown 钩子。 %>
+<div class="project-insights-widget basic-widget <%= widget[:size] %>" style="order: <%= widget[:position] %>" data-drilldown-base="<%= dashboard_current_tasks_path %>">
+  <div class="widget-header">
+    <div class="widget-title"><%= t('dashboard.insights.due_dates.title') %></div>
+  </div>
+  <div class="widget-content">
+    <div class="bottleneck-cards due-date-cards" data-ajax-url="<%= insights_path(kind: 'due_dates') %>">
+      <% [[:overdue, 'overdue'], [:due_today, 'due_today'], [:due_this_week, 'due_this_week'], [:upcoming, 'upcoming']].each do |key, i18n_key| %>
+        <div class="bottleneck-card due-date-card" data-drilldown="due_dates:<%= key %>">
+          <div class="bottleneck-count" data-count="<%= key %>">–</div>
+          <div class="bottleneck-label"><%= t("dashboard.insights.due_dates.#{i18n_key}") %></div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

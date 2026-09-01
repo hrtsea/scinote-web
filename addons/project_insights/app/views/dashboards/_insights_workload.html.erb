@@ -1,0 +1,12 @@
+<%# 团队负载分布 Widget（P5）：echarts 堆叠柱图挂载点；JS 经 decorator 注入到 dashboard <head> %>
+<div class="project-insights-widget basic-widget <%= widget[:size] %>" style="order: <%= widget[:position] %>">
+  <div class="widget-header">
+    <div class="widget-title"><%= t('dashboard.insights.workload.title') %></div>
+  </div>
+  <div class="widget-content">
+    <div data-insights-chart="bar"
+         data-ajax-url="<%= insights_path(kind: 'workload') %>"
+         data-drilldown-base="<%= dashboard_current_tasks_path %>"
+         style="width: 100%; height: 300px;"></div>
+  </div>
+</div>

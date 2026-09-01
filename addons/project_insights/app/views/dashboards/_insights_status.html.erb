@@ -1,0 +1,12 @@
+<%# 状态概览 Widget（P4）：echarts 饼图挂载点；JS 经 decorator 注入到 dashboard <head> %>
+<div class="project-insights-widget basic-widget <%= widget[:size] %>" style="order: <%= widget[:position] %>">
+  <div class="widget-header">
+    <div class="widget-title"><%= t('dashboard.insights.status.title') %></div>
+  </div>
+  <div class="widget-content">
+    <div data-insights-chart="pie"
+         data-ajax-url="<%= insights_path(kind: 'status') %>"
+         data-drilldown-base="<%= dashboard_current_tasks_path %>"
+         style="width: 100%; height: 280px;"></div>
+  </div>
+</div>

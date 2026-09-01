@@ -1,0 +1,18 @@
+zh-CN:
+  dashboard:
+    insights:
+      status:
+        title: "任务与实验状态概览"
+      workload:
+        title: "团队负载分布"
+      bottlenecks:
+        title: "瓶颈检测"
+        seven: "7-14 天"
+        fourteen: "14-30 天"
+        thirty_plus: "30+ 天"
+      due_dates:
+        title: "截止日期与期限跟踪"
+        overdue: "逾期"
+        due_today: "今天到期"
+        due_this_week: "本周到期"
+        upcoming: "即将到来"
