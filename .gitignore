@@ -106,3 +106,10 @@ public/marvin4js-license.cxl
 /app/assets/stylesheets/reports_pdf_icons.sass.scss
 
 ./yarn
+
+# 本地构建/数据库导出/临时产物（本地生成，不入版本库）
+/*.log
+/*.sql
+/.container_*
+/tmp_*.sh
+/tmp_*.rb
