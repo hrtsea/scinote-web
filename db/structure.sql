@@ -692,6 +692,77 @@ ALTER SEQUENCE public.delayed_jobs_id_seq OWNED BY public.delayed_jobs.id;
 
 
 --
+-- Name: e_signature_records; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.e_signature_records (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    signable_type character varying NOT NULL,
+    signable_id bigint NOT NULL,
+    meaning text NOT NULL,
+    record_hash character varying NOT NULL,
+    signature_hash character varying NOT NULL,
+    previous_hash character varying DEFAULT '0'::character varying NOT NULL,
+    signed_at timestamp(6) without time zone NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: e_signature_records_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.e_signature_records_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: e_signature_records_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.e_signature_records_id_seq OWNED BY public.e_signature_records.id;
+
+
+--
+-- Name: e_signatures; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.e_signatures (
+    id bigint NOT NULL,
+    team_id bigint NOT NULL,
+    require_meaning boolean DEFAULT true NOT NULL,
+    require_second_factor boolean DEFAULT false NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: e_signatures_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.e_signatures_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: e_signatures_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.e_signatures_id_seq OWNED BY public.e_signatures.id;
+
+
+--
 -- Name: experiments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4335,6 +4406,20 @@ ALTER TABLE ONLY public.delayed_jobs ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: e_signature_records id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_signature_records ALTER COLUMN id SET DEFAULT nextval('public.e_signature_records_id_seq'::regclass);
+
+
+--
+-- Name: e_signatures id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_signatures ALTER COLUMN id SET DEFAULT nextval('public.e_signatures_id_seq'::regclass);
+
+
+--
 -- Name: experiments id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -5141,6 +5226,22 @@ ALTER TABLE ONLY public.connections
 
 ALTER TABLE ONLY public.delayed_jobs
     ADD CONSTRAINT delayed_jobs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: e_signature_records e_signature_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_signature_records
+    ADD CONSTRAINT e_signature_records_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: e_signatures e_signatures_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_signatures
+    ADD CONSTRAINT e_signatures_pkey PRIMARY KEY (id);
 
 
 --
@@ -6343,6 +6444,27 @@ CREATE INDEX index_connections_on_input_id ON public.connections USING btree (in
 --
 
 CREATE INDEX index_connections_on_output_id ON public.connections USING btree (output_id);
+
+
+--
+-- Name: index_e_signature_records_on_signable_type_and_signable_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_e_signature_records_on_signable_type_and_signable_id ON public.e_signature_records USING btree (signable_type, signable_id);
+
+
+--
+-- Name: index_e_signature_records_on_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_e_signature_records_on_user_id ON public.e_signature_records USING btree (user_id);
+
+
+--
+-- Name: index_e_signatures_on_team_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_e_signatures_on_team_id ON public.e_signatures USING btree (team_id);
 
 
 --
@@ -9460,6 +9582,14 @@ ALTER TABLE ONLY public.form_responses
 
 
 --
+-- Name: e_signature_records fk_rails_3d75a3eb02; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_signature_records
+    ADD CONSTRAINT fk_rails_3d75a3eb02 FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: projects fk_rails_3d823f32bf; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9745,6 +9875,14 @@ ALTER TABLE ONLY public.projects
 
 ALTER TABLE ONLY public.form_field_values
     ADD CONSTRAINT fk_rails_6a1d556c8e FOREIGN KEY (form_field_id) REFERENCES public.form_fields(id);
+
+
+--
+-- Name: e_signatures fk_rails_6acfe90abb; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.e_signatures
+    ADD CONSTRAINT fk_rails_6acfe90abb FOREIGN KEY (team_id) REFERENCES public.teams(id);
 
 
 --
@@ -11011,6 +11149,11 @@ SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260907114439'),
+('20260901001000'),
+('20260901000300'),
+('20260901000200'),
+('20260901000100'),
+('20260901000000'),
 ('20260830120000'),
 ('20260729082431'),
 ('20260715121739'),

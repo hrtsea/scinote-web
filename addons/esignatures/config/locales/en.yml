@@ -1,0 +1,6 @@
+en:
+  esignatures:
+    signature:
+      intent: "Signature intent / meaning"
+      intent_placeholder: "e.g. I reviewed and approve this record"
+      sign: "Sign"
