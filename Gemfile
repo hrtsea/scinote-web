@@ -142,3 +142,6 @@ gem 'tzinfo-data', platforms: %i(mingw mswin x64_mingw jruby)
 
 # Addons
 gem 'scinote_i18n', path: 'addons/i18n'
+gem 'scinote_ai_protocols', path: 'addons/ai_protocols'
+gem 'scinote_esignatures', path: 'addons/esignatures'
+gem 'scinote_project_insights', path: 'addons/project_insights'

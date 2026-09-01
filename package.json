@@ -88,7 +88,7 @@
     "tinymce": "^6.8.5",
     "tui-code-snippet": "^1.5.0",
     "tui-color-picker": "^2.2.0",
-    "tui-image-editor": "github:scinote-eln/tui.image-editor#3_15_2_updated",
+    "tui-image-editor": "git+https://github.com/scinote-eln/tui.image-editor.git#3_15_2_updated",
     "twemoji": "^14.0.2",
     "vue": "^3.5.16",
     "vue-echarts": "^8.0.0",

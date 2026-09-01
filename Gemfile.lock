@@ -44,9 +44,25 @@ GIT
       omniauth-oauth2 (~> 1.7, >= 1.7.1)
 
 PATH
+  remote: addons/ai_protocols
+  specs:
+    scinote_ai_protocols (0.1.0)
+      rails (>= 6.0)
+
+PATH
+  remote: addons/esignatures
+  specs:
+    scinote_esignatures (0.1.0)
+
+PATH
   remote: addons/i18n
   specs:
     scinote_i18n (0.0.1)
+
+PATH
+  remote: addons/project_insights
+  specs:
+    scinote_project_insights (0.1.0)
 
 GEM
   remote: https://rubygems.org/
@@ -340,7 +356,7 @@ GEM
     faraday-net_http (3.4.4)
       net-http (~> 0.5)
     fastimage (2.2.7)
-    ffi (1.17.4-arm64-darwin)
+    ffi (1.17.4-x64-mingw-ucrt)
     ffi (1.17.4-x86_64-linux-gnu)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
@@ -352,7 +368,7 @@ GEM
       raabro (~> 1.4)
     globalid (1.4.0)
       activesupport (>= 6.1)
-    google-protobuf (4.31.1-arm64-darwin)
+    google-protobuf (4.31.1-x64-mingw-ucrt)
       bigdecimal
       rake (>= 13)
     google-protobuf (4.31.1-x86_64-linux-gnu)
@@ -478,7 +494,7 @@ GEM
       net-protocol
     newrelic_rpm (9.14.0)
     nio4r (2.7.5)
-    nokogiri (1.19.4-arm64-darwin)
+    nokogiri (1.19.4-x64-mingw-ucrt)
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-gnu)
       racc (~> 1.4)
@@ -831,7 +847,7 @@ GEM
       faraday-follow_redirects
     sys-uname (1.2.3)
       ffi (~> 1.1)
-    tailwindcss-rails (2.4.0-arm64-darwin)
+    tailwindcss-rails (2.4.0-x64-mingw-ucrt)
       railties (>= 6.0.0)
     tailwindcss-rails (2.4.0-x86_64-linux)
       railties (>= 6.0.0)
@@ -845,6 +861,8 @@ GEM
     turbolinks-source (5.2.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    tzinfo-data (1.2026.3)
+      tzinfo (>= 1.0.0)
     underscore-rails (1.8.3)
     unf (0.1.4)
       unf_ext
@@ -889,7 +907,7 @@ GEM
       rubyzip (>= 1.0.0)
 
 PLATFORMS
-  arm64-darwin
+  x64-mingw-ucrt
   x86_64-linux
 
 DEPENDENCIES
@@ -990,7 +1008,10 @@ DEPENDENCIES
   rubyzip (>= 2.3.0)
   rufus-scheduler
   sanitize
+  scinote_ai_protocols!
+  scinote_esignatures!
   scinote_i18n!
+  scinote_project_insights!
   sdoc (~> 1.0)
   selenium-webdriver
   shoulda-matchers

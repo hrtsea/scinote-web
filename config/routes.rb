@@ -13,6 +13,9 @@ Rails.application.routes.draw do
 
   # Addons
   mount Scinote::I18n::Engine => '/'
+  mount Scinote::AiProtocols::Engine => '/'
+  mount Scinote::Esignatures::Engine => '/'
+  mount Scinote::ProjectInsights::Engine => '/'
 
   constraints UserSubdomain do
     devise_for :users, controllers: { registrations: 'users/registrations',
