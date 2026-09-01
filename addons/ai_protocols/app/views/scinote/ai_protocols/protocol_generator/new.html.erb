@@ -1,0 +1,21 @@
+<div class="ai-protocol-new container">
+  <h1><%= t('scinote_ai_protocols.new_title') %></h1>
+  <p class="text-muted"><%= t('scinote_ai_protocols.new_hint') %></p>
+
+  <%= form_with url: ai_protocol_preview_path, method: :post, local: true do |form| %>
+    <div class="form-group">
+      <%= form.label :source_text, t('scinote_ai_protocols.source_text_label') %>
+      <%= form.text_area :source_text, name: 'protocol[source_text]', rows: 12,
+                         class: 'form-control', placeholder: t('scinote_ai_protocols.source_text_placeholder') %>
+    </div>
+    <div class="form-group">
+      <%= form.label :source_file, t('scinote_ai_protocols.source_file_label') %>
+      <%= form.file_field :source_file, name: 'protocol[source_file]',
+                          accept: '.txt,.text,.md,.markdown,.pdf', class: 'form-control' %>
+      <small class="text-muted"><%= t('scinote_ai_protocols.source_file_hint') %></small>
+    </div>
+    <div class="form-actions">
+      <%= form.submit t('scinote_ai_protocols.generate'), class: 'btn btn-primary' %>
+    </div>
+  <% end %>
+</div>

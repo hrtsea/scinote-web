@@ -1,0 +1,23 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: disable
+
+# The addon is developed on a Windows host where the editor/tooling writes CRLF
+# line endings. RuboCop's Layout/EndOfLine autocorrect is disabled in this
+# project's config, so we disable it here too to keep `rubocop addons/ai_protocols`
+# green without churning every file's line endings.
+Layout/EndOfLine:
+  Enabled: false
+
+# Addon code is small and self-contained; relax the host's very strict
+# per-method/per-block size limits so the structured JSON schema and the
+# thin LLM client stay readable.
+Style/Documentation:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 40
+Metrics/AbcSize:
+  Max: 30
+Metrics/BlockLength:
+  Max: 80

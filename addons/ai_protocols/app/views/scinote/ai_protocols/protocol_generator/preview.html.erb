@@ -1,0 +1,49 @@
+<div class="ai-protocol-preview container">
+  <h1><%= t('scinote_ai_protocols.preview_title') %></h1>
+  <p class="text-muted"><%= t('scinote_ai_protocols.preview_hint') %></p>
+
+  <%= form_with url: ai_protocols_path, method: :post, local: true do |form| %>
+    <%= form.hidden_field :source_text, value: @source_text, name: 'protocol[source_text]' %>
+
+    <div class="form-group">
+      <%= form.label :name, t('scinote_ai_protocols.protocol_name_label') %>
+      <%= form.text_field :name, value: @protocol_params[:name], name: 'protocol[name]', class: 'form-control' %>
+    </div>
+
+    <div class="form-group">
+      <%= form.label :description, t('scinote_ai_protocols.protocol_description_label') %>
+      <%= form.text_area :description, value: @protocol_params[:description], name: 'protocol[description]', rows: 3, class: 'form-control' %>
+    </div>
+
+    <fieldset class="ai-protocol-steps">
+      <legend><%= t('scinote_ai_protocols.steps_label') %></legend>
+      <% @steps.each_with_index do |step, i| %>
+        <div class="ai-protocol-step well">
+          <h4><%= t('scinote_ai_protocols.step_label', number: i + 1) %></h4>
+          <div class="form-group">
+            <%= form.text_field "steps[#{i}][name]", value: step['name'], name: "protocol[steps][#{i}][name]", class: 'form-control', placeholder: t('scinote_ai_protocols.step_name_placeholder') %>
+          </div>
+          <div class="form-group">
+            <%= form.text_area "steps[#{i}][description]", value: step['description'], name: "protocol[steps][#{i}][description]", rows: 3, class: 'form-control', placeholder: t('scinote_ai_protocols.step_description_placeholder') %>
+          </div>
+
+          <% Array(step['tables_attributes']).each_with_index do |table, ti| %>
+            <div class="ai-protocol-table well-sm">
+              <h5><%= t('scinote_ai_protocols.table_label', number: ti + 1) %></h5>
+              <div class="form-group">
+                <%= form.text_field "steps[#{i}][tables][#{ti}][name]", value: table['name'], name: "protocol[steps][#{i}][tables][#{ti}][name]", class: 'form-control', placeholder: t('scinote_ai_protocols.table_name_placeholder') %>
+              </div>
+              <div class="form-group">
+                <%= form.text_area "steps[#{i}][tables][#{ti}][data]", value: table['contents'], name: "protocol[steps][#{i}][tables][#{ti}][data]", rows: 4, class: 'form-control', placeholder: t('scinote_ai_protocols.table_data_placeholder') %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </fieldset>
+
+    <div class="form-actions">
+      <%= form.submit t('scinote_ai_protocols.save_draft'), class: 'btn btn-success' %>
+    </div>
+  <% end %>
+</div>
