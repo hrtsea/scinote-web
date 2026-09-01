@@ -1,0 +1,9 @@
+zh-CN:
+  scinote_i18n:
+    language: "语言"
+    language_changed: "语言切换成功。"
+    invalid_locale: "不支持所选语言。"
+    switch_to: "切换语言"
+    languages:
+      en: "English"
+      zh-CN: "简体中文"

@@ -1,0 +1,5 @@
+fallbacks: true
+export_i18n_js: false
+translations:
+  - file: "app/assets/javascripts/i18n/translations.js"
+    only: "*"

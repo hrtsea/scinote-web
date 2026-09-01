@@ -1,0 +1,9 @@
+en:
+  scinote_i18n:
+    language: "Language"
+    language_changed: "Language changed successfully."
+    invalid_locale: "Selected language is not supported."
+    switch_to: "Switch language"
+    languages:
+      en: "English"
+      zh-CN: "简体中文"
