@@ -86,8 +86,10 @@ export default {
       type: String,
       required: true
     },
+    // 以字面属性传入（见 protocols/index.html.erb 中关于 Deface 的注释），
+    // 因此实际类型可能是 Boolean，也可能是字符串 "true" / "false"。
     protocolsIoEnabled: {
-      type: Boolean,
+      type: [Boolean, String],
       required: true
     },
     activePageUrl: {
@@ -226,7 +228,7 @@ export default {
           ]
         };
 
-        if (this.protocolsIoEnabled) {
+        if (this.protocolsIoEnabled === true || this.protocolsIoEnabled === 'true') {
           importMenu.menuItems.push({
             emit: 'import_protocols_io',
             text: this.i18n.t('protocols.index.import_protocols_io'),

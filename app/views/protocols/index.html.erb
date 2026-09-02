@@ -26,15 +26,23 @@
     </div>
     <div class="protocols-container" data-e2e="e2e-CO-protocolTemplates">
       <div id="ProtocolsTable" class="fixed-content-body">
+        <%# 注意：这里刻意不使用 `:prop` 简写绑定。
+            Deface（addon override 机制）会用 Nokogiri 重新序列化本模板，把
+            `:actions-url` 输出成 `: actions-url`（冒号后多一个空格）；浏览器随即将其
+            解析为属性 `:`（绑定名为空串）+ 一个字面属性，导致 Vue 编译该 DOM 模板时
+            生成的 render 函数非法（SyntaxError: Unexpected token ','，即
+            compileToFunction 失败），表现为协议列表表格空白。
+            这些绑定原本就是字符串字面量，改字面属性传值语义完全等价，且 Deface 无法破坏。
+            布尔类型的 protocols-io-enabled 由组件侧做真假转换。 %>
         <protocols-table
           ref="table"
-          :actions-url="'<%= actions_toolbar_protocols_url %>'"
-          :data-source="'<%= protocols_path(format: :json) %>'"
-          :active-page-url="'<%= protocols_path %>'"
-          :archived-page-url="'<%= protocols_path(view_mode: :archived) %>'"
+          actions-url="<%= actions_toolbar_protocols_url %>"
+          data-source="<%= protocols_path(format: :json) %>"
+          active-page-url="<%= protocols_path %>"
+          archived-page-url="<%= protocols_path(view_mode: :archived) %>"
           current-view-mode="<%= params[:view_mode] || :active %>"
-          :protocols-io-enabled="<%= Protocol.protocols_io_enabled? %>"
-          :create-url="'<%= protocols_path if can_create_protocols_in_repository?(current_team) %>'"
+          protocols-io-enabled="<%= Protocol.protocols_io_enabled? %>"
+          create-url="<%= protocols_path if can_create_protocols_in_repository?(current_team) %>"
           users-filter-url="<%= users_filter_projects_path %>"
         />
       </div>

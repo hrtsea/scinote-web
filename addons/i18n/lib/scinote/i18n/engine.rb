@@ -45,6 +45,15 @@ module Scinote
           ::Rails.configuration.cache_classes ? require(c) : load(c)
         end
       end
+
+      # Self-register routes on the host app root. The addon is fully
+      # self-contained: no `mount` line lives in the host's config/routes.rb,
+      # so commenting the addon out of the Gemfile never breaks Rails boot.
+      initializer 'scinote_i18n.routes' do |app|
+        app.routes.append do
+          mount Scinote::I18n::Engine => '/'
+        end
+      end
     end
   end
 end

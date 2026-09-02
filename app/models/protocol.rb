@@ -292,7 +292,9 @@ class Protocol < ApplicationRecord
   end
 
   def self.ai_parser_enabled?
-    ENV.fetch('AI_PROTOCOLS_PARSER', nil).present? && ApplicationSettings.instance.values['ai_protocol_parser_enabled'] == true
+    ENV.fetch('AI_PROTOCOLS_PARSER', nil).present? &&
+      ApplicationSettings.instance.values['ai_protocol_parser_enabled'] == true &&
+      AddonSetting.enabled?('ai_protocols')
   end
 
   def self.protocols_io_enabled?
