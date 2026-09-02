@@ -66,6 +66,7 @@
 - 影响 / 风险：若上游未来自行实现电子签名，本 addon 经 `app/decorators` 对核心视图的覆盖可能产生冲突 —— 覆盖点须记录在 `docs/PRODUCT_GAP_AND_PLAN.md` 并随上游演进复核。
 - 关联：`docs/agents/addon-dev-workflow.md`（addon 方法学）、`docs/PRODUCT_GAP_AND_PLAN.md`（PRD / Issues A1–A4）。
 - 现状（2026-09-01）：**已实现并接入**。实现与决策一致：签名服务 / 策略 / 完整性校验 / 导出证明均落在引擎内、未改核心 `app/`；canaid 权限经 `app/permissions` 真正注册。`engine.rb` 须显式 `config.eager_load_paths << root.join('app', 'permissions')`——引擎 `app/*` 子目录默认**不在** `eager_load_paths`，否则 canaid 扫描不到、调用即 `ArgumentError: unknown permission`。迁移初版版本号 `20260901000000` 与核心冲突且不被 Rails 纳入迁移扫描，已改为 `db/migrate/20260901001000_scinote_esignatures_create_tables.rb` 并并入 `db/structure.sql`（详见 `PRODUCT_GAP_AND_PLAN.md`「实施进度」踩坑条）。
+- **单一改动面外溢登记（铁律 §〇）**：上述迁移直接落在宿主 `db/migrate/20260901001000_scinote_esignatures_create_tables.rb`，而非 addon 内 `append_migrations` 模式——属「只收敛进 `addons/esignatures/`」的已知例外（DB 层外溢）。rebase 上游时须将该文件视为宿主改动点单独核对迁移版本冲突；后续新 addon（如 `ai_eln`）已明确改用 `append_migrations` 落地自有表、宿主 `db/migrate` 零改动，**勿复制本特例**。
 
 ### ADR-008：Project Insights（科学项目管理仪表盘）以 addon 形式实现
 - 依据：官网「Scientific Project Management / Project Insights」页四大 Widget（状态饼图 / 团队负载堆叠柱图 / 瓶颈检测 7·14·30+ 天 / 截止日期跟踪）；代码库现状为全仓 0 业务级 `insights` 代码（仅 vendor CSS 一处命中字样）。但约 70% 基础已具备：
@@ -133,6 +134,41 @@
   - **兼容旧契约**：`cast_configuration` 仍接受裸 JSON 字符串（整体原样存储），不破坏既有数据。
 - 影响 / 风险：若某 addon 声明了 schema 但运行时尚未消费（如 ai_protocols 已声明 `parser_url`/`api_key`/`model`，但首轮仅暴露未消费），则设置页可填但暂未生效——该缺口由 Issue #3（ai_protocols）与 Issue #4（project_insights `default_period_days`）跟进补齐；核心 `AddonSetting#config_schema_for` 必须持续保证**安全降级**（模块不可达返回 `[]`），否则未声明 addon 的设置页渲染会报错。本机制为实例级（`AddonSetting`），不涉及团队级覆盖。
 - 关联：`docs/agents/addon-dev-workflow.md`（addon 方法学）、`docs/addons-config/PRD.md`（PRD）、`docs/addons-config/issues.md`（Issues #1–#5：核心机制 / 三 addon 播种 schema / 运行时消费跟进 / 打磨）。已落地部分：Issue #1（通用机制）、#2（三 addon 播种 schema）、#3（ai_protocols 运行期经 `Scinote::AiProtocols.llm_client` 消费配置，回退 ENV）、#4（project_insights `default_period_days` 作为瓶颈陈旧阈值，UI 标签动态化）、#5（关闭时禁用字段 / 整数≥0 校验 / secret 已设置指示）均已实现并通过测试。
+- 设置页 addon 化收尾（2026-09-02）：设置页 UI（controller/view/helper/locale）已抽离至 `addons/addon_settings` 引擎（见 `docs/addons-config/refactor-addonize-settings-issues.md` Issue 1–2 与 `docs/addons-config/refactor-addonize-settings-PRD.md`）；`AddonSetting` 模型、`20260901130000_create_addon_settings` 迁移、`InstanceAdmin` 权限（`app/permissions/instance_admin.rb` + `app/services/instance_admin.rb` 的 `:manage_addons`）作为**底座留核心**（鸡生蛋例外，非铁律违反），不随设置页 UI 一并 addon 化。引擎经 `app.routes.append { mount Scinote::AddonSettings::Engine => '/' }` 自注册路由（引擎内 `config/routes.rb` 定义 `addons` GET 与 `update_addon` PUT，且**未用 `isolate_namespace`** 以保持 `addons_path` 等宿主命名空间 helper），核心 `config/routes.rb` 不再含设置页路由；卸载 addon（撤 Gemfile 一行）后主程序启动正常（路由未注册即 404，无崩溃）。
+
+### ADR-014：AI-ELN 插件以独立 Rails Engine 实现（零侵入、复用 ai_protocols 的 LLM 客户端）
+- 依据：用户需求规格 `AI-ELN 需求规格文档 V1.0`（25 项 AI 功能：实验辅助 / 文档图谱解析 / 配方处理 / 语义检索 / GLP 合规自检 / 多语言）；代码库核查见 `docs/ai-eln/实现现状与开发计划.md` §0。关键事实：`addons/ai_protocols` 已用 `Scinote::AiProtocols::LlmClient`（OpenAI 兼容，天然兼容 Ollama 本地部署）实现「文本/PDF→规程模板」（对应 spec 的 AI-201/AI-101 子集）；addon 零侵入范式（engine 自注册路由 + Gemfile 注释即禁用 + `append_migrations` + deface/decorator 注入）已多次验证。
+- 决策（4 项承重决策，经 /grill 与用户拍板）：
+  1. **独立引擎、并列共存**：新建 `addons/ai_eln`（`Scinote::AiEln::Engine`，`isolate_namespace`），与 `ai_protocols` 并列，不合并、不替代；复用 `ai_protocols` 的 `LlmClient`（D1）。两者同时挂载时 ai_eln 直接引用该常量，monorepo 下可接受（易逆转，不当作铁律冲突）。
+  2. **地基优先**：首个垂直切片做引擎骨架（自注册路由 + `append_migrations` + `can_use_ai_eln?` 权限 + `LlmAdapter` + `AuditLogger` + 三表 `ai_eln_ai_sessions/interactions/audit_logs` + 侧边抽屉外壳 + 全局开关），后续 25 功能挂其上（D2）。
+  3. **配置用 ENV + ApplicationSettings 特性开关**：`ai_eln_enabled`（DB `ApplicationSettings#values`，由新建独立迁移置 `true`）+ `AI_ELN_PARSER`（ENV）双判定；**不引入 YAML 配置**（D3）。沿用 ai_protocols 已验证范式，可热切换、关 AI 不改代码。
+  4. **引擎自有表走 `append_migrations`**：三表迁移置于 `addons/ai_eln/db/migrate`，经脚手架 `append_migrations` initializer 追加进 host 迁移路径，**宿主 `db/migrate` 零改动**（D4）。esignatures 那次直接塞宿主 `db/migrate` 属特例，不沿用。
+- 合规约束（贯穿全部切片）：AI 输出一律 HITL——预览 + 显式确认，禁止自动写 host 原始记录；每次调用落 `ai_audit_logs`；关闭开关后整体退化为原生 SciNote。
+- 影响 / 风险：ai_eln 与 ai_protocols 的 LLM 客户端为共享耦合，若未来禁用 ai_protocols 需同步处理（易逆转）；AI-102 OCR 引擎、P12/P13 语义检索 v1 形态、审计迁移命名等仍有待确认项，见 `实现现状与开发计划.md` §10。向量数据库（spec §8.1）明确推迟。
+
+### ADR-015：贝叶斯配方优化（AI-501）数据来源与计算后端
+- 状态：规划（proposed）｜ 关联：`实现现状与开发计划.md` §12、CONTEXT.md §五/§六
+- 背景：spec 原 §8.2「贝叶斯优化闭环」此前列为非范围；现纳入范围。需确定训练数据从 SciNote 何处读取、候选如何产出（且生成 draft 不得扣库存）、计算后端形态。
+- 决策：
+  1. **指标 + 工艺参数**统一从 `my_module` 的 `ResultTable` 命名列读取（按列名匹配），**不引入新 measurements 表**（spec 假想表不存在）。
+  2. **抽样单元 = `my_module`（`status=completed`）**：一条样本 = 该任务关联的配方库 Row 组分向量 + 其 ResultTable 指标/工艺向量。
+  3. **配方/组分质量份映射经可配置 `RecipeAdapter` 抽象**：default 实现假设存于专属「配方库」Repository（RepositoryRow 每行=配方，数值列=组分质量份）；真实约定通过 `ApplicationSettings` 配置（`recipe_repository_name` / `component_column_map` / `metrics_column_map` / `process_column_map`）或新增 adapter 子类注入，抽取核心不写死。（**状态 DEFERRED：用户尚未确定配方表达，default 仅占位，待其规划后回填**）。
+  4. **计算后端 = 纯 ruby（无 python）**：默认 `Numo::NArray` 做矩阵运算 + 自实现高斯过程（RBF/Matern 核 + Cholesky 求解），采集函数 EI/UCB，单目标优先。
+  5. **候选产出默认 = draft 配方库 RepositoryRow**（状态 draft、不挂 my_module）→ 天然不触发 `MyModuleRepositoryRow#deduct_stock_balance`，满足「生成候选不扣库存」约束。
+- 影响 / 风险：纯 ruby GP 对多目标与硬约束支持弱（v1 仅单目标稳健，多目标用加权标量化近似）；样本需 ≥~8 条才有意义；`Numo` 为新增纯 ruby gem（零 python）；配方映射 default 假设需用户用真实约定经配置校正（见 §12.6 已知限制）。AI-501 不调 LLM，纯数值，审计照落 `ai_audit_logs`。
+- 关联：`docs/ai-eln/CONTEXT.md`（术语表）、`docs/ai-eln/实现现状与开发计划.md`（P1–P17 Issue 拆分）、`docs/agents/addon-dev-workflow.md`（addon 方法学）、ADR-006（ai_protocols）、ADR-013（addon 配置自声明）。
+
+### ADR-016：Addon 路由自注册统一策略（engine initializer 自挂载，host 零修改）
+- 背景（2026-09-02）：核对"高级：initializer 注入 mount，实现 application.rb 零字符修改"文档说法，确认项目在"零入侵"目标上与文档一致、具体配方有分歧，并统一 `addon_settings` 的路由注册机制。
+- 决策（统一契约）：
+  1. **全部 addon 路由均由各自 `engine.rb` 的 initializer 自注册**：`initializer 'scinote_<name>.routes', after: :add_routes do |app| app.routes.append { mount <Engine> => <mount_point> } end`；核心 `config/routes.rb` 与 `application.rb` 零 addon 路由/配置，仅 Gemfile 一行引入即生效、注释即禁用（启动正常，路由未注册即 404，无崩溃）。
+  2. **"统一"统一的是机制，不是挂载路径**：所有 addon 走**同一套机制**——由各自 `engine.rb` 的 initializer 自挂载 `mount <Engine>`，且经 `after: :add_routes` 追加到宿主路由之后；host 的 `config/routes.rb` / `application.rb` 零侵入。至于"挂载到哪"（`mount_point`）是**各 addon 的本地决策，按 UX 场景而定，不必强求一致**：现状既有挂根 `'/'` 的（project_insights / ai_protocols / esignatures / addon_settings，引擎内用绝对路径定义终态 URL），也有挂宿主既有前缀的（i18n locale 挂到 `/users/settings/locale`）。**统一契约 = "都是 `mount Engine`"，不是"都挂到同一路径"**；是否集中到 `/addons/*` 等子路径属 §升级路径 级别的架构选择，当前 curated 规模（5 个 addon）下不强求。
+  3. **`addon_settings` 由"裸 `app.routes.append { get/put }`"改造为正规挂载引擎**：新增 `config/routes.rb` 承载其 host 风格路由，并**移除 `isolate_namespace`**——其控制器本就是宿主命名空间 `Users::Settings::Account::AddonsController`、`addons_path` / `update_addon_path` 被宿主代码（`app/views/users/settings/_sidebar.html.erb`、`navigations_controller.rb`、`label_printers_controller.rb`、features、specs 等 20+ 处）直接引用；保留宿主命名空间可零破坏迁移，否则 `isolate_namespace` 会把 helper 改名为 `scinote_addon_settings_addons_path` 并破坏全部引用、且控制器解析转向不存在的 `Scinote::AddonSettings::Users::Settings::Account::AddonsController`。
+  4. **时序统一 `after: :add_routes`**：显式、防御性、与文档对齐；在 Rails 7.2.3.2 下 `app.routes.append` 不依赖该顺序也能工作，但显式声明规避"过早 RouteSet 未初始化 / 过晚已编译追加无效"的潜在坑。
+- 避撞规则（硬约束）：每个 addon 必须独占一个唯一根路径前缀（现状已满足：`/insights`、`/ai_protocols`、`/esignatures/sign`、`/users/settings/locale`、`/users/settings/account/addons`）。因 addon 路由经 `after: :add_routes` 追加在**宿主路由之后**，若与宿主或他 addon 同路径同动词，宿主优先匹配 → addon 静默 404（路由遮蔽）。新增 addon 须先校验路径不与既有冲突。
+- 升级路径：若未来引入第三方 / 社区 addon 或路径重叠风险升高，改用子路径挂载 `mount <Engine> => '/<addon>'`（引擎内路由相应改为根路径，对外 URL 基本不变），以彻底隔离命名空间。当前 curated 规模（5 个 addon）下根挂载可接受。
+- 影响 / 风险：根挂载共享根命名空间，碰撞靠"唯一前缀约定"而非结构保障（脆弱现状）；升级路径见上。各 addon 覆盖点（deface / decorator）仍须随上游演进复核（沿用 ADR-006~015 冲突提示）。
+- 关联：ADR-013（addon 配置自声明 / 设置页 addon 化）、ADR-006 / 007 / 008 / 009（各 addon 实现）、`docs/agents/addon-dev-workflow.md`（addon 方法学）。
 
 ## 四、复杂度热点（维护风险）
 | fan_in | 符号 | 风险说明 |
