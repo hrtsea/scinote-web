@@ -19,7 +19,7 @@ RSpec.describe 'dashboards/insights_bottlenecks partial', type: :view do
     # 三个桶标签（i18n）
     expect(rendered).to include('7-14 days')
     expect(rendered).to include('14-30 days')
-    expect(rendered).to include('30+ days')
+    expect(rendered).to include('90+ days')
     # 三个数量占位 + 下钻钩子
     expect(rendered).to include('data-count="seven"')
     expect(rendered).to include('data-count="fourteen"')

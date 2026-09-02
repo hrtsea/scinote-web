@@ -59,13 +59,13 @@ module Scinote
       end
 
       # 按 updated_at 分桶（已排除 completed? 任务）：
-      # 7 天内 / 14 天内 / 30 天及以上未更新。
-      def bottlenecks
+      # 7 天内 / 14 天内 / 超过 default_period_days 天未更新（陈旧阈值来自设置页，默认 90）。
+      def bottlenecks(period: Scinote::ProjectInsights.default_period_days)
         tasks = scoped_tasks.where.not(state: :completed)
         {
           seven: tasks.where('my_modules.updated_at <= ? AND my_modules.updated_at > ?', 7.days.ago, 14.days.ago).count,
-          fourteen: tasks.where('my_modules.updated_at <= ? AND my_modules.updated_at > ?', 14.days.ago, 30.days.ago).count,
-          thirty_plus: tasks.where('my_modules.updated_at <= ?', 30.days.ago).count
+          fourteen: tasks.where('my_modules.updated_at <= ? AND my_modules.updated_at > ?', 14.days.ago, period.days.ago).count,
+          thirty_plus: tasks.where('my_modules.updated_at <= ?', period.days.ago).count
         }
       end
 

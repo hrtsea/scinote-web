@@ -33,18 +33,20 @@ module Scinote
         tasks.joins(:user_my_modules).where(user_my_modules: { user_id: user_id })
       end
 
-      # 对齐 AggregatorService#bottlenecks：7-14 / 14-30 / 30+ 天未更新，排除 completed?
+      # 对齐 AggregatorService#bottlenecks：7-14 / 14-<period> / <period>+ 天未更新，排除 completed?
+      # <period> 来自设置页 default_period_days（默认 90），保证下钻与 widget 卡片计数一致。
       def apply_insights_stale_bucket(tasks, bucket)
         return tasks if bucket.blank?
 
+        period = Scinote::ProjectInsights.default_period_days
         tasks = tasks.where.not(state: :completed)
         case bucket
         when 'seven'
           tasks.where('my_modules.updated_at <= ? AND my_modules.updated_at > ?', 7.days.ago, 14.days.ago)
         when 'fourteen'
-          tasks.where('my_modules.updated_at <= ? AND my_modules.updated_at > ?', 14.days.ago, 30.days.ago)
+          tasks.where('my_modules.updated_at <= ? AND my_modules.updated_at > ?', 14.days.ago, period.days.ago)
         when 'thirty_plus'
-          tasks.where('my_modules.updated_at <= ?', 30.days.ago)
+          tasks.where('my_modules.updated_at <= ?', period.days.ago)
         else
           tasks
         end

@@ -6,6 +6,8 @@ module Scinote
     # 复用 P2 聚合服务；无需新权限，端点受 enabled? 隐式保护
     # （widget 仅在启用时渲染并发起请求）。
     class InsightsController < ApplicationController
+      before_action :ensure_enabled
+
       # URL 的 kind 参数到聚合服务方法的映射：
       # status 对应 status_overview（其余同名）。
       KIND_TO_METHOD = {
@@ -26,6 +28,10 @@ module Scinote
       end
 
       private
+
+      def ensure_enabled
+        head :forbidden unless Scinote::ProjectInsights.enabled?
+      end
 
       def aggregator
         AggregatorService.new(current_user, current_team)

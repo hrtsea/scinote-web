@@ -89,17 +89,28 @@ RSpec.describe Scinote::ProjectInsights::AggregatorService do
   end
 
   describe '#bottlenecks' do
-    it '按 7/14/30+ 天未更新分桶并排除 completed? 任务' do
-      create_task(updated_at: 10.days.ago) # seven
-      create_task(updated_at: 20.days.ago) # fourteen
-      create_task(updated_at: 40.days.ago) # thirty_plus
-      create_task(updated_at: 3.days.ago)  # 近期，不在任何桶
+    it '按 7/14/<period>+ 天未更新分桶并排除 completed? 任务（默认 period=90）' do
+      create_task(updated_at: 10.days.ago)  # seven
+      create_task(updated_at: 40.days.ago)  # fourteen（14-90 天）
+      create_task(updated_at: 100.days.ago) # thirty_plus（>90 天）
+      create_task(updated_at: 3.days.ago)   # 近期，不在任何桶
       create_task(updated_at: 40.days.ago, state: :completed, completed_on: Time.current)
 
       result = service.bottlenecks
       expect(result[:seven]).to eq 1
       expect(result[:fourteen]).to eq 1
       expect(result[:thirty_plus]).to eq 1
+    end
+
+    it '尊重实例配置的 default_period_days 作为 thirty_plus 阈值' do
+      AddonSetting.for('project_insights').update!(configuration: { 'default_period_days' => '30' })
+      create_task(updated_at: 40.days.ago) # >30 天 → thirty_plus
+      create_task(updated_at: 20.days.ago) # 14-30 天 → fourteen
+      result = service.bottlenecks
+      expect(result[:fourteen]).to eq 1
+      expect(result[:thirty_plus]).to eq 1
+    ensure
+      AddonSetting.for('project_insights').update!(configuration: {})
     end
   end
 

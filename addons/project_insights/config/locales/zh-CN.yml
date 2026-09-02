@@ -9,10 +9,15 @@ zh-CN:
         title: "瓶颈检测"
         seven: "7-14 天"
         fourteen: "14-30 天"
-        thirty_plus: "30+ 天"
+        thirty_plus: "%{count}+ 天"
       due_dates:
         title: "截止日期与期限跟踪"
         overdue: "逾期"
         due_today: "今天到期"
         due_this_week: "本周到期"
         upcoming: "即将到来"
+  project_insights:
+    settings:
+      config:
+        default_period_days: "默认分析周期（天）"
+        default_period_days_help: "聚合仪表盘洞察时使用的时间窗口。"

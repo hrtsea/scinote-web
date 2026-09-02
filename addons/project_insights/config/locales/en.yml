@@ -9,10 +9,15 @@ en:
         title: "Bottleneck Detection"
         seven: "7-14 days"
         fourteen: "14-30 days"
-        thirty_plus: "30+ days"
+        thirty_plus: "%{count}+ days"
       due_dates:
         title: "Due Date & Deadline Tracking"
         overdue: "Overdue"
         due_today: "Due today"
         due_this_week: "Due this week"
         upcoming: "Upcoming"
+  project_insights:
+    settings:
+      config:
+        default_period_days: "Default analysis period (days)"
+        default_period_days_help: "Time window used when aggregating insights for the dashboard."

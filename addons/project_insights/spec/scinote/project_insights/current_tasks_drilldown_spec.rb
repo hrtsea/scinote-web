@@ -50,14 +50,14 @@ describe Dashboard::CurrentTasksController, type: :controller do
   describe 'stale_bucket 下钻过滤（对齐 AggregatorService#bottlenecks，排除 completed）' do
     let!(:stale_task) do
       create(:my_module, experiment: experiment, my_module_status: status)
-        .tap { |m| m.update_column(:updated_at, 40.days.ago) } # rubocop:disable Rails/SkipsModelValidations
+        .tap { |m| m.update_column(:updated_at, 100.days.ago) } # rubocop:disable Rails/SkipsModelValidations
     end
     let!(:fresh_task) do
       create(:my_module, experiment: experiment, my_module_status: status)
         .tap { |m| m.update_column(:updated_at, 1.day.ago) } # rubocop:disable Rails/SkipsModelValidations
     end
 
-    it 'stale_bucket=thirty_plus 仅返回 30+ 天未更新且未完成任务' do
+    it 'stale_bucket=thirty_plus 仅返回 default_period_days(90)+ 天未更新且未完成任务' do
       get :show, params: { project_id: project.id, stale_bucket: 'thirty_plus' }, format: :json
       expect(matched_count).to eq(1)
     end

@@ -4,18 +4,18 @@ require 'rails_helper'
 
 RSpec.describe Scinote::ProjectInsights do
   describe '.enabled?' do
-    it 'ENV 未设置时为 false' do
-      original = ENV.fetch('PROJECT_INSIGHTS_ENABLED', nil)
-      ENV.delete('PROJECT_INSIGHTS_ENABLED')
-      expect(described_class.enabled?).to be false
-      ENV['PROJECT_INSIGHTS_ENABLED'] = original
+    it 'is true by default (no setting row => mounted addon on)' do
+      expect(described_class.enabled?).to be true
     end
 
-    it 'PROJECT_INSIGHTS_ENABLED=true 时为 true' do
-      original = ENV.fetch('PROJECT_INSIGHTS_ENABLED', nil)
-      ENV['PROJECT_INSIGHTS_ENABLED'] = 'true'
+    it 'is false when the addon setting is disabled' do
+      AddonSetting.create!(name: 'project_insights', enabled: false, configuration: {})
+      expect(described_class.enabled?).to be false
+    end
+
+    it 'is true when the addon setting is explicitly enabled' do
+      AddonSetting.create!(name: 'project_insights', enabled: true, configuration: {})
       expect(described_class.enabled?).to be true
-      ENV['PROJECT_INSIGHTS_ENABLED'] = original
     end
   end
 
@@ -25,8 +25,8 @@ RSpec.describe Scinote::ProjectInsights do
         .reject! { |w| w[:partial].to_s.start_with?('dashboards/insights_') }
     end
 
-    it '在 ENV 门控下注册 4 个 widget' do
-      ENV['PROJECT_INSIGHTS_ENABLED'] = 'true'
+    it 'registers the 4 widgets when the addon is enabled' do
+      AddonSetting.create!(name: 'project_insights', enabled: true, configuration: {})
       described_class.register_widgets!
       partials = Extends::DEFAULT_DASHBOARD_CONFIGURATION.pluck(:partial)
       expect(partials).to include(
@@ -35,8 +35,8 @@ RSpec.describe Scinote::ProjectInsights do
       )
     end
 
-    it '未启用时不注册任何 widget' do
-      ENV.delete('PROJECT_INSIGHTS_ENABLED')
+    it 'registers no widgets when the addon is disabled' do
+      AddonSetting.create!(name: 'project_insights', enabled: false, configuration: {})
       described_class.register_widgets!
       partials = Extends::DEFAULT_DASHBOARD_CONFIGURATION.pluck(:partial)
       expect(partials).not_to include('dashboards/insights_status')

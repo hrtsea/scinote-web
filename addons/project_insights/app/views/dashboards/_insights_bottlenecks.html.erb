@@ -1,4 +1,4 @@
-<%# 瓶颈检测 Widget（P6）：7/14/30+ 天未更新任务分组卡片。
+<%# 瓶颈检测 Widget（P6）：7/14/<N>+ 天未更新任务分组卡片（N=default_period_days，来自设置页）。
     数字经 AJAX 从 /insights?kind=bottlenecks 填充（data-count 占位）；
     下钻交互（点击卡片 → current_tasks 过滤）由 P8 统一实现，此处留 data-drilldown 钩子。 %>
 <div class="project-insights-widget basic-widget <%= widget[:size] %>" style="order: <%= widget[:position] %>" data-drilldown-base="<%= dashboard_current_tasks_path %>">
@@ -10,7 +10,13 @@
       <% [[:seven, 'seven'], [:fourteen, 'fourteen'], [:thirty_plus, 'thirty_plus']].each do |key, i18n_key| %>
         <div class="bottleneck-card" data-drilldown="bottlenecks:<%= key %>">
           <div class="bottleneck-count" data-count="<%= key %>">–</div>
-          <div class="bottleneck-label"><%= t("dashboard.insights.bottlenecks.#{i18n_key}") %></div>
+          <div class="bottleneck-label">
+            <% if key == :thirty_plus %>
+              <%= t("dashboard.insights.bottlenecks.#{i18n_key}", count: Scinote::ProjectInsights.default_period_days) %>
+            <% else %>
+              <%= t("dashboard.insights.bottlenecks.#{i18n_key}") %>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>
