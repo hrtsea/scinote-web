@@ -10,15 +10,15 @@ RSpec.describe 'dashboards/insights_bottlenecks partial', type: :view do
     view.extend(Scinote::ProjectInsights::Engine.routes.url_helpers)
   end
 
-  it '渲染 7/14/30+ 天分组卡片并指向 bottlenecks 聚合端点' do
+  it '渲染 7/14/<period>+ 天分组卡片并指向 bottlenecks 聚合端点' do
     render partial: 'dashboards/insights_bottlenecks',
            locals: { widget: { partial: 'dashboards/insights_bottlenecks', size: 'medium-widget', position: 2 } }
 
     expect(rendered).to include('data-ajax-url')
     expect(rendered).to include('/insights?kind=bottlenecks')
-    # 三个桶标签（i18n）
+    # 三个桶标签（i18n；fourteen 上界随 default_period_days 动态插值）
     expect(rendered).to include('7-14 days')
-    expect(rendered).to include('14-30 days')
+    expect(rendered).to include("14-#{Scinote::ProjectInsights.default_period_days} days")
     expect(rendered).to include('90+ days')
     # 三个数量占位 + 下钻钩子
     expect(rendered).to include('data-count="seven"')

@@ -53,19 +53,23 @@ module Scinote
       end
 
       # 对齐 AggregatorService#due_dates 的互斥分桶（先判 overdue，today 已过的任务归入 overdue）：
-      # overdue = utc<now；due_today = [now, 今日结束]；due_this_week = (今日结束, 本周末]；upcoming = >本周末
+      # overdue = utc<now；due_today = [now, 今日结束]；due_this_week = (今日结束, 本周末结束]；upcoming = >本周末结束
+      # 边界必须用 end_of_day，与 aggregator 的 due_date.to_date <= Date.current.end_of_week（日期级比较）严格一致；
+      # 否则周日任意时刻（如 23:59）的任务会被聚合计入 due_this_week，却被下钻 SQL 排除（落入 upcoming），
+      # 造成"卡片显示 N 个，点击下钻列表只有 N-1 个"的不一致。
       def apply_insights_due_bucket(tasks, bucket)
         return tasks if bucket.blank?
 
+        week_end = Date.current.end_of_week.end_of_day
         case bucket
         when 'overdue'
           tasks.where('my_modules.due_date < ?', Time.current.utc)
         when 'due_today'
           tasks.where('my_modules.due_date >= ? AND my_modules.due_date <= ?', Time.current.utc, Time.current.end_of_day)
         when 'due_this_week'
-          tasks.where('my_modules.due_date > ? AND my_modules.due_date <= ?', Time.current.end_of_day, Date.current.end_of_week)
+          tasks.where('my_modules.due_date > ? AND my_modules.due_date <= ?', Time.current.end_of_day, week_end)
         when 'upcoming'
-          tasks.where('my_modules.due_date > ?', Date.current.end_of_week)
+          tasks.where('my_modules.due_date > ?', week_end)
         else
           tasks
         end

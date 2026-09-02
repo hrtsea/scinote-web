@@ -8,7 +8,7 @@ en:
       bottlenecks:
         title: "Bottleneck Detection"
         seven: "7-14 days"
-        fourteen: "14-30 days"
+        fourteen: "14-%{high} days"
         thirty_plus: "%{count}+ days"
       due_dates:
         title: "Due Date & Deadline Tracking"

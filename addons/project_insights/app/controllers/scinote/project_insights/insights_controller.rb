@@ -19,8 +19,10 @@ module Scinote
 
       def index
         method = KIND_TO_METHOD[params[:kind].to_s.to_sym]
-        unless method
-          head :bad_request
+        # 端点需要团队上下文（与 dashboard 一致）；无当前团队时拒绝，
+        # 避免聚合对 MyModuleStatusFlow.where(team_id: nil) 查出空流、readable_by_user(user, nil) 行为未定义。
+        unless method && current_team
+          head(method ? :forbidden : :bad_request)
           return
         end
 

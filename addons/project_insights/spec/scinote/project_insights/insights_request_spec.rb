@@ -14,6 +14,10 @@ RSpec.describe 'Scinote::ProjectInsights JSON endpoint', type: :request do
   end
 
   let(:user) { create :user, confirmed_at: Time.zone.now }
+  # 给测试用户一个真实当前团队（addon 端点需要团队上下文；dashboard 实际也总是带 current_team 渲染）。
+  let(:team) { create :team, created_by: user, skip_user_assignments: true }
+  let!(:owner_role) { UserRole.find_by(name: I18n.t('user_roles.predefined.owner')) }
+  let!(:team_assignment) { create :user_assignment, user: user, assignable: team, user_role: owner_role }
   let(:fake_service) do
     instance_double(
       Scinote::ProjectInsights::AggregatorService,
@@ -25,6 +29,7 @@ RSpec.describe 'Scinote::ProjectInsights JSON endpoint', type: :request do
   end
 
   before do
+    user.update!(current_team_id: team.id)
     user.confirm
     sign_in user
     allow(Scinote::ProjectInsights::AggregatorService).to receive(:new).and_return(fake_service)

@@ -45,6 +45,14 @@ describe Dashboard::CurrentTasksController, type: :controller do
       get :show, params: { project_id: project.id, due_bucket: 'upcoming' }, format: :json
       expect(matched_count).to eq(1)
     end
+
+    it 'due_bucket=due_this_week 包含本周末（周日）临界任务（与聚合一致）' do
+      create(:my_module, experiment: experiment, my_module_status: status,
+             due_date: Date.current.end_of_week.end_of_day - 1.minute)
+      get :show, params: { project_id: project.id, due_bucket: 'due_this_week' }, format: :json
+      expect(response).to have_http_status(:success)
+      expect(matched_count).to eq(1)
+    end
   end
 
   describe 'stale_bucket 下钻过滤（对齐 AggregatorService#bottlenecks，排除 completed）' do

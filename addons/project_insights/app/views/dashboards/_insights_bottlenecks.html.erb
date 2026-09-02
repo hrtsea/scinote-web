@@ -13,6 +13,8 @@
           <div class="bottleneck-label">
             <% if key == :thirty_plus %>
               <%= t("dashboard.insights.bottlenecks.#{i18n_key}", count: Scinote::ProjectInsights.default_period_days) %>
+            <% elsif key == :fourteen %>
+              <%= t("dashboard.insights.bottlenecks.#{i18n_key}", high: Scinote::ProjectInsights.default_period_days) %>
             <% else %>
               <%= t("dashboard.insights.bottlenecks.#{i18n_key}") %>
             <% end %>

@@ -8,7 +8,7 @@ zh-CN:
       bottlenecks:
         title: "瓶颈检测"
         seven: "7-14 天"
-        fourteen: "14-30 天"
+        fourteen: "14-%{high} 天"
         thirty_plus: "%{count}+ 天"
       due_dates:
         title: "截止日期与期限跟踪"
