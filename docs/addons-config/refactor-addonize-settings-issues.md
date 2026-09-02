@@ -11,10 +11,10 @@
 **Status**: ✅ Done（已验证 `bundle exec rspec` 12 examples, 0 failures）
 
 ### What was built
-新建 `addons/addon_settings` Rails 引擎，把**整个 `Users::Settings::Account::AddonsController`（index + update）**搬入 addon；view、`Scinote::AddonSettings::AddonsHelper`（render 方法）、locale（`users.settings.account.addons.*`）一并迁入；addon 自注册 GET `addons_path` 与 PUT `update_addon` 路由（后者见 Issue 2）。Gemfile 一行 `gem 'scinote_addon_settings', path: 'addons/addon_settings'`。
+新建 `addons/addon_settings` Rails 引擎，把**整个插件管理控制器（index + update）**搬入 addon，并扁平化为 `Scinote::AddonSettings::AddonsController`（原深路径 `Users::Settings::Account::AddonsController` 已废弃）；view、`Scinote::AddonSettings::AddonsHelper`（render 方法）、locale（`users.settings.account.addons.*`）一并迁入；addon 自注册 GET `addons_path` 与 PUT `update_addon` 路由（后者见 Issue 2）。Gemfile 一行 `gem 'scinote_addon_settings', path: 'addons/addon_settings'`。
 
 ### 偏差（重要，影响 Issue 2 范围）
-原 D1 设想「仅搬 index、update 留核心到 Issue 2」。但核心 `app/controllers/.../addons_controller.rb` 与 addon 内同名 `Users::Settings::Account::AddonsController` 是**同一常量**，Zeitwerk 不允许两个文件定义它。因此**核心 controller 文件被整体删除**，update 逻辑一并迁入 addon。结果是：Issue 2 仅剩「把 `update_addon` PUT 路由自注册从核心 routes.rb 迁到 addon engine」这一纯路由动作，无 controller 代码搬运。
+原 D1 设想「仅搬 index、update 留核心到 Issue 2」。但核心 `app/controllers/.../addons_controller.rb` 与 addon 内同名控制器常量是**同一常量**，Zeitwerk 不允许两个文件定义它。因此**核心 controller 文件被整体删除**，update 逻辑一并迁入 addon，后扁平为 `Scinote::AddonSettings::AddonsController`。结果是：Issue 2 仅剩「把 `update_addon` PUT 路由自注册从核心 routes.rb 迁到 addon engine」这一纯路由动作，无 controller 代码搬运。
 
 ### Acceptance criteria
 - [x] `addons/addon_settings` 引擎可加载（顶层 `lib/scinote_addon_settings.rb` 入口 + `isolate_namespace` + Gemfile 一行）。

@@ -39,9 +39,9 @@
 
 - **模块 / 接口（已落地）**
   - `AddonSetting`（`app/models/addon_setting.rb`）：新增 `self.config_schema_for(name)`（解析 `Scinote::#{Name}.config_schema`，不可达时返回 `[]`）；既有 `self.enabled?` / `self.for` / `config_value` 复用。
-  - `Users::Settings::Account::AddonsController`（`app/controllers/.../addons_controller.rb`）：新增 `cast_configuration(name, raw)`，按 schema 把 `configuration[key]=value` 类型化；兼容裸 JSON 字符串（整体原样存储）。
+  - `Scinote::AddonSettings::AddonsController`（`addons/addon_settings/app/controllers/scinote/addon_settings/addons_controller.rb`）：新增 `cast_configuration(name, raw)`，按 schema 把 `configuration[key]=value` 类型化；兼容裸 JSON 字符串（整体原样存储）。
   - `AddonsHelper`（`app/helpers/addons_helper.rb`）：`render_addon_config_field` / `render_addon_config_input` 按 `type` 分派控件（checkbox / password / number / textarea / select / text）。
-  - 视图 `app/views/users/settings/account/addons/index.html.erb`：在 addon 卡片内对 `config_schema_for(name)` 循环渲染字段。
+  - 视图 `addons/addon_settings/app/views/scinote/addon_settings/addons/index.html.erb`：在 addon 卡片内对 `config_schema_for(name)` 循环渲染字段。
   - 各 addon：`Scinote::AiProtocols.config_schema`、`Scinote::Esignatures.config_schema`、`Scinote::ProjectInsights.config_schema`（字段含 i18n label/help 键，置于 addon 自有 `config/locales/{en,zh-CN}.yml`）。
 - **约定**：addon 模块定义 `self.config_schema` 返回 `[{ key:, label:, type:, default?, options?, help? }]`；未声明则返回 `[]`，设置页仅渲染启用开关。
 - **显式不迁移（本特性首轮决策）**：ai_protocols 既有从 `ENV['AI_PROTOCOLS_*']` / `ApplicationSettings` 读取的逻辑保持不变；新机制只"新增"暴露入口，运行时尚不强制改用 `AddonSetting`（见 Issue #3）。

@@ -140,7 +140,7 @@ app.config.i18n.load_path += Dir[
 - [ ] `rails g addon Scinote::<Name>` 生成骨架（或用现有 addon 复制）。
 - [ ] 目录位于 `addons/<name>/`（`name` = 最后一段 module）。
 - [ ] `Gemfile` 加 `gem 'scinote_<name>', path: 'addons/<name>'`（gem 名双下划线、目录名单段，二者不同）。
-- [ ] 引擎类以 `Scinote::` 开头，含 `isolate_namespace`（例外见 `addons-zero-intrusion.md` §4 的 `addon_settings`）。
+- [ ] 引擎类以 `Scinote::` 开头，含 `isolate_namespace`（5 个 addon 均隔离，含 `addon_settings`；其宿主级 `addons_path` / `update_addon_path` 经 `engine.rb` `config.to_prepare` 提升）。
 - [ ] 路由定义在 addon 自身 `config/routes.rb` 的 `Engine.routes.draw`；**不**动宿主 `routes.rb`。
 - [ ] 用到的能力经引擎 `initializer` / `to_prepare` 自注册（i18n、权限 `app/permissions`、decorators、overrides、assets、migrations）。
 - [ ] 若用 deface，在 `to_prepare` 补 `app/overrides/**/*.rb` glob。

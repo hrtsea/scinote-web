@@ -47,18 +47,18 @@ end
 # does not load, so its route registration never runs and Rails boots fine.
 ```
 
-> **与生成器模板的关系（`addon-generator.md`）**：生成器产出的 `engine.rb` 模板（§6）现已包含 `routes` initializer（`${FULL_UNDERSCORE_NAME}.routes`，`after: :add_routes`），把引擎自挂载进宿主路由表，宿主 `config/routes.rb` 无需手动 `mount`；README §8.2 的手动挂载因此改为可选。本仓库 5 个 addon 均沿用同一机制；差异仅在 `isolate_namespace`：`i18n`/`ai_protocols`/`esignatures`/`project_insights` 遵循模板默认（隔离命名空间），`addon_settings` 是有意例外（不隔离，以保留宿主命名空间的控制器与 `addons_path` / `update_addon_path` helper）。
+> **与生成器模板的关系（`addon-generator.md`）**：生成器产出的 `engine.rb` 模板（§6）现已包含 `routes` initializer（`${FULL_UNDERSCORE_NAME}.routes`，`after: :add_routes`），把引擎自挂载进宿主路由表，宿主 `config/routes.rb` 无需手动 `mount`；README §8.2 的手动挂载因此改为可选。本仓库 5 个 addon 均沿用同一机制，**且全部声明 `isolate_namespace`**（含 `addon_settings`）。`addon_settings` 能在隔离命名空间下仍让宿主代码 20+ 处直接引用 `addons_path` / `update_addon_path`，是因为 `engine.rb` 的 `config.to_prepare` 把这两个 helper 提升（promote）到了宿主级（委托给引擎代理），而非保留于宿主命名空间。
 
 ### 统一机制：挂载引擎（5 个 addon 一致）
 
 所有 addon 现在都走**同一套**自挂载机制——各自 `engine.rb` 的 initializer（带 `after: :add_routes`）里 `app.routes.append { mount <Engine> => <mount_point> }`，并在 addon 自己的 `config/routes.rb` 中通过 `Engine.routes.draw do … end`（即生成器 §4.3 的 `<NAME>::Engine.routes.draw do … end` 模板形式）定义路由。`addon_settings` 已从早先"直射宿主路由（裸 `get/put`、无 `config/routes.rb`）"改造为正规挂载引擎（见 ADR-016），故不再存在"两种注册方式"之分。
 
-差异仅在于**是否声明 `isolate_namespace`**（决定路由 helper 名与控制器解析上下文），而非注册机制本身：
+差异仅在于 `addon_settings` 的控制器命名扁平化程度（其控制器已扁平为 `Scinote::AddonSettings::AddonsController`，URL 仍挂在 `/users/settings/account/addons`），而非注册机制或是否隔离——5 个 addon 均声明 `isolate_namespace`：
 
 | 子类 | 采用 addon | 做法 |
 |---|---|---|
-| **挂载引擎 + `isolate_namespace`** | `i18n`、`ai_protocols`、`esignatures`、`project_insights` | 引擎声明 `isolate_namespace Scinote::<Name>`；`config/routes.rb` 用 `Engine.routes.draw do … end` 定义隔离命名空间下路由（如 `get '/insights'`），挂载点 `'/'`。 |
-| **挂载引擎 + 无 `isolate_namespace`** | `addon_settings` | 不声明 `isolate_namespace`；其控制器本就在宿主命名空间（`Users::Settings::Account::AddonsController`），且 `addons_path` / `update_addon_path` 被宿主代码 20+ 处直接引用；保留宿主命名空间可零破坏迁移，路由挂在宿主既有前缀 `/users/settings/account/addons`。若加 `isolate_namespace` 会把 helper 改名为 `scinote_addon_settings_addons_path` 并破坏全部引用。 |
+| **挂载引擎 + `isolate_namespace`** | `i18n`、`ai_protocols`、`esignatures`、`project_insights`、`addon_settings` | 引擎声明 `isolate_namespace Scinote::<Name>`；`config/routes.rb` 用 `Engine.routes.draw do … end` 定义隔离命名空间下路由（如 `get '/insights'`、`get '/users/settings/account/addons'`），挂载点 `'/'`。 |
+| **隔离但暴露宿主级 helper（`addon_settings` 专属）** | `addon_settings` | 与其它 4 个一样声明 `isolate_namespace`；其 `addons_path` / `update_addon_path` 被宿主代码 20+ 处直接引用，隔离后靠 `engine.rb` 的 `config.to_prepare` 把这两个 helper 提升（promote）到宿主级（委托给引擎代理），故宿主引用零破坏——这正是它与其它 addon 的唯一差异点。 |
 
 > 注意：`app.routes.append` 使用的是 **append**（追加到末尾），而非 `prepend`。
 
@@ -90,7 +90,7 @@ gem 'scinote_addon_settings', path: 'addons/addon_settings'
    `app.routes.append` 加在宿主 router 的**顶层**，**不在** `constraints UserSubdomain` 块（宿主 `config/routes.rb` 第 19 行起）内。因此 addon 路由在根域即可访问，不受用户子域约束影响。
 
 3. **`isolate_namespace`**
-   生成器模板（`addon-generator.md` §6）默认给每个 addon 引擎声明 `isolate_namespace <NAME>`（路由/控制器/视图在隔离命名空间下，避免与宿主及其它 addon 命名冲突）。现有 addon 中 4 个遵循该默认：`i18n`、`ai_protocols`、`esignatures`、`project_insights`。例外是 `addon_settings`：它**不**声明 `isolate_namespace`，因为其控制器本就在宿主命名空间（`Users::Settings::Account::AddonsController`）、且 `addons_path` / `update_addon_path` 被宿主代码大量直接引用；保留宿主命名空间才能零破坏迁移（否则 helper 改名为 `scinote_addon_settings_addons_path` 并破坏全部引用）。挂载点本身不受是否隔离影响，二者正交。
+   生成器模板（`addon-generator.md` §6）默认给每个 addon 引擎声明 `isolate_namespace <NAME>`（路由/控制器/视图在隔离命名空间下，避免与宿主及其它 addon 命名冲突）。现有 addon 中**全部 5 个**均声明 `isolate_namespace`：`i18n`、`ai_protocols`、`esignatures`、`project_insights`、`addon_settings`。`addon_settings` 之所以能在隔离后让宿主代码 20+ 处直接引用 `addons_path` / `update_addon_path`，是依靠 `engine.rb` 的 `config.to_prepare` 把这两个 helper 提升（promote）到宿主级（委托给引擎代理），而非停留在宿主命名空间——否则隔离本会把 helper 改名为 `scinote_addon_settings_addons_path` 并破坏引用。挂载点本身不受是否隔离影响，二者正交。
 
 ---
 

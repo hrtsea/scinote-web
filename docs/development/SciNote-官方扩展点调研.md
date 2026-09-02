@@ -187,7 +187,7 @@ end
   该行 132 注释明确写道：`<%# Integrations inserted here via deface %>` —— 确认 add-on 通过 deface override 注入到该视图。
 - 插件 override 文件放置于 `app/overrides/`（脚手架生成 `app/overrides/.keep`，见 `addon_generator.rb:55-56`），并由引擎 `engine_name` / `isolate_namespace` 与 deface 解析路径共同决定作用域。`app/views/<folders_path>/overrides/` 同样由 `engine.rb:4` 的 `paths['app/views'] << ...` 纳入视图解析。
 
-> 注：brief 中假设「`AddonsController#index` 含 `data-hook`」不准确——实际控制器是 `Users::Settings::Account::AddonsController`（`addons/addon_settings/app/controllers/users/settings/account/addons_controller.rb:6`，仅 `index` 列出已装 add-on/打印机的展示，不含 deface 逻辑）；deface override 由引擎在 `to_prepare` 全局注册，而非某控制器动作。
+> 注：brief 中假设「`AddonsController#index` 含 `data-hook`」不准确——实际控制器是 `Scinote::AddonSettings::AddonsController`（`addons/addon_settings/app/controllers/scinote/addon_settings/addons_controller.rb`，仅 `index` 列出已装 add-on/打印机的展示，不含 deface 逻辑）；deface override 由引擎在 `to_prepare` 全局注册，而非某控制器动作。
 
 ---
 
@@ -265,7 +265,7 @@ end
 
 5. **安装与启用**
    - `make docker` → `make cli` → `rake db:migrate`（运行插件迁移）。
-   - `make run` 启动；（可选）在设置页 `Users::Settings::Account::AddonsController#index` 查看插件状态。
+   - `make run` 启动；（可选）在设置页 `Scinote::AddonSettings::AddonsController#index` 查看插件状态。
 
 ---
 
