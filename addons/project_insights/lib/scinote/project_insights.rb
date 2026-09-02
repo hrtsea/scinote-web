@@ -24,6 +24,16 @@ module Scinote
       ].freeze
     end
 
+    # 设置页卡片简介（参照 Label printers 的标题+描述风格）。
+    def self.description
+      'project_insights.settings.description'
+    end
+
+    # 配置子页的详细说明。
+    def self.detailed_help
+      'project_insights.settings.detailed_help'
+    end
+
     # 读取本 addon 的某项实例级配置（来自 addon_settings.configuration）。
     def self.config_value(key)
       AddonSetting.for('project_insights').config_value(key)

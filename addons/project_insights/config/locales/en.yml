@@ -18,6 +18,10 @@ en:
         upcoming: "Upcoming"
   project_insights:
     settings:
+      description: "Surface dashboards with task status, workload, bottlenecks and due-date insights."
+      detailed_help: >-
+        Set the default analysis window (in days) used when aggregating
+        insights for the dashboard widgets.
       config:
         default_period_days: "Default analysis period (days)"
         default_period_days_help: "Time window used when aggregating insights for the dashboard."

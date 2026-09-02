@@ -18,6 +18,8 @@ zh-CN:
         upcoming: "即将到来"
   project_insights:
     settings:
+      description: 在仪表盘展示任务状态、团队负载、瓶颈检测与截止日期等洞察。
+      detailed_help: 设置聚合仪表盘洞察时使用的默认分析周期（天）。
       config:
         default_period_days: "默认分析周期（天）"
         default_period_days_help: "聚合仪表盘洞察时使用的时间窗口。"
