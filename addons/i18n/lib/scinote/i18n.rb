@@ -13,5 +13,15 @@ module Scinote
     def self.language_name(locale)
       LANGUAGE_NAMES.fetch(locale.to_sym, locale.to_s)
     end
+
+    # 设置页卡片简介（参照 Label printers 的标题+描述风格）。
+    def self.description
+      'scinote_i18n.settings.description'
+    end
+
+    # 配置子页的详细说明。
+    def self.detailed_help
+      'scinote_i18n.settings.detailed_help'
+    end
   end
 end

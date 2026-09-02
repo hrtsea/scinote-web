@@ -4,6 +4,9 @@ zh-CN:
     language_changed: "语言切换成功。"
     invalid_locale: "不支持所选语言。"
     switch_to: "切换语言"
+    settings:
+      description: 管理当前实例可用的界面语言。
+      detailed_help: 选择用户可将 SciNote 界面切换到的语言。
     languages:
       en: "English"
       zh-CN: "简体中文"

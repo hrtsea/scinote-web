@@ -4,6 +4,9 @@ en:
     language_changed: "Language changed successfully."
     invalid_locale: "Selected language is not supported."
     switch_to: "Switch language"
+    settings:
+      description: "Manage the interface languages available to your instance."
+      detailed_help: "Choose which languages users can switch the SciNote UI to."
     languages:
       en: "English"
       zh-CN: "简体中文"
