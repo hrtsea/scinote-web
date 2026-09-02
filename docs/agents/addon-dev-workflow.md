@@ -22,11 +22,22 @@ addon 是**标准 Rails Engine**，不是插件目录。
    `Scinote::<Name>::Engine < ::Rails::Engine`，带 `isolate_namespace Scinote::<Name>`，
    并配 `addons/<name>/scinote_<name>.gemspec`（参考 `addons/i18n`）。
 2. **Gemfile 注册**：`gem 'scinote_<name>', path: 'addons/<name>'`（每个 addon 一行）。
-3. **路由挂载**：主程序 `config/routes.rb` 用 `mount Scinote::<Name>::Engine => '/'` 挂引擎。
-   ```14:16:scinote-web/config/routes.rb
-     # Addons
-     mount Scinote::I18n::Engine => '/'
+3. **路由挂载（自注册，不污染主 `routes.rb`）**：addon 在自己的
+   `engine.rb` 中通过 `initializer` 自行 `append` 挂载，**主程序
+   `config/routes.rb` 不出现任何 addon 的 `mount` 行**。
+   ```12:20:scinote-web/addons/i18n/lib/scinote/i18n/engine.rb
+     # Self-register routes on the host app root...
+     initializer 'scinote_i18n.routes' do |app|
+       app.routes.append do
+         mount Scinote::I18n::Engine => '/'
+       end
+     end
    ```
+   好处：addon 是「可插拔」的——注释掉 `Gemfile` 中对应 `gem` 行后，
+   引擎不加载、该 `initializer` 不运行、路由不注册，Rails 启动**不会**因
+   缺少常量而崩溃。旧范式在主 `routes.rb` 硬编码 `mount` 会在卸载 addon 时
+   抛 `uninitialized constant ... NameError` 导致启动崩溃。这是铁律
+   「单一改动面」的强化：**卸载 addon 时主程序零改动**（只撤 `Gemfile` 一行）。
 4. **扩展点（替代改核心）**：
    - **枚举 / 常量**：用 `Extends` 类（`config/initializers/extends.rb`）在引擎
      `initializer 'add ...' do Extends::XXX.merge!(...) end` 中合并扩展，
@@ -120,7 +131,7 @@ bundle exec brakeman
 
 - [ ] 改动是否**全部**在 `addons/<name>/` 内？有无直接编辑核心 `app/`？
 - [ ] 引擎类名以 `Scinote` 开头？`isolate_namespace` 正确？
-- [ ] Gemfile 与 `config/routes.rb` 已注册 / 挂载？
+- [ ] Gemfile 已注册（路由由 addon 引擎自注册，主 `config/routes.rb` 不含 addon 的 `mount`）？
 - [ ] 枚举扩展走 `Extends` 合并，而非改 `extends.rb`？
 - [ ] 权限文件落在 `app/permissions/**/*.rb`，未被手动登记？
 - [ ] addon 自带 `spec/`（如有 UI 行为再加 `features/`）？

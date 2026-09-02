@@ -11,11 +11,10 @@ Rails.application.routes.draw do
 
   post 'access_tokens/revoke', to: 'doorkeeper/access_tokens#revoke'
 
-  # Addons
-  mount Scinote::I18n::Engine => '/'
-  mount Scinote::AiProtocols::Engine => '/'
-  mount Scinote::Esignatures::Engine => '/'
-  mount Scinote::ProjectInsights::Engine => '/'
+  # Addons self-register their routes via each engine's `initializer`
+  # (see addons/<name>/lib/scinote/<name>/engine.rb). No `mount` line lives
+  # here on purpose: a disabled addon (commented out in the Gemfile) simply
+  # does not load, so its route registration never runs and Rails boots fine.
 
   constraints UserSubdomain do
     devise_for :users, controllers: { registrations: 'users/registrations',
@@ -60,6 +59,9 @@ Rails.application.routes.draw do
     get 'users/settings/account/addons',
         to: 'users/settings/account/addons#index',
         as: 'addons'
+    put 'users/settings/account/addons/:name',
+        to: 'users/settings/account/addons#update',
+        as: 'update_addon'
 
     resources :label_templates, only: %i(index show update create) do
       member do

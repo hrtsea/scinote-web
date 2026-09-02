@@ -23,11 +23,36 @@
 
     <div id="scinote-addons-wrapper" class="flex flex-col bg-sn-white p-4 rounded mb-6">
       <h2 class="my-0 pb-6 text-sn-black" ><%= t('users.settings.account.addons.scinote_addons') %></h2>
-      <div data-hook="settings-addons-container">
-        <em data-hook="settings-addons-no-addons">
-          <%= t('users.settings.account.addons.no_addons') %>
-        </em>
-      </div>
+      <% if @addons.any? %>
+        <div data-hook="settings-addons-container" class="flex flex-col gap-4">
+          <% @addons.each do |name| %>
+            <% setting = AddonSetting.for(name) %>
+            <div class="addon-setting-card border-b border-sn-light-grey pb-4">
+              <h3 class="font-bold text-sn-black my-0"><%= name.titleize %></h3>
+              <%= form_with url: update_addon_path(name),
+                            method: :put,
+                            data: { turbo: false },
+                            class: 'flex flex-col gap-2 mt-2' do |f| %>
+                <label class="flex items-center gap-2 text-sn-black">
+                  <%= check_box_tag :enabled, '1', AddonSetting.enabled?(name) %>
+                  <%= t('users.settings.account.addons.enabled') %>
+                </label>
+                <% AddonSetting.config_schema_for(name).each do |field| %>
+                  <%= render_addon_config_field(field, setting, disabled: !AddonSetting.enabled?(name)) %>
+                <% end %>
+                <%= f.submit t('users.settings.account.addons.save'),
+                             class: 'btn btn-primary self-start' %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div data-hook="settings-addons-container">
+          <em data-hook="settings-addons-no-addons">
+            <%= t('users.settings.account.addons.no_addons') %>
+          </em>
+        </div>
+      <% end %>
     </div>
 
     <%# label printers %>

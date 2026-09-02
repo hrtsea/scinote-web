@@ -1,0 +1,166 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe 'Addon settings management', type: :request do
+  include Devise::Test::IntegrationHelpers
+
+  let(:admin_user) { create(:user, confirmed_at: Time.zone.now) }
+  let(:normal_user) { create(:user, confirmed_at: Time.zone.now) }
+
+  # In this environment Rails.configuration.x.enable_email_confirmations resolves to
+  # a truthy OrderedOptions default (the config.x reader returns a fresh object for
+  # unset keys), so Devise fires a confirmation email on every user creation. That
+  # email fails at deliver_later because no SMTP sender is configured in tests.
+  # Neutralize the Devise notification at the instance-method level for the whole
+  # example group. This must run before the `around` block creates the users below.
+  before(:all) do
+    User.send(:define_method, :send_devise_notification) { |*_args| true }
+  end
+
+  around do |example|
+    original = ApplicationSettings.instance.values['instance_admin_user_ids']
+    ApplicationSettings.instance.update(
+      values: ApplicationSettings.instance.values.merge('instance_admin_user_ids' => [admin_user.id])
+    )
+    example.run
+    if original.nil?
+      ApplicationSettings.instance.update(
+        values: ApplicationSettings.instance.values.except('instance_admin_user_ids')
+      )
+    else
+      ApplicationSettings.instance.update(
+        values: ApplicationSettings.instance.values.merge('instance_admin_user_ids' => original)
+      )
+    end
+  end
+
+  describe 'PUT /users/settings/account/addons/:name' do
+    context 'as an instance administrator' do
+      it 'persists enabled flag and configuration' do
+        sign_in admin_user
+        put update_addon_path('esignatures'),
+            params: { enabled: 'false', configuration: '{"require_meaning":false}' }
+
+        expect(response).to redirect_to(addons_path)
+        expect(AddonSetting.enabled?('esignatures')).to be false
+        expect(AddonSetting.for('esignatures').configuration).to eq({ 'require_meaning' => false })
+      end
+
+      context 'with a schema-driven configuration form' do
+        it 'stores typed values declared by the addon config_schema' do
+          sign_in admin_user
+          put update_addon_path('ai_protocols'),
+              params: {
+                enabled: 'true',
+                configuration: { parser_url: 'https://parser.test/v1', model: 'gpt-4o' }
+              }
+
+          expect(response).to redirect_to(addons_path)
+          config = AddonSetting.for('ai_protocols').configuration
+          expect(config['parser_url']).to eq('https://parser.test/v1')
+          expect(config['model']).to eq('gpt-4o')
+        end
+
+        it 'casts boolean fields and turns the flag off when unchecked' do
+          sign_in admin_user
+          AddonSetting.update_for('esignatures', enabled: true,
+                                  configuration: { require_intent: true })
+          put update_addon_path('esignatures'),
+              params: { enabled: 'true', configuration: { require_intent: '0' } }
+
+          expect(AddonSetting.for('esignatures').configuration['require_intent']).to be false
+        end
+
+        it 'keeps the existing secret when the field is submitted blank' do
+          sign_in admin_user
+          AddonSetting.update_for('ai_protocols', enabled: true,
+                                  configuration: { api_key: 'previous-secret' })
+          put update_addon_path('ai_protocols'),
+              params: { enabled: 'true', configuration: { api_key: '' } }
+
+          expect(AddonSetting.for('ai_protocols').configuration['api_key']).to eq('previous-secret')
+        end
+      end
+    end
+
+    context 'as an instance administrator with invalid configuration' do
+      it 'redirects with an error and does not persist the invalid JSON' do
+        sign_in admin_user
+        put update_addon_path('esignatures'),
+            params: { enabled: 'true', configuration: 'not-json' }
+
+        expect(response).to redirect_to(addons_path)
+        expect(flash[:alert]).to eq(I18n.t('users.settings.account.addons.update_error'))
+        expect(AddonSetting.for('esignatures').configuration).to eq({})
+      end
+    end
+
+    context 'as an instance administrator submitting an out-of-range integer' do
+      it 'rejects the update and keeps the previous configuration' do
+        sign_in admin_user
+        AddonSetting.update_for('project_insights', enabled: true, configuration: { default_period_days: 90 })
+        put update_addon_path('project_insights'),
+            params: { enabled: 'true', configuration: { default_period_days: '-5' } }
+
+        expect(response).to redirect_to(addons_path)
+        expect(flash[:alert]).to eq(I18n.t('users.settings.account.addons.update_error'))
+        expect(AddonSetting.for('project_insights').configuration['default_period_days']).to eq(90)
+      end
+    end
+
+    context 'as a non-admin user' do
+      it 'is forbidden' do
+        sign_in normal_user
+        put update_addon_path('esignatures'), params: { enabled: 'false' }
+
+        expect(response).to have_http_status(:forbidden)
+      end
+    end
+
+    context 'when not signed in' do
+      it 'redirects to the login page' do
+        put update_addon_path('esignatures'), params: { enabled: 'false' }
+
+        expect(response).to redirect_to(%r{/users/sign_in|/users/login})
+      end
+    end
+  end
+
+  describe 'GET /users/settings/account/addons' do
+    it 'renders the management page with an enable toggle per addon for an admin' do
+      sign_in admin_user
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(update_addon_path('esignatures'))
+    end
+
+    it 'renders the page without management controls for a regular user' do
+      sign_in normal_user
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include(update_addon_path('esignatures'))
+    end
+
+    it 'disables config fields when the addon is disabled' do
+      sign_in admin_user
+      AddonSetting.update_for('project_insights', enabled: false, configuration: {})
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('name="configuration[default_period_days]"')
+      expect(response.body).to include('disabled="disabled"')
+    end
+
+    it 'shows a "set" indicator for a stored secret field' do
+      sign_in admin_user
+      AddonSetting.update_for('ai_protocols', enabled: true, configuration: { api_key: 'topsecret' })
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(I18n.t('users.settings.account.addons.config_secret_set'))
+    end
+  end
+end

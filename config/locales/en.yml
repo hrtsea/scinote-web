@@ -3791,6 +3791,12 @@ en:
             windows_button: 'Download for Windows'
             version: 'Version %{version}'
           more_info: 'More info'
+          updated: "Add-on settings updated."
+          update_error: "Could not update add-on settings."
+          enabled: "Enabled"
+          save: "Save"
+          configuration: "Configuration (JSON)"
+          config_secret_set: "Already set"
         label_printer:
           fluics_printer: "FLUICS Print: Label printers"
           zebra_printer: 'Zebra label printers'
