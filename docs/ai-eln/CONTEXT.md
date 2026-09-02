@@ -35,10 +35,10 @@
 ## 五、业务对象（沿用 host 术语，不重新定义）
 
 - **实验（experiment）** / **任务（my_module）** / **项目（project）**：host 核心领域对象，本插件只读引用其 id 做关联，不改其结构。
-- **配方（recipe / formula）**：多组分材料配方；本插件解析为「SciNote 多组分配方模板 JSON」预览，用户确认后新建配方条目。
-- **抽样单元（sampling unit）**：贝叶斯优化的单条训练样本 = 一个 `status=completed` 的 `my_module`；其组分向量来自所关联的配方库 RepositoryRow 数值列，其指标/工艺参数向量来自该 my_module 下的 `ResultTable` 命名列。
+- **配方（recipe / formula）**：多组分材料配方；按**方向 X（鹰谷-lite）**表达——基准配方 = SciNote 实验模板，实验配方 = 克隆实验内经 `MyModuleRepositoryRow` 挂接的 RepositoryRow（其 `stock_consumption` = 组分质量份），工艺/性能来自 `ResultTable`；**不建配方实体表**。
+- **抽样单元（sampling unit）**：贝叶斯优化的单条训练样本 = 一个 `status=completed` 的 `my_module`；其组分向量来自该 my_module 经 `MyModuleRepositoryRow` 挂接的 RepositoryRow 的 `stock_consumption`，其指标/工艺参数向量来自该 my_module 下的 `ResultTable` 命名列。
 - **指标 / 工艺参数（metrics / process params）**：均存于 `my_module` 的 `ResultTable` 命名列（如「介电常数」「固化温度」），由抽取层按列名匹配；结构化、可靠。
-- **候选配方（candidate formula）**：贝叶斯优化产出的 draft 配方（默认新建配方库 RepositoryRow，状态 draft、不挂 my_module → **不触发任何库存扣减**），须经用户确认才落业务。
+- **候选配方（candidate formula）**：贝叶斯优化产出的候选（**方向 X** 下以表格预览呈现，**不自动建实验、不写 stock**），用户确认后**人工粘贴到从基准模板克隆的实验**（HITL）；绝不触发库存扣减。
 - **图谱（spectrum）**：DSC/TGA 等材料表征图谱（图片/PDF），属待解析附件。
 - **GLP 记录自检**：扫描实验记录缺失的合规元数据（试剂批号、设备编号、环境条件等）。
 
@@ -48,5 +48,5 @@
 2. 首切片做**地基**（引擎骨架+开关+适配层+三表+审计+抽屉外壳），后续 25 功能挂其上。
 3. 配置沿用 **ENV + ApplicationSettings 特性开关**范式，不引入 YAML 配置。
 4. 引擎自有表迁移走脚手架 `append_migrations` 模式，**宿主 `db/migrate` 零改动**。
-5. 贝叶斯配方优化（AI-501）纳入范围：数据源自 `my_module` 下 `ResultTable`（指标 + 工艺参数）与配方库 Repository（组分）；计算后端 = 纯 ruby（Numo + 自实现 GP），无 python 依赖。
-6. 配方/组分质量份映射通过可配置 `RecipeAdapter` 抽象，default = 专属「配方库」Repository（**当前 DEFERRED：用户尚未确定配方表达，default 仅为占位，回填前不得视为最终约定**）；真实约定可经 ApplicationSettings 配置或新增 adapter 子类注入，抽取核心不写死。
+5. 贝叶斯配方优化（AI-501）纳入范围：数据源自 `my_module` 下 `ResultTable`（指标 + 工艺参数）与克隆实验内 `MyModuleRepositoryRow#stock_consumption`（组分，方向 X）；计算后端 = 纯 ruby（Numo + 自实现 GP），无 python 依赖。
+6. 配方/组分质量份映射 = **方向 X（鹰谷-lite）**：基准配方 = 实验模板、实验配方 = 克隆实验内 `MyModuleRepositoryRow#stock_consumption`、工艺/性能 = `ResultTable`；**不建配方实体表**。变量/固定组分区分经轻量「优化配置」（`ai_eln_recipe_opt_config`，per 基准模板记变量组分 + 上下界），非配方管理域。抽取核心仍经可配置 `RecipeAdapter` 抽象，default 即方向 X 适配器（**2026-09-03 已锁定方向 X**）。
