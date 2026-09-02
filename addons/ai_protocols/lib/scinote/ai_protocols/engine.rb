@@ -33,7 +33,7 @@ module Scinote
       # Self-register routes on the host app root. The addon is fully
       # self-contained: no `mount` line lives in the host's config/routes.rb,
       # so commenting the addon out of the Gemfile never breaks Rails boot.
-      initializer 'scinote_ai_protocols.routes' do |app|
+      initializer 'scinote_ai_protocols.routes', after: :add_routes do |app|
         app.routes.append do
           mount Scinote::AiProtocols::Engine => '/'
         end
