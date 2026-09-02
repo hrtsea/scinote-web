@@ -1,0 +1,6 @@
+zh-CN:
+  esignatures:
+    settings:
+      config:
+        require_intent: "要求签名意图说明"
+        require_intent_help: "强制签名者在签名前填写签名意图/说明。"

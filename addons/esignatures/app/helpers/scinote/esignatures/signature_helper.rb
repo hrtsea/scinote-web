@@ -24,7 +24,7 @@ module Scinote
                         hidden_field_tag(:signable_type, record.class.name),
                         hidden_field_tag(:signable_id, record.id),
                         label_tag(:meaning, t('esignatures.signature.intent')),
-                        text_field_tag(:meaning, '', required: true,
+                        text_field_tag(:meaning, '', required: Scinote::Esignatures.require_intent?,
                                        placeholder: t('esignatures.signature.intent_placeholder')),
                         submit_tag(t('esignatures.signature.sign'))
                       ])

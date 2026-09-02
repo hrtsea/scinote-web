@@ -16,4 +16,9 @@ RSpec.describe 'Scinote::Esignatures deface overrides' do
   it 'injects the panel into the experiment show header' do
     expect(subject).to include(:'experiments/show_header')
   end
+
+  it 'guards the protocol panel injection behind the enabled? contract' do
+    override = Deface::Override.all[:'protocols/header']['esignatures_protocol_panel']
+    expect(override.args[:text]).to include('Scinote::Esignatures.enabled?')
+  end
 end

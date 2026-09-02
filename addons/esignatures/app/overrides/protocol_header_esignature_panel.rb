@@ -11,6 +11,6 @@ Deface::Override.new(
   virtual_path: 'protocols/header',
   name: 'esignatures_protocol_panel',
   insert_after: 'div.content-header',
-  text: '<%= signature_panel_for(@protocol) %>',
+  text: '<% if Scinote::Esignatures.enabled? %><%= signature_panel_for(@protocol) %><% end %>',
   disabled: false
 )

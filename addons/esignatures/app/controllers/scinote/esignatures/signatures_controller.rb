@@ -10,6 +10,7 @@ module Scinote
 
       SIGN_ABLE_TYPES = %w(Protocol Result Experiment).freeze
 
+      before_action :ensure_enabled, only: [:create]
       before_action :set_signable, only: [:create]
 
       def create
@@ -27,6 +28,10 @@ module Scinote
       end
 
       private
+
+      def ensure_enabled
+        render_forbidden unless Scinote::Esignatures.enabled?
+      end
 
       def set_signable
         return render(json: { error: 'unsupported signable type' }, status: :unprocessable_entity) \

@@ -8,6 +8,6 @@ Deface::Override.new(
   virtual_path: 'experiments/show_header',
   name: 'esignatures_experiment_panel',
   insert_after: 'div.content-header',
-  text: '<%= signature_panel_for(@experiment) %>',
+  text: '<% if Scinote::Esignatures.enabled? %><%= signature_panel_for(@experiment) %><% end %>',
   disabled: false
 )
