@@ -24,7 +24,7 @@ module Scinote
       # Self-register routes on the host app root. The addon is fully
       # self-contained: no `mount` line lives in the host's config/routes.rb,
       # so commenting the addon out of the Gemfile never breaks Rails boot.
-      initializer 'scinote_project_insights.routes' do |app|
+      initializer 'scinote_project_insights.routes', after: :add_routes do |app|
         app.routes.append do
           mount Scinote::ProjectInsights::Engine => '/'
         end
