@@ -1,0 +1,48 @@
+<% provide(:head_title, t('users.settings.account.addons.head_title')) %>
+
+<% provide(:container_class, "no-second-nav-container") %>
+
+
+<%= render partial: 'users/settings/sidebar' %>
+
+<div class="tab-content use-account-addons-edit">
+
+  <div role="tabpanel">
+
+
+    <h1 id="scinote-addon-title" class="mt-0 pb-1.5 text-sn-black"><%= @addon_name.titleize %></h1>
+
+    <%= link_to t('users.settings.account.addons.back'), addons_path, class: 'text-sn-blue' %>
+
+    <% if (help = AddonSetting.detailed_help_for(@addon_name)).present? %>
+      <div class="text-sn-dark-grey mb-4"><%= t(help) %></div>
+    <% end %>
+
+    <div class="flex flex-col bg-sn-white p-4 rounded mb-6 mt-4">
+
+      <%= form_with url: update_addon_path(@addon_name),
+                    method: :put,
+                    data: { turbo: false },
+                    class: 'flex flex-col gap-2 mt-2' do |f| %>
+
+        <label class="flex items-center gap-2 text-sn-black">
+          <%= check_box_tag :enabled, '1', @setting.enabled %>
+          <%= t('users.settings.account.addons.enabled') %>
+        </label>
+
+        <% AddonSetting.config_schema_for(@addon_name).each do |field| %>
+          <%= render_addon_config_field(field, @setting, disabled: !@setting.enabled) %>
+        <% end %>
+
+        <%= f.submit t('users.settings.account.addons.save'),
+                     class: 'btn btn-primary self-start' %>
+
+      <% end %>
+
+    </div>
+
+  </div>
+
+  <div class="tab-pane tab-pane-settings" role="tabpanel"></div>
+
+</div>

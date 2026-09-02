@@ -2,9 +2,12 @@
 
 Scinote::AddonSettings::Engine.routes.draw do
   get 'users/settings/account/addons',
-      to: 'users/settings/account/addons#index',
+      to: 'addons#index',
       as: :addons
+  get 'users/settings/account/addons/:name',
+      to: 'addons#edit',
+      as: :edit_addon
   put 'users/settings/account/addons/:name',
-      to: 'users/settings/account/addons#update',
+      to: 'addons#update',
       as: :update_addon
 end

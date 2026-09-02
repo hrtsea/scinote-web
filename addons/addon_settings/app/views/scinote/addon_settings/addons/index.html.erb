@@ -1,137 +1,270 @@
 <% provide(:head_title, t('users.settings.account.addons.head_title')) %>
+
 <% provide(:container_class, "no-second-nav-container") %>
 
+
+
 <%= render partial: 'users/settings/sidebar' %>
-<div class="tab-content user-account-addons">
+
+<div class="tab-content use-account-addons">
+
   <div role="tabpanel">
+
+
 
     <h1 id="scinote-addons-title" class="mt-0 pb-1.5 text-sn-black"><%= t('users.settings.account.addons.title') %></h1>
 
+
+
     <%# scinote edit %>
+
     <% if ENV['ASSET_SYNC_URL'].present? %>
+
       <div class="bg-sn-white rounded p-4 mb-6">
+
         <h2 class="text-sn-black my-0 pb-6"><%= t('users.settings.account.addons.desktop_app.scinote_apps') %></h2>
+
         <div class="font-bold my-0 pb-2 text-sn-black"><%= t('users.settings.account.addons.desktop_app.scinote_edit') %></div>
+
         <div class="pb-6 text-sn-dark-grey">
+
           <%= t('users.settings.account.addons.desktop_app.description') %>
+
         </div>
+
         <div id="scinoteEditDownload" data-behaviour="vue">
+
           <scinote-edit-download data="<%= @user_agent %>">
+
+          </scinote-edit-download>
+
         </div>
+
       </div>
+
     <% end %>
 
+
+
     <div id="scinote-addons-wrapper" class="flex flex-col bg-sn-white p-4 rounded mb-6">
+
       <h2 class="my-0 pb-6 text-sn-black" ><%= t('users.settings.account.addons.scinote_addons') %></h2>
+
       <% if @addons.any? %>
+
         <div data-hook="settings-addons-container" class="flex flex-col gap-4">
+
           <% @addons.each do |name| %>
-            <% setting = AddonSetting.for(name) %>
+
             <div class="addon-setting-card border-b border-sn-light-grey pb-4">
-              <h3 class="font-bold text-sn-black my-0"><%= name.titleize %></h3>
-              <%= form_with url: update_addon_path(name),
-                            method: :put,
-                            data: { turbo: false },
-                            class: 'flex flex-col gap-2 mt-2' do |f| %>
-                <label class="flex items-center gap-2 text-sn-black">
-                  <%= check_box_tag :enabled, '1', AddonSetting.enabled?(name) %>
-                  <%= t('users.settings.account.addons.enabled') %>
-                </label>
-                <% AddonSetting.config_schema_for(name).each do |field| %>
-                  <%= render_addon_config_field(field, setting, disabled: !AddonSetting.enabled?(name)) %>
+
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-sn-black my-0"><%= name.titleize %></h3>
+                <% if AddonSetting.enabled?(name) %>
+                  <span class="text-sn-black font-medium text-sm"><%= t('users.settings.account.addons.enabled') %></span>
+                <% else %>
+                  <span class="text-sn-dark-grey text-sm"><%= t('users.settings.account.addons.disabled') %></span>
                 <% end %>
-                <%= f.submit t('users.settings.account.addons.save'),
-                             class: 'btn btn-primary self-start' %>
+              </div>
+
+              <% if (desc = AddonSetting.description_for(name)).present? %>
+                <p class="text-sn-dark-grey text-sm mt-1"><%= t(desc) %></p>
               <% end %>
+
+              <div class="flex items-center gap-4 mt-2">
+                <%= form_with url: update_addon_path(name),
+                              method: :put,
+                              data: { turbo: false },
+                              class: 'flex items-center gap-2' do |f| %>
+                  <%= check_box_tag :enabled, '1', AddonSetting.enabled?(name),
+                                    onchange: 'this.form.requestSubmit()' %>
+                  <%= f.label :enabled, t('users.settings.account.addons.enabled'), class: 'text-sn-black' %>
+                <% end %>
+
+                <%= link_to t('users.settings.account.addons.configure'),
+                            edit_addon_path(name), class: 'text-sn-blue' %>
+              </div>
+
             </div>
+
           <% end %>
+
         </div>
+
       <% else %>
+
         <div data-hook="settings-addons-container">
+
           <em data-hook="settings-addons-no-addons">
+
             <%= t('users.settings.account.addons.no_addons') %>
+
           </em>
+
         </div>
+
       <% end %>
+
     </div>
+
+
 
     <%# label printers %>
+
     <div id="printer-settings" class="flex flex-col gap-6 rounded bg-sn-white mb-6 p-4">
+
       <h2 class="my-0 text-sn-black"><%= t('users.settings.account.addons.label_printers') %></h2>
 
+
+
       <%# zebra printer %>
+
       <div class="flex flex-row justify-between">
+
         <%# left part %>
+
         <div id="left-part" class="flex flex-col">
+
           <%# title %>
+
           <div class="flex flex-row justify-between pb-2">
+
             <div class="font-bold text-sn-black">
+
               <%= t('users.settings.account.addons.zebra_printer.title') %>
+
             </div>
+
           </div>
+
           <%# description text %>
+
           <div class="text-sn-dark-grey pb-6">
+
             <%= t('users.settings.account.addons.zebra_printer.description') %>
+
           </div>
+
           <%# button %>
+
           <div>
+
             <%= link_to t('users.settings.account.addons.printers.details'), zebra_settings_path(), class: 'text-sn-blue' %>
+
           </div>
+
         </div>
-        <%# right-part %>
+
+        <%# right part %>
+
         <div id="right-part" class="flex flex-row min-w-fit items-start">
+
           <div class="flex items-center gap-2">
+
               <div class="text-sn-black">
+
                 <%= t('users.settings.account.addons.printers.enabled') %>
+
               </div>
+
               <i class="sn-icon sn-icon-check"></i>
+
           </div>
+
         </div>
+
       </div>
+
+
 
       <%# solid line divider %>
+
       <div id="divider" class="w-500 bg-sn-light-grey flex items-center self-stretch h-px"></div>
 
+
+
       <%# fluics printer %>
+
       <div class="flex flex-row justify-between">
+
         <%# left part %>
+
         <div id="left-part" class="flex flex-col">
+
           <%# title %>
+
           <div class="flex flex-row justify-between pb-2">
+
             <div class="font-bold text-sn-black">
+
               <%= t('users.settings.account.addons.fluics_printer.title') %>
+
             </div>
+
           </div>
+
           <%# description text %>
+
           <div class="text-sn-dark-grey pb-6">
+
             <%= t('users.settings.account.addons.fluics_printer.description') %>
+
           </div>
+
           <%# button %>
+
           <div>
+
             <% if !@label_printer_any && can_manage_label_printers? %>
+
               <%= link_to label_printers_path(), class: 'printer-details btn btn-primary' do %>
+
                 <%= t('users.settings.account.addons.printers.set_up') %>
+
               <% end %>
+
             <% else %>
+
               <%= link_to t('users.settings.account.addons.printers.details'), label_printers_path(), class: 'text-sn-blue' %>
+
             <% end %>
+
           </div>
+
         </div>
-        <%# right-part %>
+
+        <%# right part %>
+
         <div id="right-part" class="flex flex-row min-w-fit items-start">
+
           <div class="flex items-center gap-2">
+
               <div class="text-sn-black">
+
                 <%= t('users.settings.account.addons.printers.enabled') %>
+
               </div>
+
               <i class="sn-icon sn-icon-check"></i>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
 
+
+
     <%# Integrations inserted here via deface %>
+
   </div>
+
   <div class="tab-pane tab-pane-settings" role="tabpanel"></div>
+
 </div>
+
+
 
 <%= javascript_include_tag "vue_scinote_edit_download", nonce: true %>

@@ -70,7 +70,7 @@ class NavigationsController < ApplicationController
       links << { name: I18n.t('users.settings.sidebar.account_nav.automations'), url: automations_team_path(current_team) }
       links << { name: I18n.t('users.settings.sidebar.groups'), url: users_settings_team_user_groups_path(current_team) }
     end
-    links << { name: I18n.t('users.settings.sidebar.account_nav.addons'), url: addons_path }
+    links << { name: I18n.t('users.settings.sidebar.account_nav.addons'), url: addons_path } if respond_to?(:addons_path)
 
     private_methods.select { |i| i.to_s[/^settings_menu_links_[a-z]*_extension$/] }.each do |method|
       links = __send__(method, links)

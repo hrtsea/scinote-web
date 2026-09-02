@@ -61,7 +61,7 @@ class LabelPrintersController < ApplicationController
       flash[:error] = t('label_printers.destroy.error',  printer_name: @label_printer.name)
     end
 
-    redirect_to addons_path
+    redirect_to(respond_to?(:addons_path) ? addons_path : label_printers_path)
   end
 
   def print
@@ -142,7 +142,7 @@ class LabelPrintersController < ApplicationController
 
     @breadcrumbs_items.push({
                               label: t('breadcrumbs.addons'),
-                              url: addons_path
+                              url: (respond_to?(:addons_path) ? addons_path : label_printers_path)
                             })
     if @label_printer
       @breadcrumbs_items.push({

@@ -146,17 +146,28 @@ RSpec.describe 'Addon settings management', type: :request do
         expect(response).to redirect_to(%r{/users/sign_in|/users/login})
       end
     end
+
+    context 'with an unknown addon name' do
+      it 'returns not found' do
+        sign_in admin_user
+
+        put update_addon_path('does_not_exist'),
+            params: { enabled: 'true', configuration: {} }
+
+        expect(response).to have_http_status(:not_found)
+      end
+    end
   end
 
   describe 'GET /users/settings/account/addons' do
-    it 'renders the management page with an enable toggle per addon for an admin' do
+    it 'renders a configure link per addon for an admin' do
       sign_in admin_user
 
       get addons_path
 
       expect(response).to have_http_status(:success)
 
-      expect(response.body).to include(update_addon_path('esignatures'))
+      expect(response.body).to include(edit_addon_path('esignatures'))
     end
 
     it 'renders the page without management controls for a regular user' do
@@ -166,7 +177,57 @@ RSpec.describe 'Addon settings management', type: :request do
 
       expect(response).to have_http_status(:success)
 
-      expect(response.body).not_to include(update_addon_path('esignatures'))
+      expect(response.body).not_to include(edit_addon_path('esignatures'))
+    end
+
+    # Regression: the settings page must be rendered by the addon's own view
+    # (distinct `use-account-addons` wrapper), NOT a residual core view
+    # (`user-account-addons`). The core app/views path takes precedence over the
+    # engine view path, so a leftover core view would silently shadow the addon.
+    it 'renders the addon-owned view rather than a residual core view' do
+      sign_in admin_user
+
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('use-account-addons')
+    end
+
+    it 'renders each addon description for an admin' do
+      sign_in admin_user
+
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(I18n.t('project_insights.settings.description'))
+    end
+  end
+
+  describe 'GET /users/settings/account/addons/:name (edit)' do
+    it 'renders the config form for an admin' do
+      sign_in admin_user
+
+      get edit_addon_path('project_insights')
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(update_addon_path('project_insights'))
+      expect(response.body).to include('name="configuration[default_period_days]"')
+    end
+
+    it 'is forbidden for a non-admin user' do
+      sign_in normal_user
+
+      get edit_addon_path('esignatures')
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it 'returns not found for an unknown addon name' do
+      sign_in admin_user
+
+      get edit_addon_path('does_not_exist')
+
+      expect(response).to have_http_status(:not_found)
     end
 
     it 'disables config fields when the addon is disabled' do
@@ -174,7 +235,7 @@ RSpec.describe 'Addon settings management', type: :request do
 
       AddonSetting.update_for('project_insights', enabled: false, configuration: {})
 
-      get addons_path
+      get edit_addon_path('project_insights')
 
       expect(response).to have_http_status(:success)
 
@@ -188,11 +249,29 @@ RSpec.describe 'Addon settings management', type: :request do
 
       AddonSetting.update_for('ai_protocols', enabled: true, configuration: { api_key: 'topsecret' })
 
-      get addons_path
+      get edit_addon_path('ai_protocols')
 
       expect(response).to have_http_status(:success)
 
       expect(response.body).to include(I18n.t('users.settings.account.addons.config_secret_set'))
+    end
+
+    it 'renders the addon-owned edit view rather than a residual core view' do
+      sign_in admin_user
+
+      get edit_addon_path('esignatures')
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('use-account-addons-edit')
+    end
+
+    it 'renders the detailed help text for an admin' do
+      sign_in admin_user
+
+      get edit_addon_path('project_insights')
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include(I18n.t('project_insights.settings.detailed_help'))
     end
   end
 end

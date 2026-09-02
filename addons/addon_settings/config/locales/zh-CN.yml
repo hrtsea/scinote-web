@@ -5,6 +5,8 @@ zh-CN:
         addons:
           head_title: 设置 | 附加组件
           title: 附加组件
+          description: 集中启用或配置当前实例中可用的附加组件。
+          detailed_help: 在此页统一开启或关闭各附加组件；点击“配置”可设置该组件的专属选项。
           no_addons: 你没有任何 SciNote 附加组件。
           scinote_addons: SciNote 附加组件
           label_printers: 标签打印机
@@ -37,3 +39,6 @@ zh-CN:
           save: 保存
           configuration: 配置（JSON）
           config_secret_set: 已设置
+          configure: 配置
+          disabled: 已禁用
+          back: 返回附加组件

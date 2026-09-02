@@ -5,6 +5,8 @@ en:
         addons:
           head_title: "Settings | Add-ons"
           title: "Add-ons"
+          description: "Centrally enable or configure the add-ons available in your instance."
+          detailed_help: "Toggle each add-on on or off from this page. Use Configure to set add-on specific options."
           no_addons: "You have no SciNote Add-ons."
           scinote_addons: "SciNote add-ons"
           label_printers: "Label printers"
@@ -37,3 +39,6 @@ en:
           save: "Save"
           configuration: "Configuration (JSON)"
           config_secret_set: "Already set"
+          configure: "Configure"
+          disabled: "Disabled"
+          back: "Back to add-ons"

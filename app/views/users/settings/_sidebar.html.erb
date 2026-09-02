@@ -13,12 +13,14 @@
                 class: "sidebar-link #{'selected' if on_settings_account_preferences_page?}"
     %>
   </li>
+  <% if respond_to?(:addons_path) %>
   <li class="sidebar-leaf" >
     <%= link_to t("users.settings.sidebar.account_nav.addons"),
                 addons_path,
                 class: "sidebar-link #{'selected' if on_settings_account_addons_page?}"
     %>
   </li>
+  <% end %>
   <li class="sidebar-leaf" >
     <%= link_to t("users.settings.sidebar.account_nav.connected_accounts"),
                 connected_accounts_path,
