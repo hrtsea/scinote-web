@@ -1,6 +1,8 @@
 zh-CN:
   esignatures:
     settings:
+      description: 为记录添加具备法律效力的电子签名，并可要求填写签名意图。
+      detailed_help: 控制签名者是否在每次签名前必须填写书面签名意图/说明。
       config:
         require_intent: "要求签名意图说明"
         require_intent_help: "强制签名者在签名前填写签名意图/说明。"

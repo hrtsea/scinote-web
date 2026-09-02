@@ -5,6 +5,10 @@ en:
       intent_placeholder: "e.g. I reviewed and approve this record"
       sign: "Sign"
     settings:
+      description: "Add legally binding electronic signatures to records and require a signing intent."
+      detailed_help: >-
+        Control whether signers must provide a written intent/meaning before
+        signing each record.
       config:
         require_intent: "Require signature intent"
         require_intent_help: "Force signers to provide a written intent/meaning before signing."
