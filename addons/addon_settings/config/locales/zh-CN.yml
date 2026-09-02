@@ -41,4 +41,6 @@ zh-CN:
           config_secret_set: 已设置
           configure: 配置
           disabled: 已禁用
+          always_enabled: 该插件不可被禁用。
+          always_on: 始终启用
           back: 返回附加组件

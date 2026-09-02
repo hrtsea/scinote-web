@@ -22,6 +22,7 @@ module Scinote
         return head(:not_found) unless available_addon_names.include?(params[:name])
 
         @addon_name = params[:name]
+        @addon_disablable = AddonSetting.disablable?(@addon_name)
         @setting = AddonSetting.for(@addon_name)
         @breadcrumbs_items = [
           { label: t('breadcrumbs.addons'), url: addons_path },
@@ -36,7 +37,11 @@ module Scinote
 
         setting = AddonSetting.for(params[:name])
 
-        setting.enabled = ActiveModel::Type::Boolean.new.cast(params[:enabled])
+        setting.enabled = if AddonSetting.disablable?(params[:name])
+                            ActiveModel::Type::Boolean.new.cast(params[:enabled])
+                          else
+                            true
+                          end
 
         setting.configuration = cast_configuration(setting, params[:configuration])
 

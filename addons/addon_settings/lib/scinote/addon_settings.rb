@@ -14,5 +14,10 @@ module Scinote
     def self.detailed_help
       'users.settings.account.addons.detailed_help'
     end
+
+    # 该 addon 提供附加组件管理界面本身，必须常驻启用，不可被禁用。
+    def self.disablable?
+      false
+    end
   end
 end

@@ -17,6 +17,16 @@ RSpec.describe AddonSetting, type: :model do
       AddonSetting.create!(name: 'esignatures', enabled: true, configuration: {})
       expect(AddonSetting.enabled?('esignatures')).to be true
     end
+
+    it 'always returns true for a non-disablable addon, even if its row is disabled' do
+      stub_const('Scinote::TempLockedAddon', Module.new do
+        def self.disablable?
+          false
+        end
+      end)
+      AddonSetting.create!(name: 'temp_locked_addon', enabled: false, configuration: {})
+      expect(AddonSetting.enabled?('temp_locked_addon')).to be true
+    end
   end
 
   describe '.for' do
@@ -24,6 +34,31 @@ RSpec.describe AddonSetting, type: :model do
       setting = AddonSetting.for('project_insights')
       expect(setting.name).to eq 'project_insights'
       expect(setting).to be_new_record
+    end
+  end
+
+  describe '.disablable?' do
+    it 'returns true when the addon module does not declare disablable?' do
+      stub_const('Scinote::TempPlainAddon', Module.new)
+      expect(AddonSetting.disablable?('temp_plain_addon')).to be true
+    end
+
+    it 'returns false when the addon module declares disablable? false' do
+      stub_const('Scinote::TempLockedAddon', Module.new do
+        def self.disablable?
+          false
+        end
+      end)
+      expect(AddonSetting.disablable?('temp_locked_addon')).to be false
+    end
+
+    it 'returns true when the addon module declares disablable? true' do
+      stub_const('Scinote::TempFreeAddon', Module.new do
+        def self.disablable?
+          true
+        end
+      end)
+      expect(AddonSetting.disablable?('temp_free_addon')).to be true
     end
   end
 

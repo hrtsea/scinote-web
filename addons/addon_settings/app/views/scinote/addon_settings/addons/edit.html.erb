@@ -25,13 +25,17 @@
                     data: { turbo: false },
                     class: 'flex flex-col gap-2 mt-2' do |f| %>
 
-        <label class="flex items-center gap-2 text-sn-black">
-          <%= check_box_tag :enabled, '1', @setting.enabled %>
-          <%= t('users.settings.account.addons.enabled') %>
-        </label>
+        <% if @addon_disablable %>
+          <label class="flex items-center gap-2 text-sn-black">
+            <%= check_box_tag :enabled, '1', AddonSetting.enabled?(@addon_name) %>
+            <%= t('users.settings.account.addons.enabled') %>
+          </label>
+        <% else %>
+          <div class="text-sn-dark-grey"><%= t('users.settings.account.addons.always_enabled') %></div>
+        <% end %>
 
         <% AddonSetting.config_schema_for(@addon_name).each do |field| %>
-          <%= render_addon_config_field(field, @setting, disabled: !@setting.enabled) %>
+          <%= render_addon_config_field(field, @setting, disabled: !AddonSetting.enabled?(@addon_name)) %>
         <% end %>
 
         <%= f.submit t('users.settings.account.addons.save'),

@@ -41,4 +41,6 @@ en:
           config_secret_set: "Already set"
           configure: "Configure"
           disabled: "Disabled"
+          always_enabled: "This add-on cannot be disabled."
+          always_on: "Always on"
           back: "Back to add-ons"

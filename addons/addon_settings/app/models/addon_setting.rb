@@ -13,10 +13,25 @@ class AddonSetting < ApplicationRecord
   validate :schema_integers_non_negative
 
   # An addon is enabled when no setting row exists (mounted = on by default),
-  # or when its row explicitly sets `enabled` to true.
+  # or when its row explicitly sets `enabled` to true. Non-disablable addons
+  # (declared via `self.disablable?` returning false, e.g. addon_settings, i18n)
+  # are ALWAYS enabled — their flag is never user-controllable, at any layer.
   def self.enabled?(name)
+    return true unless disablable?(name)
+
     record = find_by(name: name)
     record.nil? ? true : record.enabled
+  end
+
+  # Whether an instance admin may toggle the addon's enable flag.
+  # Convention: an addon module may declare `self.disablable?`; when omitted the
+  # addon is disablable (true) by default. Core addons such as addon_settings and
+  # i18n declare `disablable?` returning false so they can never be turned off.
+  def self.disablable?(name)
+    mod = "Scinote::#{name.to_s.camelize}".safe_constantize
+    return true unless mod&.respond_to?(:disablable?)
+
+    mod.disablable?
   end
 
   def self.for(name)

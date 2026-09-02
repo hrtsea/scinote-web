@@ -129,6 +129,17 @@ RSpec.describe 'Addon settings management', type: :request do
       end
     end
 
+    context 'for a non-disablable addon' do
+      it 'ignores a disable attempt and keeps it enabled' do
+        sign_in admin_user
+
+        put update_addon_path('addon_settings'), params: { enabled: 'false' }
+
+        expect(response).to redirect_to(addons_path)
+        expect(AddonSetting.enabled?('addon_settings')).to be true
+      end
+    end
+
     context 'as a non-admin user' do
       it 'is forbidden' do
         sign_in normal_user
@@ -201,6 +212,15 @@ RSpec.describe 'Addon settings management', type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).to include(I18n.t('project_insights.settings.description'))
     end
+
+    it 'does not render an inline enable checkbox on the index' do
+      sign_in admin_user
+
+      get addons_path
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include('name="enabled"')
+    end
   end
 
   describe 'GET /users/settings/account/addons/:name (edit)' do
@@ -272,6 +292,25 @@ RSpec.describe 'Addon settings management', type: :request do
 
       expect(response).to have_http_status(:success)
       expect(response.body).to include(I18n.t('project_insights.settings.detailed_help'))
+    end
+
+    it 'hides the enable toggle for a non-disablable addon' do
+      sign_in admin_user
+
+      get edit_addon_path('addon_settings')
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include('name="enabled"')
+      expect(response.body).to include(I18n.t('users.settings.account.addons.always_enabled'))
+    end
+
+    it 'renders the enable toggle for a disablable addon' do
+      sign_in admin_user
+
+      get edit_addon_path('esignatures')
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).to include('name="enabled"')
     end
   end
 end

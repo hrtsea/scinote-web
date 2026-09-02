@@ -56,33 +56,31 @@
 
           <% @addons.each do |name| %>
 
-            <div class="addon-setting-card border-b border-sn-light-grey pb-4">
+            <div class="addon-setting-card flex flex-row justify-between border-b border-sn-light-grey pb-4">
 
-              <div class="flex items-center justify-between">
-                <h3 class="font-bold text-sn-black my-0"><%= name.titleize %></h3>
-                <% if AddonSetting.enabled?(name) %>
-                  <span class="text-sn-black font-medium text-sm"><%= t('users.settings.account.addons.enabled') %></span>
-                <% else %>
-                  <span class="text-sn-dark-grey text-sm"><%= t('users.settings.account.addons.disabled') %></span>
-                <% end %>
-              </div>
+              <%# left part: title + description + link to the settings interface %>
+              <div class="flex flex-col">
+                <div class="font-bold text-sn-black pb-2"><%= name.titleize %></div>
 
-              <% if (desc = AddonSetting.description_for(name)).present? %>
-                <p class="text-sn-dark-grey text-sm mt-1"><%= t(desc) %></p>
-              <% end %>
-
-              <div class="flex items-center gap-4 mt-2">
-                <%= form_with url: update_addon_path(name),
-                              method: :put,
-                              data: { turbo: false },
-                              class: 'flex items-center gap-2' do |f| %>
-                  <%= check_box_tag :enabled, '1', AddonSetting.enabled?(name),
-                                    onchange: 'this.form.requestSubmit()' %>
-                  <%= f.label :enabled, t('users.settings.account.addons.enabled'), class: 'text-sn-black' %>
+                <% if (desc = AddonSetting.description_for(name)).present? %>
+                  <div class="text-sn-dark-grey pb-6"><%= t(desc) %></div>
                 <% end %>
 
                 <%= link_to t('users.settings.account.addons.configure'),
                             edit_addon_path(name), class: 'text-sn-blue' %>
+              </div>
+
+              <%# right part: read-only enabled/disabled status (mirrors Label printers) %>
+              <div class="flex flex-row min-w-fit items-start">
+                <div class="flex items-center gap-2">
+                  <div class="text-sn-black"><%= AddonSetting.enabled?(name) ? t('users.settings.account.addons.enabled') : t('users.settings.account.addons.disabled') %></div>
+                  <% if AddonSetting.enabled?(name) %>
+                    <i class="sn-icon sn-icon-check"></i>
+                  <% end %>
+                  <% unless AddonSetting.disablable?(name) %>
+                    <span class="text-sn-dark-grey text-sm"><%= t('users.settings.account.addons.always_on') %></span>
+                  <% end %>
+                </div>
               </div>
 
             </div>
