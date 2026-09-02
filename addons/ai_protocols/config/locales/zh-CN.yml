@@ -24,6 +24,8 @@ zh-CN:
     table_data_placeholder: "表格数据用 JSON 二维数组表示，例如 [[\"表头\",\"数值\"],[\"试剂\",\"100 µL\"]]"
     save_draft: "保存为协议草稿"
     settings:
+      description: 用 AI 将粘贴的操作步骤或文档转换为结构化、可复用的协议模板。
+      detailed_help: 接入一个 OpenAI 兼容的解析服务以启用“用 AI 创建”。
       config:
         parser_url: "AI 解析服务地址"
         parser_url_help: "OpenAI 兼容解析服务的 Base URL（例如 https://api.openai.com/v1）。"

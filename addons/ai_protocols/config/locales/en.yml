@@ -24,6 +24,9 @@ en:
     table_data_placeholder: "Table data as a JSON 2D array, e.g. [[\"Header\",\"Value\"],[\"Reagent\",\"100 µL\"]]"
     save_draft: "Save as draft protocol"
     settings:
+      description: "Use AI to turn pasted procedures or documents into structured, reusable protocol templates."
+      detailed_help: >-
+        Connect an OpenAI-compatible parser service to enable "Create with AI".
       config:
         parser_url: "AI parser endpoint URL"
         parser_url_help: "Base URL of the OpenAI-compatible parser service (e.g. https://api.openai.com/v1)."

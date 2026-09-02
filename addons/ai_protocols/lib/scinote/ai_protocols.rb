@@ -49,5 +49,15 @@ module Scinote
         }
       ].freeze
     end
+
+    # 设置页卡片简介（参照 Label printers 的标题+描述风格）。
+    def self.description
+      'scinote_ai_protocols.settings.description'
+    end
+
+    # 配置子页的详细说明。
+    def self.detailed_help
+      'scinote_ai_protocols.settings.detailed_help'
+    end
   end
 end
