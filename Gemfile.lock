@@ -44,6 +44,11 @@ GIT
       omniauth-oauth2 (~> 1.7, >= 1.7.1)
 
 PATH
+  remote: addons/addon_settings
+  specs:
+    scinote_addon_settings (0.1.0)
+
+PATH
   remote: addons/ai_protocols
   specs:
     scinote_ai_protocols (0.1.0)
@@ -1008,6 +1013,7 @@ DEPENDENCIES
   rubyzip (>= 2.3.0)
   rufus-scheduler
   sanitize
+  scinote_addon_settings!
   scinote_ai_protocols!
   scinote_esignatures!
   scinote_i18n!

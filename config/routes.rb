@@ -56,12 +56,6 @@ Rails.application.routes.draw do
     get 'users/settings/account/preferences',
         to: 'users/settings/account/preferences#index',
         as: 'preferences'
-    get 'users/settings/account/addons',
-        to: 'users/settings/account/addons#index',
-        as: 'addons'
-    put 'users/settings/account/addons/:name',
-        to: 'users/settings/account/addons#update',
-        as: 'update_addon'
 
     resources :label_templates, only: %i(index show update create) do
       member do

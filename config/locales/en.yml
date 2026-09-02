@@ -3762,41 +3762,6 @@ en:
             language_label: "Language"
             language_sublabel: "Select the interface display language (简体中文 / English)."
           update_flash: "Preferences successfully updated."
-        addons:
-          head_title: "Settings | Add-ons"
-          title: "Add-ons"
-          no_addons: "You have no SciNote Add-ons."
-          scinote_addons: "SciNote add-ons"
-          label_printers: "Label printers"
-          printers:
-            ready: "Ready"
-            not_ready: "Not ready"
-            printer_details: "Printer details"
-            details: "Details"
-            enter_api_key: "Enter API key"
-            set_up: "Set up"
-            enabled: "Enabled"
-          fluics_printer:
-            title: "FLUICS Print"
-            description: "Truly a plug & play label printing solution."
-          zebra_printer:
-            title: 'Zebra label printers'
-            description: 'Print labels of custom styles and sizes in seconds flat from your PC or Mac via your Zebra printer connected via USB, Internet or LAN.'
-            details: 'Details'
-          desktop_app:
-            scinote_apps: "SciNote apps"
-            scinote_edit: 'SciNote Edit'
-            description: 'Download the SciNote Edit desktop app to automatically edit files using locally installed software.'
-            macos_button: 'Download for macOS'
-            windows_button: 'Download for Windows'
-            version: 'Version %{version}'
-          more_info: 'More info'
-          updated: "Add-on settings updated."
-          update_error: "Could not update add-on settings."
-          enabled: "Enabled"
-          save: "Save"
-          configuration: "Configuration (JSON)"
-          config_secret_set: "Already set"
         label_printer:
           fluics_printer: "FLUICS Print: Label printers"
           zebra_printer: 'Zebra label printers'
