@@ -31,7 +31,7 @@ module Scinote
         create(:team, :change_user_team, created_by: user)
         sign_in user
         allow(Protocol).to receive(:ai_parser_enabled?).and_return(true)
-        allow(Scinote::AiProtocols::LlmClient).to receive(:for).and_return(fake_client)
+        allow(Scinote::AiProtocols).to receive(:llm_client).and_return(fake_client)
         allow_any_instance_of(Team).to receive(:permission_granted?).and_return(true)
       end
 

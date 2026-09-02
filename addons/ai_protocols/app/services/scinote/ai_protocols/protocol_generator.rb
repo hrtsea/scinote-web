@@ -24,7 +24,7 @@ module Scinote
         - Respond ONLY with the structured object defined by the provided JSON schema.
       PROMPT
 
-      def initialize(llm_client: LlmClient.for)
+      def initialize(llm_client: Scinote::AiProtocols.llm_client)
         @llm_client = llm_client
       end
 

@@ -21,6 +21,22 @@ module Scinote
         Dir.glob(Engine.root.join('app', 'overrides', '**', '*.rb')).sort.each do |override|
           ::Rails.configuration.cache_classes ? require(override) : load(override)
         end
+        # Load addon decorators (view/helper extensions) in dev/reload, mirroring
+        # the esignatures addon. This is what exposes `can_generate_protocol_with_ai?`
+        # to core views (e.g. protocols/index) so the AI create-button override
+        # does not raise NoMethodError at render time.
+        Dir.glob(Engine.root.join('app', 'decorators', '**', '*_decorator*.rb')).sort.each do |decorator|
+          ::Rails.configuration.cache_classes ? require(decorator) : load(decorator)
+        end
+      end
+
+      # Self-register routes on the host app root. The addon is fully
+      # self-contained: no `mount` line lives in the host's config/routes.rb,
+      # so commenting the addon out of the Gemfile never breaks Rails boot.
+      initializer 'scinote_ai_protocols.routes' do |app|
+        app.routes.append do
+          mount Scinote::AiProtocols::Engine => '/'
+        end
       end
     end
   end

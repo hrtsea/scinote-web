@@ -23,3 +23,14 @@ zh-CN:
     table_name_placeholder: "表格名称"
     table_data_placeholder: "表格数据用 JSON 二维数组表示，例如 [[\"表头\",\"数值\"],[\"试剂\",\"100 µL\"]]"
     save_draft: "保存为协议草稿"
+    settings:
+      config:
+        parser_url: "AI 解析服务地址"
+        parser_url_help: "OpenAI 兼容解析服务的 Base URL（例如 https://api.openai.com/v1）。"
+        api_key: "API 密钥"
+        api_key_help: "用于向解析服务鉴密的密钥。"
+        model: "模型"
+        model:
+          gpt4o_mini: "gpt-4o-mini"
+          gpt4o: "gpt-4o"
+          gpt4_turbo: "gpt-4-turbo"

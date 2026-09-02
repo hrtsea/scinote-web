@@ -41,7 +41,7 @@ module Scinote
         create(:team, :change_user_team, created_by: user)
         sign_in user
         allow(Protocol).to receive(:ai_parser_enabled?).and_return(true)
-        allow(Scinote::AiProtocols::LlmClient).to receive(:for).and_return(fake_client)
+        allow(Scinote::AiProtocols).to receive(:llm_client).and_return(fake_client)
         # In the test env canaid's to_prepare runs per request, so the
         # `can_generate_protocol_with_ai?` helper is not registered until the
         # request fires. We authorise through the underlying grant instead of

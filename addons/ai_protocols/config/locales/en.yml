@@ -23,3 +23,14 @@ en:
     table_name_placeholder: "Table name"
     table_data_placeholder: "Table data as a JSON 2D array, e.g. [[\"Header\",\"Value\"],[\"Reagent\",\"100 µL\"]]"
     save_draft: "Save as draft protocol"
+    settings:
+      config:
+        parser_url: "AI parser endpoint URL"
+        parser_url_help: "Base URL of the OpenAI-compatible parser service (e.g. https://api.openai.com/v1)."
+        api_key: "API key"
+        api_key_help: "Secret key used to authenticate with the parser service."
+        model: "Model"
+        model:
+          gpt4o_mini: "gpt-4o-mini"
+          gpt4o: "gpt-4o"
+          gpt4_turbo: "gpt-4-turbo"
