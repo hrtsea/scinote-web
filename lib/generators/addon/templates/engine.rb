@@ -40,6 +40,16 @@ class Engine < ::Rails::Engine
     end
   end
 
+  # Self-register routes on the host app root so the addon stays
+  # zero-intrusion: no `mount` line is added to the host's config/routes.rb.
+  # Commenting the addon out of the Gemfile simply skips this initializer
+  # and Rails still boots fine (the routes just 404 instead of crashing).
+  initializer '${FULL_UNDERSCORE_NAME}.routes', after: :add_routes do |app|
+    app.routes.append do
+      mount ${NAME}::Engine => '/'
+    end
+  end
+
   # Initialize decorators
   config.to_prepare do
     Dir.glob(Engine.root.join('app',
