@@ -7,6 +7,7 @@ module Scinote
       before_action :authorize_addon_admin!, only: %i(edit update)
 
       layout 'fluid'
+      include ::AddonsHelper
 
       def index
         @label_printer_any = LabelPrinter.any?
@@ -62,16 +63,18 @@ module Scinote
         head :forbidden unless can_manage_addons?
       end
 
-      # Names of the addons shipped under Rails.root/addons, used to render the
-      # management UI. Each maps 1:1 to an AddonSetting name.
+      # Names of the addons, derived from the single source of truth
+      # `list_all_addons` (Rails::Engine reflection) instead of a raw
+      # filesystem scan of `Rails.root/addons`. This keeps the managed
+      # addon set aligned with canaid/permission discovery and prevents
+      # listing unloaded "zombie" directories (which would spawn orphan
+      # AddonSetting records). The engine module is reduced to its
+      # underscore string name (Scinote::AddonSettings -> 'addon_settings')
+      # to stay compatible with AddonSetting.for/enabled?/toggleable?.
       def available_addon_names
-        addons_dir = Rails.root.join('addons')
-        return [] unless addons_dir.directory?
-
-        addons_dir.children
-                  .select(&:directory?)
-                  .map { |entry| entry.basename.to_s }
-                  .sort
+        list_all_addons
+          .map { |addon| addon.to_s.split('::').last.underscore }
+          .sort
       end
 
       def set_breadcrumbs_items

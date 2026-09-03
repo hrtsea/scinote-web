@@ -4,7 +4,7 @@
 
 约定驱动的实证来源：
 
-- 目录发现：`Scinote::AddonSettings::AddonsController#available_addon_names`
+- addon 名来源（单一事实来源）：`Scinote::AddonSettings::AddonsController#available_addon_names`，基于核心 `list_all_addons`（Rails::Engine 反射）而非目录扫描
 - 模块约定发现与优雅降级：`AddonSetting.addon_module` 及 `toggleable?` / `config_schema_for` / `description_for` / `detailed_help_for`
 - 自挂载与守卫式链接：`addon_settings` 的 `engine.rb`
 
@@ -12,12 +12,19 @@
 
 ## 1. 自动发现的两层机制
 
-### 1.1 目录级发现（addon 名来源）
+### 1.1 引擎反射发现（addon 名来源，单一事实来源）
 
-`available_addon_names` 扫描 `Rails.root.join('addons')` 下的**子目录**，目录名即 addon 名（按字母排序）。
+`available_addon_names` 不再扫描文件系统，而是直接复用核心的 `list_all_addons`（`Rails::Engine.subclasses` 反射出所有已加载的 `Scinote::*` 引擎），再把每个引擎模块还原为下划线命名字符串：
 
-- 新增一个 addon = 在 `addons/` 下新建目录 `addons/<name>/`。
-- 该目录名就是它在 `addon_settings` 表中的 `name`，也是下一层约定模块的命名依据。
+```ruby
+list_all_addons.map { |addon| addon.to_s.split('::').last.underscore }
+# => ['addon_settings', 'ai_protocols', 'esignatures', 'i18n', 'project_insights']
+```
+
+- 管理 UI 列出的 addon 集合与 canaid 权限收录、关于弹窗**共用同一事实来源**，不再出现两套口径漂移。
+- 只有被 Bundler 真正加载的引擎才会被列出，避免列出"目录在但 Gemfile 未注册"的僵尸目录而产生孤立的 `AddonSetting` 记录。
+- 还原出的字符串名恰好等于 `addons/<name>` 目录名（如 `Scinote::AddonSettings` → `'addon_settings'`），因此仍是 `AddonSetting` 表的 `name`、约定模块 `Scinote::<Name>` 的命名依据，与下方模块级发现对齐。
+- 新增一个 addon = 在 `addons/` 下新建目录 `addons/<name>/` **且**在 `Gemfile` 注册（缺一不可被引擎加载、从而被列出）。
 - **不写任何 controller**：`index` / `edit` / `update` 由 `addon_settings` 提供且完全通用，按 `available_addon_names` 动态遍历。
 
 ### 1.2 模块级约定式自描述（元数据来源）
@@ -37,7 +44,7 @@
 gem 'scinote_<name>', path: 'addons/<name>'
 ```
 
-（或对应的 git / 其它来源。）目录存在但 addon 未注册 → 模块不会被加载 → `safe_constantize` 返回 `nil` → 该 addon 不会被列出。
+（或对应的 git / 其它来源。）目录存在但 addon 未注册 → 引擎不会被 Bundler 加载 → `list_all_addons` 反射不到它 → `addon_settings` 不会列出该 addon（`safe_constantize` 也会因此返回 `nil`）。
 
 > 这也意味着移除一个 addon 的唯一操作就是把它从 Gemfile 注释掉。但要注意：`addon_settings` 自身声明 `toggleable? => false`，是**必须保持启用的基础设施**（见第 5 节），生产环境不应移除——移除虽 boot-safe，却会失去管理其它所有 addon 配置的能力。
 
