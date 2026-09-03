@@ -5,8 +5,11 @@
 # their features are active. Mounted addons are ON by default (opt-out): when no
 # row exists for a name, #enabled? returns true.
 #
-# Owned by the addon_settings engine (lives here, not in the host app/, so the
-# addon stays self-contained and removable via the Gemfile alone).
+# Owned by the addon_settings engine (lives here, not in the host app/). As the
+# management UI + discovery registry for every other addon, addon_settings
+# declares `toggleable? => false` and must stay enabled — it is infrastructure,
+# not an opt-out plugin, so it should not be removed from the Gemfile in
+# production even though doing so is boot-safe (its routes simply 404).
 class AddonSetting < ApplicationRecord
   class InvalidConfiguration < StandardError; end
 
@@ -93,7 +96,7 @@ class AddonSetting < ApplicationRecord
   # 兼容旧契约：仍接受裸 JSON 字符串（整体原样存储）。
   # 新契约：表单按 schema 字段提交 configuration[key]=value，据字段类型转换。
   # 合并基线：raw 为 nil 或字段未提交时保留 existing 中的旧值，绝不静默清空
-  # （secret 留空即保留原密钥、boolean 未勾选即 false、其它字段未提交则保留）。
+  # （boolean 未勾选即 false；secret 留空保留原密钥的逻辑见 coerce_config_value）。
   # 非法输入（JSON 解析失败 / integer 负值）抛出 JSON::ParserError / InvalidConfiguration，
   # 由上游控制器捕获并回退到错误提示。
   def self.typed_configuration(raw, name, existing: {})

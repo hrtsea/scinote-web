@@ -13,22 +13,26 @@ module Scinote
         ]
       end
 
-      # Self-register routes on the host app root via mount, mirroring the other
-      # addons (ai_protocols, esignatures, …): isolate_namespace + mount. The
-      # addon is fully self-contained — no `mount` line lives in the host's
-      # config/routes.rb, so commenting the addon out of the Gemfile never breaks
-      # Rails boot (the routes simply are not registered and the pages 404
-      # instead of crashing the boot).
+      # Register this engine's routes on the host root (isolate_namespace + mount)
+      # so the host's config/routes.rb stays untouched — zero-intrusion at the
+      # routing layer.
+      #
+      # NOTE: addon_settings is the management UI + discovery registry for *all*
+      # other addons and declares `toggleable? => false` (lib/scinote/addon_settings.rb):
+      # infrastructure that must stay enabled. Do NOT disable it by commenting it
+      # out of the Gemfile in production. A removal is boot-safe (routes go
+      # unregistered, pages 404 via the host's `respond_to?(:addons_path)` guards)
+      # but it strips the ability to manage every other addon's configuration.
       initializer 'scinote_addon_settings.routes', after: :add_routes do |app|
         app.routes.append do
           mount Scinote::AddonSettings::Engine => '/'
         end
       end
 
-      # Expose this engine's own migrations to the host so the addon_settings
-      # table is created via `rails db:migrate` without ever touching the host's
-      # db/migrate (zero-intrusion: the addon stays fully self-contained and is
-      # removable via the Gemfile alone).
+      # Expose this engine's own migrations so the addon_settings table is created
+      # via `rails db:migrate` without touching the host's db/migrate
+      # (zero-intrusion: migrations stay self-contained — see the routes
+      # initializer NOTE on why this addon must stay enabled).
       initializer :append_migrations, after: :append_migrations do |app|
         next if app.root.to_s == root.to_s
 
@@ -37,15 +41,12 @@ module Scinote
         end
       end
 
-      # Mounted engines (even isolated ones) only expose their named routes via
-      # the engine proxy (`Engine.routes.url_helpers`), never as host-level
-      # helpers. This addon's host code (sidebar, navigations_controller,
-      # label_printers_controller) and its request specs call `addons_path` /
-      # `update_addon_path` directly, so we promote those two helpers to the host
-      # level by delegating to the engine proxy. This keeps the host references
-      # and the graceful-disable `respond_to?(:addons_path)` guards working
-      # unchanged while the engine itself stays isolated + mounted like the other
-      # addons.
+      # Isolated engines expose named routes only via the engine proxy, not as
+      # host-level helpers, yet host code (sidebar, navigations_controller,
+      # label_printers_controller, specs) calls `addons_path` / `update_addon_path`
+      # directly. Promote those three to host level (delegate to the engine proxy)
+      # so the references and the `respond_to?(:addons_path)` graceful-disable
+      # guards keep working while the engine stays isolated.
       config.to_prepare do
         Rails.application.routes.url_helpers.module_eval do
           define_method(:addons_path) do

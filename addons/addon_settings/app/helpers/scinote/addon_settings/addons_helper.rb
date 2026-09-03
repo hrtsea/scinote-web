@@ -38,7 +38,7 @@ module Scinote
         when 'boolean'
           check_box_tag(name, '1', value, id: field_id, class: 'm-2', disabled: disabled)
         when 'secret'
-          # 不回显已存密钥；留空则保留原值（见 typed_configuration 的 secret 分支）。
+          # 不回显已存密钥；留空则保留原值（见 AddonSetting.coerce_config_value 的 secret 分支）。
           password_field_tag(name, '', id: field_id, class: 'form-control',
                              placeholder: field[:placeholder].to_s, autocomplete: 'new-password', disabled: disabled)
         when 'integer'
