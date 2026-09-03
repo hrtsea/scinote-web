@@ -4,7 +4,7 @@ module Scinote
   module AddonSettings
     module AddonsHelper
       # 渲染某个 addon 配置字段（label + 控件 + 帮助文本），按 schema 的 type 分派。
-      # 控件命名 configuration[key]，由核心 AddonsController#cast_configuration 类型化收集。
+      # 控件命名 configuration[key]，提交后由 AddonSetting.typed_configuration 类型化收集。
       # disabled: 当 addon 关闭时为 true，禁用该字段（防止在禁用态误配）。
       def render_addon_config_field(field, setting, disabled: false)
         key = field[:key].to_s
@@ -38,7 +38,7 @@ module Scinote
         when 'boolean'
           check_box_tag(name, '1', value, id: field_id, class: 'm-2', disabled: disabled)
         when 'secret'
-          # 不回显已存密钥；留空则保留原值（见 cast_configuration 的 secret 分支）。
+          # 不回显已存密钥；留空则保留原值（见 typed_configuration 的 secret 分支）。
           password_field_tag(name, '', id: field_id, class: 'form-control',
                              placeholder: field[:placeholder].to_s, autocomplete: 'new-password', disabled: disabled)
         when 'integer'

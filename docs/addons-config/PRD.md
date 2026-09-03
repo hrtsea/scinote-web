@@ -13,7 +13,7 @@
 
 - 每个 addon 在其模块上定义 `self.config_schema`，返回字段数组（每个字段含 `key` / `label` / `type` / `default` / 可选 `options` / `help`）。
 - 设置页读取 `AddonSetting.config_schema_for(name)`，按 `type`（boolean / string / integer / secret / text / select）动态渲染类型化控件，并据各 addon 自有 `config/locales` 的 i18n 键显示标签与帮助文本。
-- 提交时 `AddonsController#cast_configuration` 按 schema 把表单值**类型化**写入 `addon_settings.configuration`（JSONB），并兼容旧的裸 JSON 契约。
+- 提交时 `AddonsController#typed_configuration` 按 schema 把表单值**类型化**写入 `addon_settings.configuration`（JSONB），并兼容旧的裸 JSON 契约。
 - secret 类字段不在表单回显，留空时保留原值。
 
 这样"配置参数页面"本身由各 addon 以 schema 形式实现——正是"实现为 addons"的落地。
@@ -39,7 +39,7 @@
 
 - **模块 / 接口（已落地）**
   - `AddonSetting`（`app/models/addon_setting.rb`）：新增 `self.config_schema_for(name)`（解析 `Scinote::#{Name}.config_schema`，不可达时返回 `[]`）；既有 `self.enabled?` / `self.for` / `config_value` 复用。
-  - `Scinote::AddonSettings::AddonsController`（`addons/addon_settings/app/controllers/scinote/addon_settings/addons_controller.rb`）：新增 `cast_configuration(name, raw)`，按 schema 把 `configuration[key]=value` 类型化；兼容裸 JSON 字符串（整体原样存储）。
+  - `Scinote::AddonSettings::AddonsController`（`addons/addon_settings/app/controllers/scinote/addon_settings/addons_controller.rb`）：新增 `typed_configuration(name, raw)`，按 schema 把 `configuration[key]=value` 类型化；兼容裸 JSON 字符串（整体原样存储）。
   - `AddonsHelper`（`app/helpers/addons_helper.rb`）：`render_addon_config_field` / `render_addon_config_input` 按 `type` 分派控件（checkbox / password / number / textarea / select / text）。
   - 视图 `addons/addon_settings/app/views/scinote/addon_settings/addons/index.html.erb`：在 addon 卡片内对 `config_schema_for(name)` 循环渲染字段。
   - 各 addon：`Scinote::AiProtocols.config_schema`、`Scinote::Esignatures.config_schema`、`Scinote::ProjectInsights.config_schema`（字段含 i18n label/help 键，置于 addon 自有 `config/locales/{en,zh-CN}.yml`）。
@@ -51,7 +51,7 @@
 ## Testing Decisions
 
 - **好测试的标准**：只测外部行为——提交表单后 `addon_settings.configuration` 的类型化结果、schema 缺失时仅渲染开关、secret 不回显且留空保留、旧裸 JSON 仍被接受。不测内部 `case/when` 分支细节。
-- **被覆盖模块**：`AddonSetting`（schema 解析、enabled? 契约）、`AddonsController`（cast_configuration 类型化与兼容）、`AddonsHelper`（各 type 渲染）、视图（schema 循环渲染）、各 addon 的 `config_schema` 形状。
+- **被覆盖模块**：`AddonSetting`（schema 解析、enabled? 契约）、`AddonsController`（typed_configuration 类型化与兼容）、`AddonsHelper`（各 type 渲染）、视图（schema 循环渲染）、各 addon 的 `config_schema` 形状。
 - **既有先例**：addon 相关测试沿用 `spec/` 下 request/helper/view spec；本次已补 31 个用例覆盖上述路径。
 
 ## Out of Scope

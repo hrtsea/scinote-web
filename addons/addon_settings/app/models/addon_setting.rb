@@ -8,30 +8,32 @@
 # Owned by the addon_settings engine (lives here, not in the host app/, so the
 # addon stays self-contained and removable via the Gemfile alone).
 class AddonSetting < ApplicationRecord
+  class InvalidConfiguration < StandardError; end
+
   validates :name, presence: true, uniqueness: true
 
   validate :schema_integers_non_negative
 
   # An addon is enabled when no setting row exists (mounted = on by default),
-  # or when its row explicitly sets `enabled` to true. Non-disablable addons
-  # (declared via `self.disablable?` returning false, e.g. addon_settings, i18n)
+  # or when its row explicitly sets `enabled` to true. Non-toggleable addons
+  # (declared via `self.toggleable?` returning false, e.g. addon_settings, i18n)
   # are ALWAYS enabled — their flag is never user-controllable, at any layer.
   def self.enabled?(name)
-    return true unless disablable?(name)
+    return true unless toggleable?(name)
 
     record = find_by(name: name)
     record.nil? ? true : record.enabled
   end
 
   # Whether an instance admin may toggle the addon's enable flag.
-  # Convention: an addon module may declare `self.disablable?`; when omitted the
-  # addon is disablable (true) by default. Core addons such as addon_settings and
-  # i18n declare `disablable?` returning false so they can never be turned off.
-  def self.disablable?(name)
+  # Convention: an addon module may declare `self.toggleable?`; when omitted the
+  # addon is toggleable (true) by default. Core addons such as addon_settings and
+  # i18n declare `toggleable?` returning false so they can never be turned off.
+  def self.toggleable?(name)
     mod = addon_module(name)
-    return true unless mod&.respond_to?(:disablable?)
+    return true unless mod&.respond_to?(:toggleable?)
 
-    mod.disablable?
+    mod.toggleable?
   end
 
   def self.for(name)
@@ -39,6 +41,8 @@ class AddonSetting < ApplicationRecord
   end
 
   # Persist the enabled flag and (optionally) the configuration hash for an addon.
+  # Note: `if configuration.present?` means passing `configuration: {}` is silently
+  # ignored (existing config preserved) — callers can't reset to empty this way.
   def self.update_for(name, enabled:, configuration: nil)
     setting = find_or_initialize_by(name: name)
     setting.enabled = enabled
@@ -90,7 +94,7 @@ class AddonSetting < ApplicationRecord
   # 新契约：表单按 schema 字段提交 configuration[key]=value，据字段类型转换。
   # 合并基线：raw 为 nil 或字段未提交时保留 existing 中的旧值，绝不静默清空
   # （secret 留空即保留原密钥、boolean 未勾选即 false、其它字段未提交则保留）。
-  # 非法输入（JSON 解析失败 / integer 负值）抛出 JSON::ParserError / ArgumentError，
+  # 非法输入（JSON 解析失败 / integer 负值）抛出 JSON::ParserError / InvalidConfiguration，
   # 由上游控制器捕获并回退到错误提示。
   def self.typed_configuration(raw, name, existing: {})
     return existing if raw.nil?
@@ -123,7 +127,7 @@ class AddonSetting < ApplicationRecord
   private
 
   # 解析某 addon 自描述模块 Scinote::<Name>；不可达（未挂载/命名不符）时返回 nil。
-  # 约定式自描述（config_schema / description / detailed_help / disablable?）统一从此取，
+  # 约定式自描述（config_schema / description / detailed_help / toggleable?）统一从此取，
   # 避免在多个 reader 里重复 safe_constantize。
   def self.addon_module(name)
     "Scinote::#{name.to_s.camelize}".safe_constantize
@@ -142,33 +146,34 @@ class AddonSetting < ApplicationRecord
     end
   end
 
-  # schema 声明的 integer 字段不接受负值；负值属非法输入，抛出 ArgumentError 阻止写入。
-  def self.validate_typed_configuration!(schema, config)
-    schema.each do |field|
+  # schema 声明的 integer 字段不接受负值。返回所有非法（负值）字段的 key，
+  # 供“抛错”（控制器写入路径）与“加校验错误”（模型校验）两处共用，避免规则重复。
+  def self.negative_integer_keys(schema, config)
+    schema.filter_map do |field|
       next unless field[:type].to_s == 'integer'
 
-      value = config[field[:key].to_s]
-      next unless value.is_a?(Integer)
-
-      raise ArgumentError, "Invalid value for #{field[:key]}: must be >= 0" if value.negative?
+      key = field[:key].to_s
+      config[key].is_a?(Integer) && config[key].negative? ? key : nil
     end
   end
 
+  # integer 负值属非法输入，由上游控制器捕获并回退到错误提示。
+  def self.validate_typed_configuration!(schema, config)
+    bad = negative_integer_keys(schema, config)
+    raise InvalidConfiguration, "Invalid value for #{bad.join(', ')}: must be >= 0" if bad.any?
+  end
+
   # schema 声明的 integer 字段不接受负值（必填/类型由 schema 约束）。
-  # 负值属非法输入，阻止写入；其它校验交给 schema 与上游白名单。
+  # 直接赋值 configuration（如 update_for）不经 typed_configuration 时，
+  # 由本校验兜底阻止负值写入；其它校验交给 schema 与上游白名单。
   def schema_integers_non_negative
     return if configuration.nil?
 
     schema = AddonSetting.config_schema_for(name)
     return if schema.blank?
 
-    schema.each do |field|
-      next unless field[:type].to_s == 'integer'
-
-      value = configuration[field[:key].to_s]
-      next unless value.is_a?(Integer)
-
-      errors.add(:configuration, "#{field[:key]} must be >= 0") if value.negative?
+    self.class.send(:negative_integer_keys, schema, configuration).each do |key|
+      errors.add(:configuration, "#{key} must be >= 0")
     end
   end
 end

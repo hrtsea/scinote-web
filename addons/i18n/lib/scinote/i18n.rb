@@ -24,8 +24,8 @@ module Scinote
       'scinote_i18n.settings.detailed_help'
     end
 
-    # 国际化是实例级基础能力，必须常驻启用，不可被禁用。
-    def self.disablable?
+    # 国际化是实例级基础能力，必须常驻启用，不可被切换。
+    def self.toggleable?
       false
     end
   end

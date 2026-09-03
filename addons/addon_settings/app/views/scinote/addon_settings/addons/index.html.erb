@@ -77,7 +77,7 @@
                   <% if AddonSetting.enabled?(name) %>
                     <i class="sn-icon sn-icon-check"></i>
                   <% end %>
-                  <% unless AddonSetting.disablable?(name) %>
+                  <% unless AddonSetting.toggleable?(name) %>
                     <span class="text-sn-dark-grey text-sm"><%= t('users.settings.account.addons.always_on') %></span>
                   <% end %>
                 </div>

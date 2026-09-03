@@ -129,7 +129,7 @@ RSpec.describe 'Addon settings management', type: :request do
       end
     end
 
-    context 'for a non-disablable addon' do
+    context 'for a non-toggleable addon' do
       it 'ignores a disable attempt and keeps it enabled' do
         sign_in admin_user
 
@@ -294,7 +294,7 @@ RSpec.describe 'Addon settings management', type: :request do
       expect(response.body).to include(I18n.t('project_insights.settings.detailed_help'))
     end
 
-    it 'hides the enable toggle for a non-disablable addon' do
+    it 'hides the enable toggle for a non-toggleable addon' do
       sign_in admin_user
 
       get edit_addon_path('addon_settings')
@@ -304,7 +304,7 @@ RSpec.describe 'Addon settings management', type: :request do
       expect(response.body).to include(I18n.t('users.settings.account.addons.always_enabled'))
     end
 
-    it 'renders the enable toggle for a disablable addon' do
+    it 'renders the enable toggle for a toggleable addon' do
       sign_in admin_user
 
       get edit_addon_path('esignatures')

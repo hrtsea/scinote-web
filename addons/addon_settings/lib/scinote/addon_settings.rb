@@ -15,8 +15,8 @@ module Scinote
       'users.settings.account.addons.detailed_help'
     end
 
-    # 该 addon 提供附加组件管理界面本身，必须常驻启用，不可被禁用。
-    def self.disablable?
+    # 该 addon 提供附加组件管理界面本身，必须常驻启用，不可被切换。
+    def self.toggleable?
       false
     end
   end

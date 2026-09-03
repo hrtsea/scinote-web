@@ -25,7 +25,7 @@
                     data: { turbo: false },
                     class: 'flex flex-col gap-2 mt-2' do |f| %>
 
-        <% if @addon_disablable %>
+        <% if @addon_toggleable %>
           <label class="flex items-center gap-2 text-sn-black">
             <%= check_box_tag :enabled, '1', AddonSetting.enabled?(@addon_name) %>
             <%= t('users.settings.account.addons.enabled') %>

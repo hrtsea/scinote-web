@@ -18,9 +18,9 @@ RSpec.describe AddonSetting, type: :model do
       expect(AddonSetting.enabled?('esignatures')).to be true
     end
 
-    it 'always returns true for a non-disablable addon, even if its row is disabled' do
+    it 'always returns true for a non-toggleable addon, even if its row is disabled' do
       stub_const('Scinote::TempLockedAddon', Module.new do
-        def self.disablable?
+        def self.toggleable?
           false
         end
       end)
@@ -37,28 +37,28 @@ RSpec.describe AddonSetting, type: :model do
     end
   end
 
-  describe '.disablable?' do
-    it 'returns true when the addon module does not declare disablable?' do
+  describe '.toggleable?' do
+    it 'returns true when the addon module does not declare toggleable?' do
       stub_const('Scinote::TempPlainAddon', Module.new)
-      expect(AddonSetting.disablable?('temp_plain_addon')).to be true
+      expect(AddonSetting.toggleable?('temp_plain_addon')).to be true
     end
 
-    it 'returns false when the addon module declares disablable? false' do
+    it 'returns false when the addon module declares toggleable? false' do
       stub_const('Scinote::TempLockedAddon', Module.new do
-        def self.disablable?
+        def self.toggleable?
           false
         end
       end)
-      expect(AddonSetting.disablable?('temp_locked_addon')).to be false
+      expect(AddonSetting.toggleable?('temp_locked_addon')).to be false
     end
 
-    it 'returns true when the addon module declares disablable? true' do
+    it 'returns true when the addon module declares toggleable? true' do
       stub_const('Scinote::TempFreeAddon', Module.new do
-        def self.disablable?
+        def self.toggleable?
           true
         end
       end)
-      expect(AddonSetting.disablable?('temp_free_addon')).to be true
+      expect(AddonSetting.toggleable?('temp_free_addon')).to be true
     end
   end
 
@@ -80,7 +80,7 @@ RSpec.describe AddonSetting, type: :model do
     end
 
     # 模型层数据保全契约：未传 configuration: 时绝不抹掉已存配置。
-    # 控制器开启/禁用切换依赖此不变式（cast_configuration 在 raw 为 nil 时
+    # 控制器开启/禁用切换依赖此不变式（typed_configuration 在 raw 为 nil 时
     # 保留 setting.configuration）；若 update_for 改为无条件覆盖，会静默清空密钥等配置。
     it 'preserves the existing configuration when configuration is omitted' do
       AddonSetting.update_for('esignatures', enabled: true,
@@ -216,11 +216,11 @@ RSpec.describe AddonSetting, type: :model do
       expect(result['api_key']).to eq('prev')
     end
 
-    it 'raises ArgumentError on a negative integer' do
+    it 'raises InvalidConfiguration on a negative integer' do
       schema_module
       expect do
         AddonSetting.typed_configuration({ 'default_period_days' => '-5' }, 'temp_cfg_addon')
-      end.to raise_error(ArgumentError)
+      end.to raise_error(AddonSetting::InvalidConfiguration)
     end
   end
 end

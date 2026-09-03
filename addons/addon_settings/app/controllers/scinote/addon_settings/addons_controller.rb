@@ -22,7 +22,7 @@ module Scinote
         return head(:not_found) unless available_addon_names.include?(params[:name])
 
         @addon_name = params[:name]
-        @addon_disablable = AddonSetting.disablable?(@addon_name)
+        @addon_toggleable = AddonSetting.toggleable?(@addon_name)
         @setting = AddonSetting.for(@addon_name)
         @breadcrumbs_items = [
           { label: t('breadcrumbs.addons'), url: addons_path },
@@ -37,7 +37,7 @@ module Scinote
 
         setting = AddonSetting.for(params[:name])
 
-        setting.enabled = if AddonSetting.disablable?(params[:name])
+        setting.enabled = if AddonSetting.toggleable?(params[:name])
                             ActiveModel::Type::Boolean.new.cast(params[:enabled])
                           else
                             true
@@ -51,7 +51,7 @@ module Scinote
 
         redirect_to addons_path,
                     notice: t('users.settings.account.addons.updated')
-      rescue ActiveRecord::RecordInvalid, JSON::ParserError, ArgumentError
+      rescue ActiveRecord::RecordInvalid, JSON::ParserError, AddonSetting::InvalidConfiguration
         redirect_to addons_path,
                     alert: t('users.settings.account.addons.update_error')
       end
@@ -61,9 +61,6 @@ module Scinote
       def authorize_addon_admin!
         head :forbidden unless can_manage_addons?
       end
-
-      # 配置的类型化收集已下沉到模型 AddonSetting.typed_configuration
-      # （见 app/models/addon_setting.rb），控制器只做编排。
 
       # Names of the addons shipped under Rails.root/addons, used to render the
       # management UI. Each maps 1:1 to an AddonSetting name.
