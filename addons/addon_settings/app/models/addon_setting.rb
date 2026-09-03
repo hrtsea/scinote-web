@@ -28,7 +28,7 @@ class AddonSetting < ApplicationRecord
   # addon is disablable (true) by default. Core addons such as addon_settings and
   # i18n declare `disablable?` returning false so they can never be turned off.
   def self.disablable?(name)
-    mod = "Scinote::#{name.to_s.camelize}".safe_constantize
+    mod = addon_module(name)
     return true unless mod&.respond_to?(:disablable?)
 
     mod.disablable?
@@ -52,10 +52,16 @@ class AddonSetting < ApplicationRecord
   end
 
   # 读取某 addon 自声明的配置 schema（供设置页动态渲染表单）。
-  # 约定：addon 在其模块上定义 self.config_schema 返回字段数组；
-  # 未声明或模块不可达时返回 []，设置页据此仅渲染启用开关。
+  # 约定：addon 在其模块上定义 self.config_schema 返回字段数组；未声明或模块
+  # 不可达时返回 []，设置页据此仅渲染启用开关。字段形状：
+  #   key:         存储键（字符串）
+  #   type:        'boolean' | 'secret' | 'integer' | 'text' | 'select'
+  #   label:       i18n 键（控件标题）
+  #   help:        i18n 键（可选，帮助文本）
+  #   default:     未设值时的回退值（可选）
+  #   placeholder / options: 控件提示 / 下拉选项（可选）
   def self.config_schema_for(name)
-    mod = "Scinote::#{name.to_s.camelize}".safe_constantize
+    mod = addon_module(name)
     return [] unless mod&.respond_to?(:config_schema)
 
     mod.config_schema || []
@@ -65,7 +71,7 @@ class AddonSetting < ApplicationRecord
   # 约定：addon 模块定义 self.description 返回 i18n 键；未声明时返回 nil，
   # 索引卡片据此仅显示插件名（优雅降级）。
   def self.description_for(name)
-    mod = "Scinote::#{name.to_s.camelize}".safe_constantize
+    mod = addon_module(name)
     return nil unless mod&.respond_to?(:description)
 
     mod.description
@@ -73,13 +79,80 @@ class AddonSetting < ApplicationRecord
 
   # 配置子页的详细说明 i18n 键；未声明时返回 nil（子页不渲染说明块）。
   def self.detailed_help_for(name)
-    mod = "Scinote::#{name.to_s.camelize}".safe_constantize
+    mod = addon_module(name)
     return nil unless mod&.respond_to?(:detailed_help)
 
     mod.detailed_help
   end
 
+  # 把表单提交的 configuration 转换为类型化 Hash 存入 JSONB（领域逻辑下沉到模型）。
+  # 兼容旧契约：仍接受裸 JSON 字符串（整体原样存储）。
+  # 新契约：表单按 schema 字段提交 configuration[key]=value，据字段类型转换。
+  # 合并基线：raw 为 nil 或字段未提交时保留 existing 中的旧值，绝不静默清空
+  # （secret 留空即保留原密钥、boolean 未勾选即 false、其它字段未提交则保留）。
+  # 非法输入（JSON 解析失败 / integer 负值）抛出 JSON::ParserError / ArgumentError，
+  # 由上游控制器捕获并回退到错误提示。
+  def self.typed_configuration(raw, name, existing: {})
+    return existing if raw.nil?
+
+    return JSON.parse(raw) if raw.is_a?(String)
+
+    raw_hash = raw.respond_to?(:to_unsafe_h) ? raw.to_unsafe_h : raw
+    schema = config_schema_for(name)
+    config = existing || {}
+
+    schema.each do |field|
+      key = field[:key].to_s
+      type = field[:type].to_s
+
+      if type == 'boolean'
+        # 未勾选时表单不提交该键，按 false 处理（可关闭）。
+        config[key] = ActiveModel::Type::Boolean.new.cast(raw_hash[key])
+      else
+        next unless raw_hash.key?(key)
+
+        config[key] = coerce_config_value(type, raw_hash[key], config[key])
+      end
+    end
+
+    validate_typed_configuration!(schema, config)
+
+    config
+  end
+
   private
+
+  # 解析某 addon 自描述模块 Scinote::<Name>；不可达（未挂载/命名不符）时返回 nil。
+  # 约定式自描述（config_schema / description / detailed_help / disablable?）统一从此取，
+  # 避免在多个 reader 里重复 safe_constantize。
+  def self.addon_module(name)
+    "Scinote::#{name.to_s.camelize}".safe_constantize
+  end
+
+  # schema 字段类型转换（integer / secret / 默认字符串）。
+  # secret 提交为空串时回退到 existing（保留已存密钥，不回显、不覆盖）。
+  def self.coerce_config_value(type, value, existing)
+    case type
+    when 'integer'
+      value.present? ? value.to_i : nil
+    when 'secret'
+      (value.presence || existing)
+    else
+      value.to_s
+    end
+  end
+
+  # schema 声明的 integer 字段不接受负值；负值属非法输入，抛出 ArgumentError 阻止写入。
+  def self.validate_typed_configuration!(schema, config)
+    schema.each do |field|
+      next unless field[:type].to_s == 'integer'
+
+      value = config[field[:key].to_s]
+      next unless value.is_a?(Integer)
+
+      raise ArgumentError, "Invalid value for #{field[:key]}: must be >= 0" if value.negative?
+    end
+  end
 
   # schema 声明的 integer 字段不接受负值（必填/类型由 schema 约束）。
   # 负值属非法输入，阻止写入；其它校验交给 schema 与上游白名单。

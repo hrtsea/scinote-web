@@ -167,4 +167,60 @@ RSpec.describe AddonSetting, type: :model do
       expect(AddonSetting.detailed_help_for('temp_help_addon')).to eq('temp_help_addon.addon.detailed_help')
     end
   end
+
+  describe '.addon_module' do
+    it 'resolves the Scinote::<Name> module when present' do
+      stub_const('Scinote::TempResolveAddon', Module.new)
+      expect(AddonSetting.send(:addon_module, 'temp_resolve_addon')).to eq(Scinote::TempResolveAddon)
+    end
+
+    it 'returns nil for an unresolvable addon' do
+      expect(AddonSetting.send(:addon_module, 'no_such_addon_xyz')).to be_nil
+    end
+  end
+
+  describe '.typed_configuration' do
+    let(:schema_module) do
+      stub_const('Scinote::TempCfgAddon', Module.new do
+        def self.config_schema
+          [
+            { key: 'api_key', type: 'secret', label: 'API key' },
+            { key: 'require_intent', type: 'boolean', label: 'Require intent' },
+            { key: 'default_period_days', type: 'integer', label: 'Days' }
+          ]
+        end
+      end)
+    end
+
+    it 'returns the existing config unchanged when raw is nil (preserves data)' do
+      schema_module
+      expect(AddonSetting.typed_configuration(nil, 'temp_cfg_addon', existing: { 'api_key' => 'x' }))
+        .to eq({ 'api_key' => 'x' })
+    end
+
+    it 'parses a legacy JSON string wholesale' do
+      schema_module
+      expect(AddonSetting.typed_configuration('{"a":1}', 'temp_cfg_addon'))
+        .to eq({ 'a' => 1 })
+    end
+
+    it 'casts boolean to false when unchecked and preserves a blank secret' do
+      schema_module
+      result = AddonSetting.typed_configuration(
+        { 'api_key' => '', 'require_intent' => '0', 'default_period_days' => '30' },
+        'temp_cfg_addon',
+        existing: { 'api_key' => 'prev' }
+      )
+      expect(result['require_intent']).to be false
+      expect(result['default_period_days']).to eq(30)
+      expect(result['api_key']).to eq('prev')
+    end
+
+    it 'raises ArgumentError on a negative integer' do
+      schema_module
+      expect do
+        AddonSetting.typed_configuration({ 'default_period_days' => '-5' }, 'temp_cfg_addon')
+      end.to raise_error(ArgumentError)
+    end
+  end
 end

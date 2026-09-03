@@ -25,9 +25,9 @@ module Scinote
                tag.span(t('users.settings.account.addons.config_secret_set'),
                         class: 'text-sn-dark-grey text-xs')
              else
-               ''
+               nil
              end),
-            (help_text ? tag.p(help_text, class: 'text-sn-dark-grey text-xs mt-0 mb-0') : '')
+            (help_text ? tag.p(help_text, class: 'text-sn-dark-grey text-xs mt-0 mb-0') : nil)
           ].compact)
         end
       end
