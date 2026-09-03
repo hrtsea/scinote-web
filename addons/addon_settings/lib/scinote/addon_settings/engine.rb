@@ -29,6 +29,15 @@ module Scinote
         end
       end
 
+      # Keep addon configuration secrets (API keys, tokens, etc.) out of request
+      # logs. The host's filter_parameters covers :secret/:token but not the
+      # arbitrary config keys addons declare (e.g. `api_key`), so filter the whole
+      # `configuration` param. This is host-config-level hardening applied from the
+      # addon — it touches no host routes or business code.
+      initializer 'scinote_addon_settings.filter_parameters', after: :load_config_initializers do |app|
+        app.config.filter_parameters += [:configuration]
+      end
+
       # Expose this engine's own migrations so the addon_settings table is created
       # via `rails db:migrate` without touching the host's db/migrate
       # (zero-intrusion: migrations stay self-contained — see the routes

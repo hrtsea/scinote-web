@@ -44,12 +44,23 @@ class AddonSetting < ApplicationRecord
   end
 
   # Persist the enabled flag and (optionally) the configuration hash for an addon.
-  # Note: `if configuration.present?` means passing `configuration: {}` is silently
-  # ignored (existing config preserved) — callers can't reset to empty this way.
-  def self.update_for(name, enabled:, configuration: nil)
+  #
+  # Configuration semantics:
+  #   - omitted (no `configuration:` kwarg) → existing config is preserved.
+  #   - passed explicitly, including `configuration: {}` or `configuration: nil`
+  #     → assigned as-is ({} / nil clears it). This fixes the old
+  #     `if configuration.present?` trap where `{}` was silently ignored and the
+  #     config could never be reset to empty.
+  # The column is `NOT NULL`, so a nil/empty assignment is normalized to `{}`.
+  def self.update_for(name, enabled:, **kwargs)
     setting = find_or_initialize_by(name: name)
     setting.enabled = enabled
-    setting.configuration = configuration if configuration.present?
+
+    if kwargs.key?(:configuration)
+      new_config = kwargs[:configuration]
+      setting.configuration = new_config.nil? ? {} : new_config
+    end
+
     setting.save!
     setting
   end
