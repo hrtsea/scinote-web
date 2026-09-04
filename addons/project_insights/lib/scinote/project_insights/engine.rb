@@ -11,8 +11,6 @@ module Scinote
       # Extends::DEFAULT_DASHBOARD_CONFIGURATION 已定义；
       # 去重守卫防止开发环境代码重载时重复注册。
       config.to_prepare do
-        Scinote::ProjectInsights.register_widgets!
-
         # 加载 addon 的 decorator（覆盖/注入核心视图行为）。
         # 注意：addons/*/app/decorators 已被 autoloaders 显式忽略
         # （config/application.rb），故须在此手动加载，参照 esignatures addon。

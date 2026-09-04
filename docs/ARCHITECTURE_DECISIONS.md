@@ -83,6 +83,13 @@
   - **图表（复用 echarts option 配置，新建 addon pack）**：复制 `charts.js` 的饼图/堆叠柱图 **`option` 对象形状** 到 addon 自有 pack `insights_charts.js`，在 `turbolinks:load` 时遍历 `[data-insights-chart]` 元素、读 addon JSON 端点数据初始化 echarts；**不改核心 `charts.js`**（其为独立 Vue demo，不能直接嵌入 erb dashboard）。
   - **下钻（复用 current_tasks 过滤）**：各 widget 区块链接到 `dashboard_current_tasks_path`（带 `statuses[]`/`mode`/`sort`/`project_id` 等预设过滤参数），不新建任务列表页。
 - 影响 / 风险：若上游未来自行实现 Insights，本 addon 经 `Extends` 注入的 widget 配置与潜在的 `app/decorators` 覆盖可能冲突 —— 覆盖点须记录在 `docs/project-management/实现现状与开发计划.md` 并随上游演进复核；状态流可定制（聚合须动态查 `MyModuleStatusFlow`：团队自有流 + global 流）、大团队聚合须对 `updated_at`/`due_date`/`my_module_status_id` 建覆盖索引或缓存、截止日期按 **UTC**（`Time.current.utc`，与核心 `overdue` 作用域一致；`Team` 无时区字段）；per-team 灰度（非 deploy 级）为后续扩展，需经 `decorator` 或在 `settings` 加键，本期不做。
+- **与上游冲突风险点覆盖清单**（rebase 上游时逐项核对；详见 `docs/project-management/实现现状与开发计划.md` 第九节）：
+  - `config/initializers/extends.rb` `DEFAULT_DASHBOARD_CONFIGURATION`（Array）经 addon `initializer` `concat([...])` 追加 4 个 widget 配置——上游若改该数组结构 / 同 `partial` 键会冲突；撤销守卫已防重复注册。
+  - `app/helpers/left_menu_bar_helper.rb` 经 `app/decorators/left_menu_bar_helper_decorator.rb` 注入 Insights 菜单项（路径经 `Scinote::ProjectInsights::Engine.routes.url_helpers.insights_path` 取，规避 `isolate_namespace` 下宿主上下文无该 helper 的 `NameError`）——上游改 `_left.html.erb` 菜单渲染键名 / 改用非 helper 注入会冲突。
+  - `app/controllers/dashboard/current_tasks_controller.rb` 经 `app/decorators/dashboard/current_tasks_controller_decorator.rb` 注入 `stale_bucket` / `due_bucket` 过滤参数（下钻协议）——上游改 `current_tasks` 过滤参数名 / 强类型校验会冲突。
+  - `config/routes.rb` `mount Scinote::ProjectInsights::Engine => '/'` 并占用 `/insights`、`/insights/tasks`——上游挂其它引擎到 `/` 或占用同名路由会冲突。
+  - `config/locales/{en,zh-CN}.yml` 键 `dashboard.insights.*` / `left_menu_bar.insights` / `project_insights.*`——上游同名键会相互覆盖（i18n 后加载者优先）。
+  - 图表依赖：`echarts` 已由核心 `package.json` 提供，addon 仅新建独立 pack `insights_charts.js`，**不引入新 npm 依赖、不改核心 `charts.js`**；前端风险面仅限该 pack 与 `[data-insights-chart]` / `[data-bucket-*]` 钩子。
 - 关联：`docs/agents/addon-dev-workflow.md`（addon 方法学）、`docs/project-management/实现现状与开发计划.md`（PRD / Issues P1–P9，已 grill）、`docs/project-management/README.md`（官网特性总结）、`docs/FEATURE_FLAGS.md`（ENV 类开关约定）。
 
 ### ADR-009：SciNote Templates（模板）现状确认 + Item Templates 以 addon 实现

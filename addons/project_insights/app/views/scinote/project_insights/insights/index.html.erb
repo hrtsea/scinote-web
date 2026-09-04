@@ -1,0 +1,33 @@
+<% provide :head_title, t('left_menu_bar.insights') %>
+
+<div class="dashboard-view insights-index-view">
+  <div class="insights-page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;padding:1rem 0;">
+    <h1 class="insights-page-title" style="display:flex;align-items:center;gap:.5rem;font-size:1.5rem;margin:0;font-weight:600;">
+      <i class="sn-icon sn-icon-Insights"></i>
+      <%= t('left_menu_bar.insights') %>
+      <% if @project %>
+        <span style="font-weight:400;color:#6c757d;">›</span>
+        <span style="font-weight:400;"><%= @project.name %></span>
+      <% end %>
+    </h1>
+
+    <div class="insights-project-selector">
+      <%= select_tag :project_id,
+                     options_from_collection_for_select(@projects, :id, :name, @project&.id),
+                     prompt: t('project_insights.projects.all'),
+                     onchange: "window.location.href = this.value ? '#{insights_path}?project_id=' + this.value : '#{insights_path}'",
+                     class: 'form-control' %>
+    </div>
+  </div>
+
+  <div class="dashboard-container">
+    <%= render partial: 'dashboards/insights_status',
+                locals: { widget: { size: 'large-widget', position: 1 }, project_id: @project&.id } %>
+    <%= render partial: 'dashboards/insights_workload',
+                locals: { widget: { size: 'large-widget', position: 2 }, project_id: @project&.id } %>
+    <%= render partial: 'dashboards/insights_bottlenecks',
+                locals: { widget: { size: 'medium-widget', position: 3 }, project_id: @project&.id } %>
+    <%= render partial: 'dashboards/insights_due_dates',
+                locals: { widget: { size: 'medium-widget', position: 4 }, project_id: @project&.id } %>
+  </div>
+</div>

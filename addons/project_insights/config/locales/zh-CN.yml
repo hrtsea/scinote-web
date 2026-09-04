@@ -2,24 +2,38 @@ zh-CN:
   dashboard:
     insights:
       status:
-        title: "任务与实验状态概览"
+        title: "状态概览"
+        total_label: "任务"
       workload:
-        title: "团队负载分布"
+        title: "团队负载"
+        options_selected: "已选择 %{count} 项"
+        member_filter: "成员"
       bottlenecks:
         title: "瓶颈检测"
+        no_activity_for: "无活动时长："
         seven: "7-14 天"
         fourteen: "14-%{high} 天"
         thirty_plus: "%{count}+ 天"
+        empty_title: "做得好。"
+        empty_text: "所有任务在过去 %{count} 天内均有活动。"
       due_dates:
-        title: "截止日期与期限跟踪"
-        overdue: "逾期"
-        due_today: "今天到期"
-        due_this_week: "本周到期"
-        upcoming: "即将到来"
+        title: "到期任务"
+        overdue: "已逾期"
+        today: "今天"
+        tomorrow: "明天"
+        this_week: "本周"
+        next_week: "下周"
+      tasks_list:
+        view_all: "在任务列表中查看全部"
+        no_tasks: "此分组暂无任务。"
   project_insights:
     settings:
-      description: 在仪表盘展示任务状态、团队负载、瓶颈检测与截止日期等洞察。
-      detailed_help: 设置聚合仪表盘洞察时使用的默认分析周期（天）。
+      description: 在项目洞察页展示任务状态、团队负载、瓶颈检测与截止日期等洞察。
+      detailed_help: 设置聚合项目洞察时使用的默认分析周期（天）。
       config:
         default_period_days: "默认分析周期（天）"
         default_period_days_help: "聚合仪表盘洞察时使用的时间窗口。"
+    projects:
+      all: "全部项目"
+  left_menu_bar:
+    insights: "洞察"

@@ -7,6 +7,8 @@ require 'rails_helper'
 # 断言以「匹配任务数」为准：current_tasks#show 返回各任务的渲染片段，
 # 片段内容在 controller spec 下为空，但 data 数组长度即匹配数，足以验证过滤。
 describe Dashboard::CurrentTasksController, type: :controller do
+  include ActiveSupport::Testing::TimeHelpers
+
   # test 环境 mailer from 为空，create(:user) 触发的 Devise 确认邮件会抛
   # ArgumentError: SMTP From address may not be blank。stub 掉通知发送以规避环境缺陷。
   before(:each) do
@@ -27,12 +29,24 @@ describe Dashboard::CurrentTasksController, type: :controller do
     JSON.parse(response.body)['data'].size
   end
 
-  describe 'due_bucket 下钻过滤（对齐 AggregatorService#due_dates）' do
+  # 档位按「周」切分，冻结到本周周三正午，保证五档各有独立的测试任务
+  # （不因运行当天是周几而落到同一档）。
+  describe 'due_bucket 下钻过滤（对齐 AggregatorService#due_dates 五档）' do
+    around(:each) do |example|
+      travel_to(Time.current.utc.beginning_of_week(:monday) + 2.days + 12.hours) { example.run }
+    end
+
     let!(:overdue_task) do
       create(:my_module, experiment: experiment, my_module_status: status, due_date: 2.days.ago)
     end
-    let!(:upcoming_task) do
-      create(:my_module, experiment: experiment, my_module_status: status, due_date: 10.days.from_now)
+    let!(:today_task) do
+      create(:my_module, experiment: experiment, my_module_status: status, due_date: Time.current.utc)
+    end
+    let!(:tomorrow_task) do
+      create(:my_module, experiment: experiment, my_module_status: status, due_date: 1.day.from_now)
+    end
+    let!(:next_week_task) do
+      create(:my_module, experiment: experiment, my_module_status: status, due_date: 30.days.from_now)
     end
 
     it 'due_bucket=overdue 仅返回逾期任务' do
@@ -41,15 +55,26 @@ describe Dashboard::CurrentTasksController, type: :controller do
       expect(matched_count).to eq(1)
     end
 
-    it 'due_bucket=upcoming 仅返回即将到来任务' do
-      get :show, params: { project_id: project.id, due_bucket: 'upcoming' }, format: :json
+    it 'due_bucket=today 仅返回当天到期任务' do
+      get :show, params: { project_id: project.id, due_bucket: 'today' }, format: :json
       expect(matched_count).to eq(1)
     end
 
-    it 'due_bucket=due_this_week 包含本周末（周日）临界任务（与聚合一致）' do
+    it 'due_bucket=tomorrow 仅返回明天到期任务' do
+      get :show, params: { project_id: project.id, due_bucket: 'tomorrow' }, format: :json
+      expect(matched_count).to eq(1)
+    end
+
+    it 'due_bucket=next_week 返回兜底档（晚于本周末）任务' do
+      get :show, params: { project_id: project.id, due_bucket: 'next_week' }, format: :json
+      expect(matched_count).to eq(1)
+    end
+
+    it 'due_bucket=this_week 包含本周末（周日）临界任务（与聚合一致）' do
+      # 分桶两侧都以 UTC 日界为准，故临界时刻也用 UTC 构造，避免本地时区偏移导致跨日
       create(:my_module, experiment: experiment, my_module_status: status,
-             due_date: Date.current.end_of_week.end_of_day - 1.minute)
-      get :show, params: { project_id: project.id, due_bucket: 'due_this_week' }, format: :json
+             due_date: Time.current.utc.end_of_week - 1.minute)
+      get :show, params: { project_id: project.id, due_bucket: 'this_week' }, format: :json
       expect(response).to have_http_status(:success)
       expect(matched_count).to eq(1)
     end

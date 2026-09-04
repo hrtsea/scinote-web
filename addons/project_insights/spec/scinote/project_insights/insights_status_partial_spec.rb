@@ -18,4 +18,12 @@ RSpec.describe 'dashboards/insights_status partial', type: :view do
     expect(rendered).to include('data-ajax-url')
     expect(rendered).to include('/insights?kind=status')
   end
+
+  # 官方 UI（frame_014）：环形图中心显示 "Tasks / 总数"，标签由 i18n 提供、数值由 JS 求和填充。
+  it '提供总数标签挂载点（data-total-label）' do
+    render partial: 'dashboards/insights_status',
+           locals: { widget: { partial: 'dashboards/insights_status', size: 'medium-widget', position: 4 } }
+
+    expect(rendered).to include('data-total-label="Tasks"')
+  end
 end

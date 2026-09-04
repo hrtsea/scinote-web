@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.version     = Scinote::ProjectInsights::VERSION
   s.authors     = %w(SciNote)
   s.summary     = 'SciNote Project Insights dashboard addon'
-  s.description = 'Adds Project Insights widgets (status, workload, bottlenecks, due dates) to the SciNote dashboard.'
+  s.description = 'Adds a standalone Project Insights page with status, workload, bottlenecks and due-date widgets.'
   s.license     = 'MIT'
   s.required_ruby_version = '>= 3.1'
 

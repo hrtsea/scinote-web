@@ -10,7 +10,7 @@ RSpec.describe 'ProjectInsights insights endpoint', type: :request do
   let(:user) { create(:user, confirmed_at: Time.zone.now) }
 
   before(:all) do
-    User.send(:define_method, :send_devise_notification) { |*_args| true }
+    User.__send__(:define_method, :send_devise_notification) { |*_args| true }
   end
 
   before do

@@ -19,27 +19,6 @@ RSpec.describe Scinote::ProjectInsights do
     end
   end
 
-  describe '.register_widgets!' do
-    after do
-      Extends::DEFAULT_DASHBOARD_CONFIGURATION
-        .reject! { |w| w[:partial].to_s.start_with?('dashboards/insights_') }
-    end
-
-    it 'registers the 4 widgets when the addon is enabled' do
-      AddonSetting.create!(name: 'project_insights', enabled: true, configuration: {})
-      described_class.register_widgets!
-      partials = Extends::DEFAULT_DASHBOARD_CONFIGURATION.pluck(:partial)
-      expect(partials).to include(
-        'dashboards/insights_status', 'dashboards/insights_workload',
-        'dashboards/insights_bottlenecks', 'dashboards/insights_due_dates'
-      )
-    end
-
-    it 'registers no widgets when the addon is disabled' do
-      AddonSetting.create!(name: 'project_insights', enabled: false, configuration: {})
-      described_class.register_widgets!
-      partials = Extends::DEFAULT_DASHBOARD_CONFIGURATION.pluck(:partial)
-      expect(partials).not_to include('dashboards/insights_status')
-    end
-  end
+  # 注：P1 的 dashboard widget 注册已撤销（addon 改为独立 /insights 页面），
+  # 故不再有 register_widgets! 方法可测；相关契约转移到 insights 页面 spec。
 end

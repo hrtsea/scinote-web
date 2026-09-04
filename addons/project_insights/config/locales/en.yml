@@ -2,26 +2,40 @@ en:
   dashboard:
     insights:
       status:
-        title: "Task & Experiment Status Overview"
+        title: "Status Overview"
+        total_label: "Tasks"
       workload:
-        title: "Team Workload Distribution"
+        title: "Team workload"
+        options_selected: "%{count} options selected"
+        member_filter: "Members"
       bottlenecks:
-        title: "Bottleneck Detection"
+        title: "Bottlenecks"
+        no_activity_for: "No activity for:"
         seven: "7-14 days"
         fourteen: "14-%{high} days"
         thirty_plus: "%{count}+ days"
+        empty_title: "Well done."
+        empty_text: "All tasks had some activity within the last %{count} days."
       due_dates:
-        title: "Due Date & Deadline Tracking"
+        title: "Tasks due"
         overdue: "Overdue"
-        due_today: "Due today"
-        due_this_week: "Due this week"
-        upcoming: "Upcoming"
+        today: "Today"
+        tomorrow: "Tomorrow"
+        this_week: "This week"
+        next_week: "Next week"
+      tasks_list:
+        view_all: "View all in Current Tasks"
+        no_tasks: "No tasks in this bucket."
   project_insights:
     settings:
-      description: "Surface dashboards with task status, workload, bottlenecks and due-date insights."
+      description: "Surface a Project Insights page with task status, workload, bottlenecks and due-date insights."
       detailed_help: >-
         Set the default analysis window (in days) used when aggregating
-        insights for the dashboard widgets.
+        insights for the insights page.
       config:
         default_period_days: "Default analysis period (days)"
         default_period_days_help: "Time window used when aggregating insights for the dashboard."
+    projects:
+      all: "All projects"
+  left_menu_bar:
+    insights: "Insights"

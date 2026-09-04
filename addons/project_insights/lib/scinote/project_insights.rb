@@ -46,25 +46,8 @@ module Scinote
       (config_value('default_period_days') || DEFAULT_PERIOD_DAYS).to_i
     end
 
-    # 追加到 Extends::DEFAULT_DASHBOARD_CONFIGURATION 的 widget 配置
-    # 字段必须与 app/views/dashboards/show.html.erb 读取的 schema 一致：
-    #   partial, visible, size, position
-    WIDGETS = [
-      { partial: 'dashboards/insights_status',      visible: true, size: 'medium-widget', position: 4 },
-      { partial: 'dashboards/insights_workload',    visible: true, size: 'medium-widget', position: 5 },
-      { partial: 'dashboards/insights_bottlenecks', visible: true, size: 'small-widget',  position: 6 },
-      { partial: 'dashboards/insights_due_dates',   visible: true, size: 'medium-widget', position: 7 }
-    ].freeze
-
-    # 注册 widget 到 dashboard 配置；抽出方法便于测试与去重
-    # 由 engine 的 config.to_prepare 调用
-    def self.register_widgets!
-      return unless enabled?
-
-      registered = Extends::DEFAULT_DASHBOARD_CONFIGURATION.pluck(:partial)
-      WIDGETS.each do |widget|
-        Extends::DEFAULT_DASHBOARD_CONFIGURATION << widget unless registered.include?(widget[:partial])
-      end
-    end
+    # 注：P1 的 dashboard widget 注册已撤销。addon 改为独立 /insights 页面
+    # （app/views/insights/index.html.erb）承载 4 个 widget，避免在 dashboard
+    # 与独立页之间重复展示；widget partial 仍位于 app/views/dashboards/。
   end
 end

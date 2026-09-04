@@ -1,18 +1,32 @@
-<%# 截止日期跟踪 Widget（P7）：逾期/今天/本周/即将 四档分组卡片。
+<%# 截止日期跟踪 Widget（P7）：五档分组卡片。
+    档位对齐 frame_014 官方 UI：Overdue / Today / Tomorrow / This week / Next week
+    （Overdue 独立成档；比 Next week 更晚的截止统一归入 Next week 兜底）。
     数字经 AJAX 从 /insights?kind=due_dates 填充（data-count 占位）；
-    下钻交互（点击卡片 → current_tasks 过滤）由 P8 统一实现，此处留 data-drilldown 钩子。 %>
+    卡片点击下钻到 current_tasks 过滤（P8 协议，见 insights_charts.js）。 %>
+<% if Scinote::ProjectInsights.enabled? && !content_for?(:insights_charts_head) %>
+  <% content_for(:head) { javascript_include_tag 'insights_charts' } %>
+  <% content_for(:insights_charts_head, '') %>
+<% end %>
 <div class="project-insights-widget basic-widget <%= widget[:size] %>" style="order: <%= widget[:position] %>" data-drilldown-base="<%= dashboard_current_tasks_path %>">
   <div class="widget-header">
     <div class="widget-title"><%= t('dashboard.insights.due_dates.title') %></div>
   </div>
   <div class="widget-content">
-    <div class="bottleneck-cards due-date-cards" data-ajax-url="<%= insights_path(kind: 'due_dates') %>">
-      <% [[:overdue, 'overdue'], [:due_today, 'due_today'], [:due_this_week, 'due_this_week'], [:upcoming, 'upcoming']].each do |key, i18n_key| %>
-        <div class="bottleneck-card due-date-card" data-drilldown="due_dates:<%= key %>">
+    <div class="bottleneck-cards due-date-cards" data-ajax-url="<%= Scinote::ProjectInsights::Engine.routes.url_helpers.insights_path(kind: 'due_dates', project_id: local_assigns[:project_id]) %>" data-list-url="<%= Scinote::ProjectInsights::Engine.routes.url_helpers.insights_tasks_path(kind: 'due_dates', project_id: local_assigns[:project_id]) %>">
+      <% [[:overdue, 'overdue'], [:today, 'today'], [:tomorrow, 'tomorrow'], [:this_week, 'this_week'], [:next_week, 'next_week']].each do |key, i18n_key| %>
+        <div class="bottleneck-card due-date-card" data-drilldown="due_dates:<%= key %>" data-bucket="<%= key %>">
           <div class="bottleneck-count" data-count="<%= key %>">–</div>
           <div class="bottleneck-label"><%= t("dashboard.insights.due_dates.#{i18n_key}") %></div>
         </div>
       <% end %>
+      <div class="bucket-task-list" data-bucket-task-list data-no-tasks="<%= t('dashboard.insights.tasks_list.no_tasks') %>" hidden>
+        <div class="bucket-task-list-head">
+          <span data-bucket-list-title></span>
+          <button type="button" class="bucket-task-list-close" data-bucket-list-close>&times;</button>
+        </div>
+        <ul class="bucket-task-list-items" data-bucket-list-items></ul>
+        <a class="bucket-task-list-all" data-bucket-list-all hidden><%= t('dashboard.insights.tasks_list.view_all') %></a>
+      </div>
     </div>
   </div>
 </div>

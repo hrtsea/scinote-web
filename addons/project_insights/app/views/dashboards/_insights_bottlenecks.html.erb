@@ -1,14 +1,21 @@
-<%# 瓶颈检测 Widget（P6）：7/14/<N>+ 天未更新任务分组卡片（N=default_period_days，来自设置页）。
+<%# 瓶颈检测 Widget（P6）：7-14 / 14-<N> / <N>+ 天未更新任务分组卡片（N=default_period_days，来自设置页）。
+    卡组前缀标签 "No activity for:" 与官方 UI（frame_014）分段选择器标签一致。
     数字经 AJAX 从 /insights?kind=bottlenecks 填充（data-count 占位）；
-    下钻交互（点击卡片 → current_tasks 过滤）由 P8 统一实现，此处留 data-drilldown 钩子。 %>
+    三档计数全为 0 时由 JS 显示空状态（Well done. All tasks had some activity within the last 7 days.）；
+    卡片点击下钻到 current_tasks 过滤（P8 协议，见 insights_charts.js）。 %>
+<% if Scinote::ProjectInsights.enabled? && !content_for?(:insights_charts_head) %>
+  <% content_for(:head) { javascript_include_tag 'insights_charts' } %>
+  <% content_for(:insights_charts_head, '') %>
+<% end %>
 <div class="project-insights-widget basic-widget <%= widget[:size] %>" style="order: <%= widget[:position] %>" data-drilldown-base="<%= dashboard_current_tasks_path %>">
   <div class="widget-header">
     <div class="widget-title"><%= t('dashboard.insights.bottlenecks.title') %></div>
   </div>
   <div class="widget-content">
-    <div class="bottleneck-cards" data-ajax-url="<%= insights_path(kind: 'bottlenecks') %>">
+    <div class="bottleneck-cards" data-ajax-url="<%= Scinote::ProjectInsights::Engine.routes.url_helpers.insights_path(kind: 'bottlenecks', project_id: local_assigns[:project_id]) %>" data-list-url="<%= Scinote::ProjectInsights::Engine.routes.url_helpers.insights_tasks_path(kind: 'bottlenecks', project_id: local_assigns[:project_id]) %>">
+      <div class="bottleneck-group-label"><%= t('dashboard.insights.bottlenecks.no_activity_for') %></div>
       <% [[:seven, 'seven'], [:fourteen, 'fourteen'], [:thirty_plus, 'thirty_plus']].each do |key, i18n_key| %>
-        <div class="bottleneck-card" data-drilldown="bottlenecks:<%= key %>">
+        <div class="bottleneck-card" data-drilldown="bottlenecks:<%= key %>" data-bucket="<%= key %>">
           <div class="bottleneck-count" data-count="<%= key %>">–</div>
           <div class="bottleneck-label">
             <% if key == :thirty_plus %>
@@ -21,6 +28,18 @@
           </div>
         </div>
       <% end %>
+      <div class="bottleneck-empty" data-empty-state hidden>
+        <div class="bottleneck-empty-title"><%= t('dashboard.insights.bottlenecks.empty_title') %></div>
+        <div class="bottleneck-empty-text"><%= t('dashboard.insights.bottlenecks.empty_text', count: 7) %></div>
+      </div>
+      <div class="bucket-task-list" data-bucket-task-list data-no-tasks="<%= t('dashboard.insights.tasks_list.no_tasks') %>" hidden>
+        <div class="bucket-task-list-head">
+          <span data-bucket-list-title></span>
+          <button type="button" class="bucket-task-list-close" data-bucket-list-close>&times;</button>
+        </div>
+        <ul class="bucket-task-list-items" data-bucket-list-items></ul>
+        <a class="bucket-task-list-all" data-bucket-list-all hidden><%= t('dashboard.insights.tasks_list.view_all') %></a>
+      </div>
     </div>
   </div>
 </div>
