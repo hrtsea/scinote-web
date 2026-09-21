@@ -94,7 +94,7 @@ SciNote 面向受 FDA 21 CFR Part 11、GLP、GMP（统称 GxP）监管的实验�
 
 官网说明：SciNote **Premium 计划（Essential / Validated / Platinum）**包含 **21 CFR Part 11 插件（add-on）**，在保持灵活易用的同时提供合规工具集。
 
-> 本 fork 已将该「21 CFR Part 11 插件」以独立 Rails Engine addon（`esignatures`）形式实现（见 ADR-007）。
+> 本 fork 已将该「21 CFR Part 11 插件」以独立 Rails Engine addon（`esignatures`）形式实现（见 0014）。
 
 ---
 

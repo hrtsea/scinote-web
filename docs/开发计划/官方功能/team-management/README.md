@@ -2,7 +2,7 @@
 
 > 来源页面：<https://www.scinote.net/product/team-management/>
 > 抓取时间：2026-09-01
-> 配套文档：[实现现状与开发计划.md](./实现现状与开发计划.md)（含 addon 形态缺口与 ADR-011）
+> 配套文档：[实现现状与开发计划.md](./实现现状与开发计划.md)（含 addon 形态缺口与 0018）
 
 本页面向科学实验室，介绍 SciNote 的协作与团队管理能力。核心是**在何处、由谁、以何种权限**访问实验数据，以及围绕团队结构的协作、分配、沟通、审计与对外报告。
 
@@ -85,7 +85,7 @@ SciNote 让团队、外部合作伙伴与承包商能够随时随地高效沟通
 
 ## 四、合规与评价
 
-- 页面上下文支持 21 CFR Part 11 电子签名用于审查批准（本 fork 已由 `addons/esignatures` 实现，见 ADR-007）。
+- 页面上下文支持 21 CFR Part 11 电子签名用于审查批准（本 fork 已由 `addons/esignatures` 实现，见 0014）。
 - 客户审计权：为每客户保留专用、自包含笔记本以便审计（见用例引用 Advanced Cellular Dynamics）。
 - 用户评价：Numaferm（Dr. Jannik Strauss）称平台助力直接沟通与信息中继；Advanced Cellular Dynamics（Deborah Schwarz）强调为客户隔离笔记本以满足审计。
 
