@@ -105,13 +105,13 @@ app.config.i18n.load_path += Dir[
 | `ai_protocols` | ✅ `can :generate_protocol_with_ai` | 有 | 同上（`engine.rb:14`） |
 | `i18n` | ❌ 无 | 无 | 完全无门控：`languages_controller.rb:5` `skip_before_action :authenticate_user!`（连登录都不要求，登录页可切语言） |
 | `project_insights` | ❌ 无 | 无 | `enabled?` 特性开关：`lib/scinote/project_insights.rb:9` → `AddonSetting.enabled?('project_insights')`；控制器 `insights_controller.rb:35` `head :forbidden unless enabled?`；底层数据复用宿主既有权限 |
-| `addon_settings` | ❌ 无 | 无 | 复用**宿主核心**权限：`can_manage_addons?`（`app/permissions/instance_admin.rb:27` `can :manage_addons`）、`can_manage_label_printers?`（宿主核心）；按 ADR-013 该跨 addon 实例级权限刻意留核心，addon 仅消费 |
+| `addon_settings` | ❌ 无 | 无 | 复用**宿主核心**权限：`can_manage_addons?`（`app/permissions/instance_admin.rb:27` `can :manage_addons`）、`can_manage_label_printers?`（宿主核心）；按 0020 该跨 addon 实例级权限刻意留核心，addon 仅消费 |
 
 ### 5.1.2 三种「不需要 `app/permissions`」的情形
 
 1. **无需门控**：功能对全员开放（如 i18n 语言切换），不定义、不消费任何 `can_*`。
 2. **用 `enabled?` 特性开关替代权限**：整 addon 以 `AddonSetting.enabled?` 为总开关（project_insights），叠加在宿主对底层数据的既有授权之上，不新增谓词。
-3. **复用宿主既有权限**：addon 直接调用核心已定义的 `can_*`（addon_settings 消费 `:manage_addons`）。按 ADR-013，此类跨 addon 基础设施权限留在核心，避免核心安全门控反向依赖 addon。
+3. **复用宿主既有权限**：addon 直接调用核心已定义的 `can_*`（addon_settings 消费 `:manage_addons`）。按 0020，此类跨 addon 基础设施权限留在核心，避免核心安全门控反向依赖 addon。
 
 ### 5.1.3 需要 `app/permissions` 的充要条件
 

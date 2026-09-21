@@ -51,7 +51,7 @@ end
 
 ### 统一机制：挂载引擎（5 个 addon 一致）
 
-所有 addon 现在都走**同一套**自挂载机制——各自 `engine.rb` 的 initializer（带 `after: :add_routes`）里 `app.routes.append { mount <Engine> => <mount_point> }`，并在 addon 自己的 `config/routes.rb` 中通过 `Engine.routes.draw do … end`（即生成器 §4.3 的 `<NAME>::Engine.routes.draw do … end` 模板形式）定义路由。`addon_settings` 已从早先"直射宿主路由（裸 `get/put`、无 `config/routes.rb`）"改造为正规挂载引擎（见 ADR-016），故不再存在"两种注册方式"之分。
+所有 addon 现在都走**同一套**自挂载机制——各自 `engine.rb` 的 initializer（带 `after: :add_routes`）里 `app.routes.append { mount <Engine> => <mount_point> }`，并在 addon 自己的 `config/routes.rb` 中通过 `Engine.routes.draw do … end`（即生成器 §4.3 的 `<NAME>::Engine.routes.draw do … end` 模板形式）定义路由。`addon_settings` 已从早先"直射宿主路由（裸 `get/put`、无 `config/routes.rb`）"改造为正规挂载引擎（见 0022），故不再存在"两种注册方式"之分。
 
 差异仅在于 `addon_settings` 的控制器命名扁平化程度（其控制器已扁平为 `Scinote::AddonSettings::AddonsController`，URL 仍挂在 `/users/settings/account/addons`），而非注册机制或是否隔离——5 个 addon 均声明 `isolate_namespace`：
 
