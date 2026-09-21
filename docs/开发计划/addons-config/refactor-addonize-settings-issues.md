@@ -1,7 +1,7 @@
 # Issues：Addon 设置页逻辑 addon 化
 
 > 由 `/to-issues` 拆解，按「之前 4 个 Grill 决策」（D1–D4）组织为 4 个纵向切片。每个 Issue 独立可交付、穿过全层。
-> 前置：已完成 config_schema 机制（`docs/addons-config/issues.md` #1–#5 Done）。
+> 前置：已完成 config_schema 机制（`docs/开发计划/addons-config/issues.md` #1–#5 Done）。
 > 决策对照：D1→Issue 1、D3→Issue 2、D2→Issue 3、D4→Issue 4。
 
 ---
@@ -47,12 +47,12 @@
 **Status**: ✅ Done（验证：业务 addon config_schema/enabled 契约 spec 10 examples 0 failures；addon_settings GET spec 端到端覆盖 config_schema 消费；AddonSetting 模型/迁移未动）
 
 ### What to build
-确认 `app/models/addon_setting.rb` + `db/migrate/20260901130000_create_addon_settings.rb` 留在核心（不搬）；补 ADR-013 说明「模型/迁移为底座、鸡生蛋例外」；验证三个业务 addon 的 config_schema 消费测试不受影响（`AddonSetting.config_schema_for` 行为不变）。
+确认 `app/models/addon_setting.rb` + `db/migrate/20260901130000_create_addon_settings.rb` 留在核心（不搬）；补 0020 说明「模型/迁移为底座、鸡生蛋例外」；验证三个业务 addon 的 config_schema 消费测试不受影响（`AddonSetting.config_schema_for` 行为不变）。
 
 ### Acceptance criteria
 - [x] 业务 addon（ai_protocols/esignatures/project_insights）的 config_schema 相关测试全绿（跑 `enabled_spec`/`ai_protocols_spec`/`registration_spec`：10 examples 0 failures）。
 - [x] `AddonSetting.enabled?`/`for`/`config_schema_for`/`config_value` 行为不变（模型 `app/models/addon_setting.rb` 与迁移 `20260901130000_create_addon_settings.rb` 未动）。
-- [x] ADR-013 增补底座说明（见 `docs/ARCHITECTURE_DECISIONS.md` ADR-013 收尾段）。
+- [x] 0020 增补底座说明（见 `docs/ARCHITECTURE_DECISIONS.md` 0020 收尾段）。
 
 ### Blocked by
 - Issue 1（需先确认 UI 抽离后仍正确消费核心 `AddonSetting`）
@@ -64,13 +64,13 @@
 **Status**: Pending
 
 ### What to build
-确认 `app/permissions/instance_admin.rb` + `app/services/instance_admin.rb`（`:manage_addons` 权限）留在核心；收口——`rubocop`+`brakeman`+`rspec` 全绿（含业务 addon 测试）、更新 `docs/agents/addon-dev-workflow.md` 检查清单（新增设置页 addon 化条目）、ADR-013 收尾。
+确认 `app/permissions/instance_admin.rb` + `app/services/instance_admin.rb`（`:manage_addons` 权限）留在核心；收口——`rubocop`+`brakeman`+`rspec` 全绿（含业务 addon 测试）、更新 `docs/development/addon-dev-workflow.md` 检查清单（新增设置页 addon 化条目）、0020 收尾。
 
 ### Acceptance criteria
 - [ ] 核心 `app/` 仅剩底座文件（AddonSetting 模型、instance_admin 权限/服务、迁移）；无设置页业务代码。
 - [ ] `rubocop addons/addon_settings` + `brakeman` + `rspec`（含 `spec/addons/addon_settings` 与业务 addon 测试）全绿。
 - [ ] `addon-dev-workflow.md` 检查清单新增「设置页逻辑位于 `addons/addon_settings`」。
-- [ ] ADR-013 标注「设置页 UI 已 addon 化，底座留核心」。
+- [ ] 0020 标注「设置页 UI 已 addon 化，底座留核心」。
 
 ### Blocked by
 - Issue 2、Issue 3

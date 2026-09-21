@@ -1,8 +1,8 @@
 # PRD：Addon 设置页逻辑 addon 化（从核心 app/ 抽离）
 
 > 来源：基于提交 `ab46c68c8`（feat: generic per-addon settings config mechanism）对 addons 设置页的探查。该提交把「addon 自声明配置」机制的 UI/控制器/helper 直接落在核心 `app/` + `config/`（7 个 M + 11 个 A），违反铁律「绝不直接编辑核心 app/」。本 PRD 将其**重构为独立 addon**，使「设置页本身也实现为 addons」。
-> 前置已完成：`docs/addons-config/PRD.md` + `issues.md`（config_schema 机制，Issues #1–#5 全部 Done）。本 PRD 是**把已落地的核心代码 addon 化**，不重复发明机制。
-> 仓库 ADR 单一存放处：`docs/ARCHITECTURE_DECISIONS.md`（ADR-013 为本机制）。本重构落地后需在 ADR-013 增补「设置页 UI 已 addon 化、底座留核心」的收尾说明。
+> 前置已完成：`docs/开发计划/addons-config/PRD.md` + `issues.md`（config_schema 机制，Issues #1–#5 全部 Done）。本 PRD 是**把已落地的核心代码 addon 化**，不重复发明机制。
+> 仓库 ADR 单一存放处：`docs/ARCHITECTURE_DECISIONS.md`（0020 为本机制）。本重构落地后需在 0020 增补「设置页 UI 已 addon 化、底座留核心」的收尾说明。
 
 ## 4 个 Grill 决策（已确认，待你核对）
 > 以下为规划前的 grill 结论。若任一与你的记忆不符，告知我即据以修正 Issues 拆分。
@@ -52,6 +52,6 @@
 
 ## Further Notes / ADR
 
-- 落地后在 `docs/ARCHITECTURE_DECISIONS.md` 的 ADR-013 增补：「设置页 UI 已 addon 化于 `addons/addon_settings`；AddonSetting 模型/迁移/InstanceAdmin 权限作为底座留核心（鸡生蛋例外，非铁律违反）」。
-- 更新 `docs/agents/addon-dev-workflow.md` 检查清单：新增「设置页逻辑位于 `addons/addon_settings`，核心不含设置页业务代码」。
+- 落地后在 `docs/ARCHITECTURE_DECISIONS.md` 的 0020 增补：「设置页 UI 已 addon 化于 `addons/addon_settings`；AddonSetting 模型/迁移/InstanceAdmin 权限作为底座留核心（鸡生蛋例外，非铁律违反）」。
+- 更新 `docs/development/addon-dev-workflow.md` 检查清单：新增「设置页逻辑位于 `addons/addon_settings`，核心不含设置页业务代码」。
 - 风险：`AddonSetting.config_schema_for` 必须持续安全降级（模块不可达返 `[]`），否则未声明 addon 的页面渲染报错——此约束不因 addon 化而改变。
