@@ -1,38 +1,40 @@
-# 领域文档（Domain Docs）
+# 领域文档（Domain Docs）约定
 
-工程技能在探索代码库时，应如何消费本仓库的领域文档。
+Engineering skills 探索 codebase 时，应如何消费这个 repo 的 domain documentation。
 
-## 在探索之前，先读这些
+> 本仓库约定：**ADR 单一存放处为 `docs/adr/`**（编号 `NNNN-slug.md`，如 `0001-ai-eln-engine-architecture.md`）。历史上曾有 `docs/ARCHITECTURE_DECISIONS.md` 聚合式 ADR 日志，其内容已**归并**进 `docs/adr/` 各独立文件；该聚合文件仅作为索引/概览保留，新 ADR 一律写入 `docs/adr/`，**不要**再退回聚合文件或新建并行 ADR 体系。
 
-- **仓库根目录的 `CONTEXT.md`** —— 这是一个单上下文（single-context）仓库，因此没有 `CONTEXT-MAP.md`。
-- **`docs/ARCHITECTURE_DECISIONS.md`** —— 本仓库的 ADR 日志。请阅读与你要开发领域相关的那些 ADR。
+## 探索前，先读这些
 
-如果上述任何文件不存在，**请静默继续**。不要指出它们缺失，也不要建议预先创建。当术语或决策真正被确定时，`/domain-modeling` 技能（通过 `/grill-with-docs` 和 `/improve-codebase-architecture` 进入）会按需惰性创建这些文件。
+- 与当前话题相关的 **术语表 `CONTEXT.md`**。本仓库按功能分目录存放，例如 `docs/ai-eln/CONTEXT.md`（AI-ELN 插件术语）；不要假设术语表一定在 repo 根。
+- **`docs/adr/`** — 读取与你即将处理区域相关的 ADR。按编号或 slug 定位（如 addon 类看 `0005-addon-registration-convention.md`、AI-ELN 看 `0001`~`0007`）。
 
-## 文件结构
+如果某个文件不存在，**静默继续**。不要标记缺失；不要提前建议创建。`/domain-modeling` skill（经由 `/grill-with-docs` 和 `/improve-codebase-architecture` 调用）会在 terms 或 decisions 实际被解决时懒创建它们。
 
-单上下文仓库：
+## 文件结构（本仓库实际形态）
 
 ```
 /
-├── CONTEXT.md
 ├── docs/
-│   └── ARCHITECTURE_DECISIONS.md   ← ADR 日志（ADR-001 … ADR-005）
-└── app/
+│   ├── adr/                         ← ADR 单一存放处（NNNN-slug.md）
+│   │   ├── 0001-ai-eln-engine-architecture.md
+│   │   ├── 0005-addon-registration-convention.md
+│   │   └── …
+│   ├── ai-eln/                      ← 功能目录：实现计划 + 术语表
+│   │   ├── 实现现状与开发计划.md
+│   │   └── CONTEXT.md
+│   └── ARCHITECTURE_DECISIONS.md    ← 聚合式 ADR 日志（已归并，仅留作索引）
+└── addons/<name>/                   ← 各 addon 源码（独立 Rails Engine）
 ```
-
-## ADR 约定
-
-本仓库将 ADR 集中存放在一个文件 `docs/ARCHITECTURE_DECISIONS.md` 中，位于 **三、关键架构决策（ADR）** 一节，编号为 `ADR-00N`。新 ADR 追加到该文件即可；**不要**另建并行的 `docs/adr/` 目录。
 
 ## 使用术语表的词汇
 
-当你的输出要命名某个领域概念时（例如在 issue 标题、重构提案、假设、测试名称中），请使用 `CONTEXT.md` 中定义的术语。不要擅自改用术语表明确规避的同义词。
+当你的输出命名某个 domain concept 时（issue title、refactor proposal、hypothesis、test name），使用对应 `CONTEXT.md` 中定义的 term。不要漂移到 glossary 明确避免的 synonyms。
 
-如果你需要的概念尚未出现在术语表中，这是一个信号 —— 要么你正在发明项目并不使用的语言（请重新考虑），要么确实存在真实空白（请为 `/domain-modeling` 记下这一点）。
+如果你需要的概念还不在 glossary 中，这是一个信号：要么你正在发明项目没有使用的语言（重新考虑），要么确实存在缺口（为 `/domain-modeling` 记录）。
 
-## 标记 ADR 冲突
+## 标注 ADR 冲突
 
-如果你的输出与某个既有 ADR 相矛盾，请显式指出，而不是悄悄地覆盖：
+如果你的输出与现有 ADR 矛盾，明确指出，而不是静默覆盖：
 
-> _与 ADR-001（Repository 自定义表模式是核心领域模型）相矛盾 —— 但值得重新审视，因为……_
+> _Contradicts ADR-0005 (addon 注册约定) — but worth reopening because…_
