@@ -2,7 +2,7 @@
 
 # Injects the electronic-signature panel into the protocol show header.
 # deface lets us extend the core view without editing core app/ (addon-only
-# change surface, per docs/agents/addon-dev-workflow.md).
+# change surface, per docs/development/addon-dev-workflow.md).
 #
 # `signature_panel_for` is a no-op (empty safe string) unless the current user
 # holds the `can_sign_protocol_record?` permission, so dropping it in is safe on

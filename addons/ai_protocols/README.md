@@ -4,7 +4,7 @@ SciNote addon that generates structured **protocol templates** from free text or
 PDF/SOP via an OpenAI-compatible LLM (Create with AI / Import with AI).
 
 Implemented as a Rails Engine (`Scinote::AiProtocols::Engine`) so that **no core
-`app/` files are modified** — see `docs/agents/addon-dev-workflow.md`.
+`app/` files are modified** — see `docs/development/addon-dev-workflow.md`.
 
 ## Activation
 
@@ -89,4 +89,4 @@ If either fails the button is hidden. Hitting the URLs directly is also blocked:
   extracts `.pdf` text via `pdftotext`.
 - Generated protocols land as **draft protocol templates** for review before import.
 
-See `docs/agents/ai-protocol-addon-plan.md` for the full PRD / issue breakdown.
+See `docs/ai-eln/实现现状与开发计划.md` for the full PRD / issue breakdown.

@@ -9,7 +9,7 @@ SciNote 电子签名 addon（21 CFR Part 11 合规）。以独立 Rails Engine �
 - 追加式哈希链（`previous_hash` → `signature_hash`），保证签名序列不可抵赖。
 - 应用层不可变：签名记录无 update/delete 路径。
 
-## 扩展点（遵循 docs/agents/addon-dev-workflow.md）
+## 扩展点（遵循 docs/development/addon-dev-workflow.md）
 - 引擎：`Scinote::Esignatures::Engine`，`isolate_namespace`。
 - 权限：`app/permissions/**/*.rb`，由 `config/initializers/canaid.rb` 自动发现。注意：引擎 `app/*` 子目录默认不在 `config.eager_load_paths`，canaid 扫描不到，故 `engine.rb` 已显式 `config.eager_load_paths << root.join('app', 'permissions')`——否则调用 `can_sign_*_record?` 会抛 `ArgumentError: unknown permission`。
 - 入口（签名按钮）：核心 `protocols/_header` 与 `experiments/_show_header` 是服务器渲染的 header，经 **deface**（`app/overrides/*.rb`）`insert_after 'div.content-header'` 注入 `signature_panel_for` 面板，不碰核心视图；`signature_panel_for` 自身用 `can_sign_record?` 门控，无权限返回空串。`app/decorators/application_helper_decorator.rb` 仅把 `SignatureHelper` 混入 `ApplicationHelper` 供面板渲染。结果（Result）签名落在 Vue canvas 内，需 JS 入口，留作后续。
