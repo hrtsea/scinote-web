@@ -1,6 +1,6 @@
 # 产品功能 × 本 fork 实现现状 与 开发计划
 
-> 配套文档：`docs/PRODUCT_OVERVIEW.md`（官网功能原文总览）、`docs/FEATURE_FLAGS.md`（本 fork 开关现状）、`docs/agents/addon-dev-workflow.md`（二次开发铁律）、`docs/agents/ai-protocol-addon-plan.md`（AI & Automations 专项计划）。
+> 配套文档：`docs/PRODUCT_OVERVIEW.md`（官网功能原文总览）、`docs/FEATURE_FLAGS.md`（本 fork 开关现状）、`docs/development/addon-dev-workflow.md`（二次开发铁律）、`docs/ai-eln/实现现状与开发计划.md`（AI & Automations 专项计划）。
 > 探查手段：codebase-memory 知识图谱（17,442 节点 / 48,821 边，全量索引）+ 关键词源码核验（grep）。
 > 铁律：本 fork 自托管且无法 pull 上游，所有新增功能**只以 `addons/<name>/` Rails Engine 形式实现**，不得改核心 `app/`（`addon-dev-workflow.md` 〇）。
 
@@ -14,7 +14,7 @@
 | 功能 | 状态 | 证据 |
 |---|---|---|
 | 层级文件结构（projects/experiments/tasks） | ✅ | 核心模型 `Project`/`Experiment`/`MyModule` |
-| 交互式协议 + 集中协议库 | ✅ | `protocols_controller`、`ProtocolImporters`（ADR-002） |
+| 交互式协议 + 集中协议库 | ✅ | `protocols_controller`、`ProtocolImporters`（0009） |
 | Advanced search | ✅ | `app/controllers/search_controller.rb`、`REPOSITORY_ADVANCED_SEARCHABLE_COLUMNS`、`quick_search.vue` |
 | Smart annotation & activity log | ✅ | `SmartAnnotations::TagToHtml`（ADR 复杂度热点）、`app/models/activity.rb` |
 
@@ -38,7 +38,7 @@
 ### 4. REGULATORY COMPLIANCE
 | 功能 | 状态 | 证据 |
 |---|---|---|
-| 封闭系统 / 受限访问 | ✅ | Devise 认证 + 集中式权限系统（ADR-003） |
+| 封闭系统 / 受限访问 | ✅ | Devise 认证 + 集中式权限系统（0010） |
 | 人类可读副本 / 全量导出 | ✅ | `team_zip_export_job`、全量导出 |
 | 时间戳审计追踪 | ⚠️ | 有 `Activity` 活动日志 + `versioned_attachments`（附件版本），但**无不可篡改/WORM 审计链**（全仓 0 命中 `paper_trail`/audit_trail 模型） |
 | 时间戳电子签名（21 CFR Part 11） | ❌ | 全仓无 `electronic_signature` 模型；"esign" 命中均为 designate/design 字样 |
@@ -48,7 +48,7 @@
 |---|---|---|
 | 随时协作 | ✅ | 多团队/多用户 |
 | 跨团队沟通（@提及/评论/通知） | ✅ | smart annotation、comments、notifications |
-| 自定义用户权限 | ✅ | `permissions/*`（ADR-003） |
+| 自定义用户权限 | ✅ | `permissions/*`（0010） |
 | 团队上手（CSM/培训） | ⚠️ | 属 SaaS 服务，自托管仅有 UI 引导，无 CSM |
 
 ### 6. 独立/扩展模块
@@ -60,7 +60,7 @@
 | Protocols.io | ✅ | `PROTOCOLS_IO_ACCESS_TOKEN`（需真实令牌） |
 | FLUICS 标签 | ✅ | `ENABLE_FLUICS_SYNC`、`LabelPrinters::Fluics` |
 | Zebra 标签打印机 | ✅ | `zebra_label_template`、`BrowserPrint-Zebra` |
-| **AI & Automations** | ❌（已规划） | `docs/agents/ai-protocol-addon-plan.md` 已完成 grill + PRD + Issues，**尚未实现** |
+| **AI & Automations** | ❌（已规划） | `docs/ai-eln/实现现状与开发计划.md` 已完成 grill + PRD + Issues，**尚未实现** |
 | 21 CFR Part 11 / GLP/GMP | ⚠️ | 电子签名 ❌、审计追踪 ⚠️（见上） |
 | Data Protection & Security | ⚠️ | 有加密/2FA（`_2fa_modal`）/SSO 开关；FedRAMP/ISO 为合规声明 |
 | ELN Mobile App | ⚠️ | PWA 脚手架在（`pwa_helper.rb`、`pwa_mobile_app.js`、`SCINOTE_PWA_DOMAIN_NAME` 开关），未完整交付 |
@@ -91,13 +91,13 @@ PWA 脚手架（`pwa_helper.rb`、`pwa_mobile_app.js`、CORS 域名开关）已�
 - 需新增：manifest、service worker、离线缓存、移动端适配路由；以 `addons/mobile_pwa` 形式补齐，避免改核心。
 
 ### G5 — AI & Automations（❌ 已规划，独立交付）
-`docs/agents/ai-protocol-addon-plan.md` 已完成 grill + PRD + Issues 拆分（addon `ai_protocols` + `automations_ext`），**本计划不再重复**，直接进入 `/implement` 即可。列此仅为完整性。
+`docs/ai-eln/实现现状与开发计划.md` 已完成 grill + PRD + Issues 拆分（addon `ai_protocols` + `automations_ext`），**本计划不再重复**，直接进入 `/implement` 即可。列此仅为完整性。
 
 ---
 
 ## 三、开发计划（按 addon 工作流，垂直切片）
 
-> 统一遵循 `docs/agents/addon-dev-workflow.md` Phase 0–6 与 `docs/agents/domain.md` 的 ADR 约定。
+> 统一遵循 `docs/development/addon-dev-workflow.md` Phase 0–6 与 `docs/agents/domain.md` 的 ADR 约定。
 > 每个 addon：Phase 0 先写 ADR-00X（追加到 `docs/ARCHITECTURE_DECISIONS.md` 第三节）→ Phase 3 脚手架（复制 `addons/i18n` 骨架）→ Phase 4 `/tdd` 红绿切片 → Phase 5 rubocop+brakeman+rspec → Phase 6 收口 ADR 冲突风险。
 > Issue 跟踪按 `docs/agents/issue-tracker.md`；本环境无 `gh` 且不可达 GitHub，Issue 仅作草稿待手动执行。
 
@@ -108,7 +108,7 @@ PWA 脚手架（`pwa_helper.rb`、`pwa_mobile_app.js`、CORS 域名开关）已�
 - **Issue A3 — 权限与入口**：`app/permissions/**/*.rb`（`can_sign_record?` 等）；`app/decorators` 在协议/结果页挂签名按钮，受开关门控。
 - **Issue A4 — 验证与导出**：签名完整性校验工具；导出时附签名证明。
 
-> **实施进度（截至 2026-09-01）**：ADR-007 决策 + Phase 3 脚手架 + Phase 4/5 实现均已完成。
+> **实施进度（截至 2026-09-01）**：0014 决策 + Phase 3 脚手架 + Phase 4/5 实现均已完成。
 > - **A1 数据模型与迁移**：引擎 `Scinote::Esignatures::Engine`（`isolate_namespace`）；模型 `ESignature` / `ESignatureRecord`（多态、`append-only` 应用层不可变）；迁移**已落到核心 `db/migrate/20260901001000_scinote_esignatures_create_tables.rb`**（见下方「踩坑」第 3 条关于版本号冲突的修正）。
 > - **A2 签名服务**：`SignatureService.call(record:, user:, meaning:)` 生成带时间戳 + `record_hash` + 追加式哈希链（`signature_hash = H(record_hash + 上一记录 hash)`）的签名记录；`SignaturePolicy` 按记录类型分派到核心 `can_manage_*` 权限；`SignatureGate` 守卫。
 > - **A3 权限与入口**：canaid 权限文件 `app/permissions/scinote/esignatures/permissions.rb` 注册 `can_sign_protocol_record?` / `can_sign_result_record?` / `can_sign_experiment_record?`；`SignaturesController` + `SignatureHelper` + `SignatureGate`。**权限已真正接入 canaid**（见下方「踩坑」第 1 条，曾因 `app/permissions` 未进入引擎 `eager_load_paths` 而静默未注册）。**UI 入口已落地**：经 deface（`app/overrides/*.rb`）把 `signature_panel_for` 面板注入核心 `protocols/_header` 与 `experiments/_show_header`（服务器渲染的 header），无 `can_sign_*_record?` 权限时面板为空串；结果（Result）签名在 Vue canvas 内，需 JS 入口，留作后续。

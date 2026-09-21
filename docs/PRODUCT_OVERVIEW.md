@@ -82,7 +82,7 @@
 - **SCINOTE EDIT** — With SciNote Edit, you will be able to open and edit a file attached in SciNote Task Protocol Steps or Results directly using the file's default desktop application. Additionally, when you save these files, the changes will be saved directly back into SciNote, where you opened the files from.
 - **GET STARTED WITH SCINOTE** — See firsthand how SciNote can streamline your research workflow, enhance collaboration, and revolutionize data organization. Get a demo.
 
-> 注：`AI & Automations` 仅在导航菜单 Product 下拉中出现，页面主体未以独立大写区块呈现（其专项内容见 `docs/agents/ai-protocol-addon-plan.md`）。
+> 注：`AI & Automations` 仅在导航菜单 Product 下拉中出现，页面主体未以独立大写区块呈现（其专项内容见 `docs/ai-eln/实现现状与开发计划.md`）。
 
 ---
 
@@ -163,4 +163,4 @@ A9: The best way is to contact us at premium@scinote.net. We look forward to hea
 
 ## 六、与本 fork 实现的衔接
 - 本页各功能在 `scinote-web` fork 中的实现状态、差距与开发计划，见 **`docs/PRODUCT_GAP_AND_PLAN.md`**。
-- 其中 **AI & Automations** 已有独立专项计划：**`docs/agents/ai-protocol-addon-plan.md`**（grill + PRD + Issues 已完成）。
+- 其中 **AI & Automations** 已有独立专项计划：**`docs/ai-eln/实现现状与开发计划.md`**（grill + PRD + Issues 已完成）。

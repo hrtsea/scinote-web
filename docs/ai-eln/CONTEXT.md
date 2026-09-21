@@ -1,7 +1,7 @@
 # AI-ELN 领域术语表（CONTEXT.md）
 
 > 本文件是 AI-ELN 插件的**纯术语表（glossary）**，不含任何实现细节。
-> 作为本插件开发会话的「通用语言」来源；实现决策见 `实现现状与开发计划.md` 与 `docs/ARCHITECTURE_DECISIONS.md` 的 ADR-014。
+> 作为本插件开发会话的「通用语言」来源；实现决策见 `实现现状与开发计划.md` 与 `docs/ARCHITECTURE_DECISIONS.md` 的 0001。
 > 术语若与 SciNote 核心术语冲突，以本表为准并在 ADR 中记录。
 
 ## 一、插件与边界
@@ -42,9 +42,9 @@
 - **图谱（spectrum）**：DSC/TGA 等材料表征图谱（图片/PDF），属待解析附件。
 - **GLP 记录自检**：扫描实验记录缺失的合规元数据（试剂批号、设备编号、环境条件等）。
 
-## 六、已锁定的关键决策（详见 ADR-014）
+## 六、已锁定的关键决策（详见 0001）
 
-1. 新建**独立** `ai_eln` 引擎，与既有 `ai_protocols` 并列共存；复用其 `LlmClient`，不合并、不替代。
+1. 新建**独立** `ai_eln` 引擎，与既有 `ai_protocols` 并列共存；ai_eln 自带独立 `LlmAdapter`（不引用 ai_protocols 的 `LlmClient`），不合并、不替代。
 2. 首切片做**地基**（引擎骨架+开关+适配层+三表+审计+抽屉外壳），后续 25 功能挂其上。
 3. 配置沿用 **ENV + ApplicationSettings 特性开关**范式，不引入 YAML 配置。
 4. 引擎自有表迁移走脚手架 `append_migrations` 模式，**宿主 `db/migrate` 零改动**。
