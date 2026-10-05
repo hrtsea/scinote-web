@@ -1379,3 +1379,12 @@ Rails.application.routes.draw do
     end
   end
 end
+
+    # 工作台（workbench addon —— 独立 addon，不并入 eln_ui）。
+    # REQ-DASHBOARD / SCN-DASH-1~7：按登录角色渲染首页，只给状态统计，
+    # 详情一律下钻到对应页面；统计数据全部实时读业务库（无缓存快照）。
+    # ⚠ path 用 /eln_workbench（不是原型的 /workbench）—— 各页面包屑「工作台」
+    #   的宿主映射在 ELN系统-Vue3/src/entries/modifiers/router_link_host.js，别漏改。
+    get 'eln_workbench',
+        to: 'scinote/workbench/workbench#index',
+        as: :eln_workbench

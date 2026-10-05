@@ -146,3 +146,5 @@ gem 'scinote_ai_protocols', path: 'addons/ai_protocols'
 gem 'scinote_esignatures', path: 'addons/esignatures'
 gem 'scinote_project_insights', path: 'addons/project_insights'
 gem 'scinote_addon_settings', path: 'addons/addon_settings'
+
+gem 'scinote_workbench', path: 'addons/workbench'

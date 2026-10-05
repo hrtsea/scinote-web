@@ -1,0 +1,25 @@
+<%# 工作台（/eln_workbench）—— 按 Vue3 原型 ELN系统-Vue3/src/views/Workbench.vue 重建
+    § 挂载契约（与 eln_ui/res_center#index 是同一套）：
+      1. #eln-workbench 是唯一挂载点，对应 ELN系统-Vue3/src/entries/workbench.js。
+      2. 数据只能来自 #eln-workbench-data（JSON 块）。
+      3. CSP: script-src 'self' + nonce —— 注入块与挂载脚本一律带 nonce。
+      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle。
+      5. CSS 是工作台自己的 eln_workbench.css，不与其他页共用（vite lib 模式各打各的）。
+      6. ⚠ asset_path / javascript_include_tag 必须带扩展名（.css/.js），
+         sprockets 精确匹配，不带则 AssetNotFound → 整页 500。
+      7. ⚠ 「状态机」说明、链接地址、条形色值全部由 payload 下发，
+         这里不再硬编任何宿主路由或画布演示文案。
+%>
+<% provide(:head_title, '工作台') %>
+
+<link rel="stylesheet" href="<%= asset_path 'workbench_vue3/eln_workbench.css' %>">
+<script type="application/json" id="eln-workbench-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_WORKBENCH__ = JSON.parse(
+    document.getElementById('eln-workbench-data').textContent
+  );
+</script>
+<div id="eln-workbench"></div>
+<%= javascript_include_tag 'workbench_vue3/eln_workbench.js', nonce: content_security_policy_nonce %>

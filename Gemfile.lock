@@ -69,6 +69,12 @@ PATH
   specs:
     scinote_project_insights (0.1.0)
 
+PATH
+  remote: addons/workbench
+  specs:
+    scinote_workbench (0.1.0)
+      rails (>= 7.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -1018,6 +1024,7 @@ DEPENDENCIES
   scinote_esignatures!
   scinote_i18n!
   scinote_project_insights!
+  scinote_workbench!
   sdoc (~> 1.0)
   selenium-webdriver
   shoulda-matchers
