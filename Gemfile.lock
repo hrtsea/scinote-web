@@ -68,6 +68,12 @@ PATH
       rails (>= 6.0)
 
 PATH
+  remote: addons/eln_ui
+  specs:
+    scinote_eln_ui (0.1.0)
+      rails (>= 7.0)
+
+PATH
   remote: addons/esignatures
   specs:
     scinote_esignatures (0.1.0)
@@ -1076,6 +1082,7 @@ DEPENDENCIES
   scinote_addon_settings!
   scinote_ai_eln!
   scinote_ai_protocols!
+  scinote_eln_ui!
   scinote_esignatures!
   scinote_i18n!
   scinote_project_insights!
