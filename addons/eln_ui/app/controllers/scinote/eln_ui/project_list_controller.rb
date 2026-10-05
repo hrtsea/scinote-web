@@ -214,6 +214,10 @@ module Scinote
           # url_for 在本controller 里会炸，所以这里也用字面基址拼接，
           # 路由段与 config/routes.rb 的 'projects/:project_id/eln_project_detail' 一致。
           detail_url_base: @detail_url_base ||= '/projects',
+          # 工作台入口（OPEN-WB-7）：宿主左菜单没有 /eln_workbench，这个字面基址是
+          # 「从项目列表回/去工作台」的唯一正式入口。与 detail_url_base 同款 ——
+          # 本 controller 里 url_for 会因 _recall 抛 UrlGenerationError，别改成路由 helper。
+          workbench_url: @workbench_url ||= '/eln_workbench',
           # 行菜单 7 项（编辑/访问权限/移动/导出/归档/评论/动态）的权限与端点同源判定：
           # 传下去后 payload 用同一批 Canaid 谓词（can_manage_project? / can_manage_team?
           # / can_archive_project? / can_export_project? / can_read_project?），

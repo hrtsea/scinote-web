@@ -105,10 +105,13 @@ class ElnUiProjectListTest < AcTest::Base
       default_roles: [{ id: 4, name: 'Viewer' }],
       create_urls: { project: '/projects', folder: '/project_folders' },
       list_url: '/eln_project_list.json',
-      view_mode: 'archived'
+      view_mode: 'archived',
+      workbench_url: '/eln_workbench'
     )
 
     assert_equal true, payload[:canCreateFolder], '新建文件夹权限要出给前端'
+    assert_equal '/eln_workbench', payload[:workbenchUrl],
+                 '工作台入口落点必须由服务端下发（前端不写死宿主路由；空了页头那颗按钮就不渲染）'
     assert_equal '/eln_project_list.json', payload[:listUrl], 'json 出口要出给前端（否则按钮改完条件刷不动）'
     assert_equal '/projects', payload[:createUrls][:project], '新建项目的原生端点由服务端给，前端不写死'
     assert_equal '/project_folders', payload[:createUrls][:folder], '新建文件夹的原生端点由服务端给'
@@ -128,6 +131,8 @@ class ElnUiProjectListTest < AcTest::Base
     assert_equal [], payload[:statuses]
     assert_equal [], payload[:defaultRoles]
     assert_equal({}, payload[:createUrls])
+    # OPEN-WB-7：不传就是 nil（页头不渲染那颗按钮），不是回落某个原型演示路径。
+    assert_nil payload[:workbenchUrl]
     assert_nil payload[:listUrl]
     assert_equal 'active', payload[:viewMode], '没给 viewMode 时按原生默认：活动态'
   end

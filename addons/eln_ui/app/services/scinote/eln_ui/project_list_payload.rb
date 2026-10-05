@@ -68,7 +68,7 @@ module Scinote
         def call(projects, can_create_project: false, can_create_folder: false,
                  folders: [], members: [], head_of_projects: [], statuses: [],
                  default_roles: [], create_urls: {}, list_url: nil, view_mode: 'active',
-                 detail_url_base: nil, current_user: nil)
+                 detail_url_base: nil, current_user: nil, workbench_url: nil)
           new(projects,
               can_create_project: can_create_project,
               can_create_folder: can_create_folder,
@@ -81,14 +81,15 @@ module Scinote
               list_url: list_url,
               view_mode: view_mode,
               detail_url_base: detail_url_base,
-              current_user: current_user).call
+              current_user: current_user,
+              workbench_url: workbench_url).call
         end
       end
 
       def initialize(projects, can_create_project: false, can_create_folder: false,
                      folders: [], members: [], head_of_projects: [], statuses: [],
                      default_roles: [], create_urls: {}, list_url: nil, view_mode: 'active',
-                     detail_url_base: nil, current_user: nil)
+                     detail_url_base: nil, current_user: nil, workbench_url: nil)
         @projects = projects.to_a
         @current_user = current_user
         @can_create_project = can_create_project
@@ -102,6 +103,12 @@ module Scinote
         @list_url = list_url
         @detail_url_base = detail_url_base.presence && detail_url_base.to_s.chomp('/')
         @view_mode = view_mode.to_s.presence || 'active'
+        # 工作台入口（OPEN-WB-7）。之前宿主左菜单 11 项里一个 /eln_workbench 都没有，
+        # 工作台只能靠直输 URL 进；这里把落点从服务端下发，前端不写死宿主路由。
+        # 与 detailUrlBase 同款坑：本 controller 里 url_for 会踩 _recall 那个
+        # ActionController::UrlGenerationError，所以用字面基址，路由段与
+        # config/routes.rb 的 'eln_workbench' 对齐。
+        @workbench_url = workbench_url
       end
 
       def call
@@ -120,6 +127,9 @@ module Scinote
           # 没有它，下拉就只剩一个「选择成员…」占位 —— 那是显式留白，不是 bug，
           # 但既然原生有真端点，就别让这个入口点不动。
           assignableUsersUrl: assignable_users_path_of,
+          # 工作台入口（OPEN-WB-7）：工作列表页头那颗「工作台」按钮的真落点。
+          # 空 = 不渲染按钮（不是渲染出来再置灰），与行菜单同口径。
+          workbenchUrl: @workbench_url,
           projects: projects_block
         }
       end
