@@ -5,10 +5,15 @@ module Scinote
     class Configuration
       attr_accessor :enabled,
                     :wecom_token, :wecom_encoding_aes_key, :wecom_corpid,
-                    :ilink_token, :ilink_base_url
+                    :ilink_token, :ilink_base_url,
+                    :default_project_id, :vision_endpoint,
+                    :ai_enabled, :ai_endpoint, :ai_api_key, :ai_model,
+                    :ilink_reply_sender
 
       def initialize
         @enabled = true
+        # iLink 出站回包钩子：proc(user_id, text) -> void。默认 nil（仅记录，待接 iLink 主动消息 API）。
+        @ilink_reply_sender = nil
       end
     end
 

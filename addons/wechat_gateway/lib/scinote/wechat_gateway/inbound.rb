@@ -17,15 +17,19 @@ module Scinote
                       '生成一次性绑定码后发送「/bind <码>」完成绑定。'.freeze
 
       class << self
-        attr_writer :store, :intake_handler
+        attr_writer :store, :intake_handler, :bind_command
 
         def store
           @store ||= ActiveRecordBindingStore.new # 运行时由 Rails autoload 解析
         end
 
-        # 注入的 intake 处理器：proc(user_id, message) -> 任意结果。ticket 06 落地后赋值。
+        # 注入的 intake 处理器：proc(user_id, message) -> 任意结果。ticket 01 已落地为 Intake.handle。
         def intake_handler
           @intake_handler ||= ->(_user_id, _message) { nil }
+        end
+
+        def bind_command
+          @bind_command ||= BindCommand.new(store)
         end
 
         # 统一入口（回调控制器 / 桥接调用）：原始 raw + params -> 解析身份并（已绑定）交 intake。
@@ -33,10 +37,16 @@ module Scinote
         #   wecom: raw = 加密回调 XML 文本；params = {timestamp, nonce, msg_signature}
         #   ilink: raw = iLink payload Hash
         # 返回：
+        #   /bind 指令 -> { bind: true, ok:, reply:, message: }（无论是否已绑定都先处理绑定）
         #   已绑定 -> { bound: true, user_id:, message:, intake: <handler 结果> }
         #   未绑定 -> { bound: false, message:, guidance: BIND_GUIDANCE }
         def receive(platform, raw, params = {})
           message = parse(platform, raw, params)
+          # 绑定指令优先：未绑定用户的主路径，必须在身份解析前拦截
+          if (bind = try_bind(message))
+            return bind
+          end
+
           user_id = dispatch(platform, message)
           if user_id.nil?
             { bound: false, message: message, guidance: BIND_GUIDANCE }
@@ -44,6 +54,15 @@ module Scinote
             { bound: true, user_id: user_id, message: message,
               intake: intake_handler.call(user_id, message) }
           end
+        end
+
+        # 拦截 /bind <码>：交给 BindCommand 处理，返回非 nil 表示命中绑定指令。
+        def try_bind(message)
+          text = message.text.to_s.strip
+          return nil unless text.start_with?('/bind')
+
+          result = bind_command.call(message.user_id, message.platform, text)
+          { bind: true, ok: result[:ok], reply: result[:reply], message: message }
         end
 
         # 解析原始 payload 为统一 Message（纯函数，可单测）。

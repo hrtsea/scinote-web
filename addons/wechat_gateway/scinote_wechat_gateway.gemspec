@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.license     = 'MPL-2.0'
 
   s.files = Dir['{app,config,db,lib}/**/*', 'LICENSE.txt', 'Rakefile', 'README.rdoc']
-  s.test_files = Dir['test/**/*']
+  s.test_files = Dir['spec/**/*']
 
   s.add_dependency 'rails', '~> 7.2'
   s.add_dependency 'deface', '~> 1.9'

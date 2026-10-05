@@ -23,7 +23,12 @@ module Scinote
           return { ok: false, reply: '绑定码无效或已过期，请在 SciNote 设置页重新获取。' }
         end
 
-        @store.create_binding(user_id, wechat_id, platform)
+        begin
+          @store.create_binding(user_id, wechat_id, platform)
+        rescue StandardError => e
+          # 极少数竞态/重复绑定：回滚已消费的码不可行，给出明确提示而非 500
+          return { ok: false, reply: "绑定失败：#{e.message}。如已绑定请忽略，否则联系管理员。" }
+        end
         { ok: true, reply: '绑定成功！以后直接用微信/企微给我发实验记录即可 🎉' }
       end
 
