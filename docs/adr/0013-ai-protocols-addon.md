@@ -20,11 +20,11 @@ Accepted
 
 ## Consequences / 风险
 
-- 若上游未来自行实现并消费 `ai_parser_enabled?`，本 addon 经 `app/decorators` / `app/overrides` 的覆盖可能产生冲突——覆盖点须记录在 `docs/ai-eln/实现现状与开发计划.md` 并随上游演进复核。
+- 若上游未来自行实现并消费 `ai_parser_enabled?`，本 addon 经 `app/decorators` / `app/overrides` 的覆盖可能产生冲突——覆盖点须记录在 `docs/开发计划/ai-eln/实现现状与开发计划.md` 并随上游演进复核。
 
 ## 关联
 
 - `docs/development/addon-dev-workflow.md`（addon 方法学）
-- `docs/ai-eln/实现现状与开发计划.md`（PRD / Issues）
+- `docs/开发计划/ai-eln/实现现状与开发计划.md`（PRD / Issues）
 - 0020（addon 配置自声明：ai_protocols 已声明 `parser_url`/`api_key`/`model` schema，首轮仅暴露未消费）
 - 0001（AI-ELN 为姊妹 addon，自有 `LlmAdapter`，不复用本 addon 的 `LlmClient`）
