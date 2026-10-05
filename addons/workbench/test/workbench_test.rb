@@ -3,7 +3,8 @@
 # 工作台（Workbench）—— 六块数据装配（REQ-DASHBOARD）
 #
 # 守 4 件事（都是「不许编」的铁律落点）：
-#   1. meta.greeting / role / notice 全部来自真源（User 真名 / UserRole + supervised_by /
+#   1. meta.greeting / role / notice 全部来自真源（User 真名 / UserRole —— **按承载面分级**：
+#      Team 级 Owner → 单位管理员；Project 级 Owner 或 supervised_by → 项目负责人 /
 #      原生 Notification 未读数），不落演示文案；
 #   2. dist 用**数据库里真实的 MyModuleStatus 名 + 真色**（不是原型的五个演示标签）；
 #   3. groups / dist 无数据时给**空数组 / '—'**，绝不回落「张负责人」「82%」这类画布值；
@@ -33,9 +34,9 @@ class WorkbenchTest < AcTest::Base
     assert_match(/^(凌晨|上午|下午|晚上)好，/, greeting, '问候语必须是「时段好，真名」形状')
   end
 
-  # ② 普通组员：既非 Owner 也不 supervised 任何可读 project → 「普通组员」
+  # ② 普通组员：非 Team 级 Owner、也非任何可读 project 的负责人 → 「普通组员」
   #    ⚠ 2026-10-04 QA 修：原用例先 make_owner_assignment! 再断言「普通组员」，
-  #      与 payload 的宽口径（①Owner ②负责人 ③普通组员，Owner 优先）自相矛盾
+  #      与 payload 的判定优先级（①单位管理员 ②项目负责人 ③普通组员）自相矛盾
   #      → 实际拿到「单位管理员 · Owner」。这里不再挂 Owner 赋值。
   def test_role_is_plain_member_for_plain_user
     scene = build_scene!
@@ -46,7 +47,10 @@ class WorkbenchTest < AcTest::Base
     assert_equal '普通组员', body[:meta][:role]
   end
 
-  # ③ 单位管理员：宿主 UserRole = Owner（只认 name，不认 id）
+  # ③ 单位管理员：**Team 级**（单位级）宿主 UserRole = Owner（只认 name，不认 id）
+  #    ⚠ 承载面是这条用例的关键：`make_owner_assignment!` 造的是 Team 级赋值。
+  #      原实现不限 assignable_type，但这里恰好只造 Team 级 ——
+  #      所以源码的宽口径**从未被这条用例触发**，见下面 ③-b 补的那层覆盖。
   def test_role_is_admin_when_owner_assignment_exists
     scene = build_scene!
     make_owner_assignment!(user: scene[:creator], team: scene[:team])
@@ -54,6 +58,38 @@ class WorkbenchTest < AcTest::Base
     body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal '单位管理员 · Owner', body[:meta][:role]
+  end
+
+  # ③-b 🔴 护栏：Project 级 Owner **不是**单位管理员
+  #
+  # 这是原实现的真实事故形态：`owner_user?` 不限 assignable_type →
+  # 「在某个 Project / Experiment / MyModule 上挂着 Owner」也被算成单位管理员。
+  # 生产实测（4 个用户的库）：**3 个**被贴成「单位管理员 · Owner」，而全库 Team 级 Owner 只有 1 条。
+  # 受害样本 hrtsea@qq.com：Team 级角色是 `User`，Owner 命中全是
+  # {Experiment: 96, MyModule: 50, Project: 4} —— 他其实是 203 个项目的负责人。
+  #
+  # ⚠ 必须先把 **Team 级** Owner 清掉：否则「Team 级命中」与「Project 级误命中」
+  #   两种成因同时为真，用例测不出是哪一条导致的。
+  def test_role_is_not_admin_for_project_level_owner_only
+    scene = build_scene!(visibility: :visible)
+    project = make_project!(team: scene[:team], creator: scene[:creator], visibility: :visible)
+    strip_owner!(scene[:creator])
+    ensure_team_member!(scene[:creator], scene[:team], role: 'User')
+    make_owner_assignment!(user: scene[:creator], team: scene[:team], assignable: project)
+
+    # 前提守卫①：Team 级必须没有 Owner —— 否则测不出「Project Owner 被误算」
+    assert_equal false, team_owner_assignment?(scene[:creator], scene[:team]),
+                 '前提守卫失败：Team 级仍有 Owner 赋值，两种成因混在一起'
+    # 前提守卫②：Project 级 Owner 必须真的挂上 —— 否则断言恒真（空断言）
+    assert_equal true, project_owner_assignment?(scene[:creator], project),
+                 '前提守卫失败：Project 级 Owner 没挂上，用例退化成空断言'
+
+    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+
+    refute_equal '单位管理员 · Owner', body[:meta][:role],
+                 'Project 级 Owner 被误判成单位管理员 —— 角色判定没限定 assignable_type'
+    assert_equal '项目负责人', body[:meta][:role],
+                 'Project 级 Owner 应落入「项目负责人」（OPEN-1 双轨：supervised_by 或 Project Owner）'
   end
 
   # ④ 项目负责人：任一**可读** project 的 supervised_by 是自己
@@ -64,17 +100,17 @@ class WorkbenchTest < AcTest::Base
   #   `strip_owner!` 删的是「带 Owner 角色的 UserAssignment」，
   #   而 `allow_project_read!` 建的那条**本身也是一条 UA**：
   #     · strip 放最后 → 把刚建的可读赋值一起删掉 → 项目不再 readable
-  #       → supervised_project? 落空 → 判成「普通组员」（本用例曾经假红的根因）；
-  #     · strip 放最前但用默认(Owner) 角色建可读 → strip 白清 → owner_user? 又命中。
+  #       → project_lead? 落空 → 判成「普通组员」（本用例曾经假红的根因）；
+  #     · strip 放最前但用默认(Owner) 角色建可读 → strip 白清 → team_admin? 又命中。
   #   所以顺序是「先清、后建」，并且**必须显式传 role: 'User'**。
   def test_role_is_project_lead_when_supervising_readable_project
     # ⚠ 必须是 visible 项目：build_scene! 默认 visibility=:hidden，
-    #   hidden 项目不进 Project.readable_by_user → supervised_project? 落空 → 判成普通组员。
+    #   hidden 项目不进 Project.readable_by_user → project_lead? 落空 → 判成普通组员。
     scene = build_scene!(visibility: :visible)
     project = make_project!(team: scene[:team], creator: scene[:creator], visibility: :visible)
     project.update_column(:supervised_by_id, scene[:creator].id)
     strip_owner!(scene[:creator])
-    # 清 Owner（免 owner_user? 误命中）之后，必须把「人是这个队成员」接回来：
+    # 清 Owner（免 team_admin? 误命中）之后，必须把「人是这个队成员」接回来：
     # strip_owner! 删的是**带 Owner 角色的 UA**，Team 级那条也在里面 ——
     # 删完 user.permission_team 变 nil，而 readable_by_user? 是 **team 作用域**
     # （permission_checkable_model.rb#permission_granted?），前提没了 → 后面白建。
@@ -82,9 +118,11 @@ class WorkbenchTest < AcTest::Base
     # 再以非 Owner 角色建可读（保住 readable_by_user? 这个前提）
     allow_project_read!(project, scene[:creator], role: 'User')
 
-    # 前提守卫①：Owner 必须真的清干净；若为 true，说明
-    # WorkbenchPayload#owner_user? 的「任意一条 Owner 赋值即算单位管理员」宽口径
-    # 命中了本不该命中的数据 —— 那是源码口径问题，不是用例问题。
+    # 前提守卫①：Owner 必须真的清干净。
+    #   team_admin? 优先级高于 project_lead?，**任意层级**的 Owner 残留都可能让
+    #   role_value 提前返回「单位管理员 · Owner」，把「项目负责人」这条断言掩盖掉。
+    #   ⚠ 口径收窄（2026-10-05）后 team_admin? 只认 Team 级，但本守卫仍按
+    #     「任意层级 Owner = 0」来要求 —— 更严不会错，宽了才会漏。
     still_owner = ::UserAssignment.joins(:user_role)
                                   .where(user_id: scene[:creator].id, user_roles: { name: 'Owner' })
                                   .exists?
@@ -101,7 +139,7 @@ class WorkbenchTest < AcTest::Base
       "#{a.assignable_type}##{a.assignable_id}/#{a.user_role&.name.inspect}"
     end
     assert project.readable_by_user?(scene[:creator]),
-           "前提守卫失败：项目已不可读（supervised_project? 会落空）—— " \
+           "前提守卫失败：项目已不可读（project_lead? 会落空）—— " \
            "visibility=#{project.visibility.inspect} " \
            "role=#{(::UserRole.find_by(name: 'User')&.permissions.to_a & ['project_read']).inspect} " \
            "ua=#{ua_desc.inspect}"
@@ -426,7 +464,7 @@ class WorkbenchTest < AcTest::Base
   # 删完 user.permission_team 变 nil，而 readable_by_user? 是 team 作用域
   # （permission_granted? 先按 (user, permission_team) 查 UA，命中不了就直接落空），
   # 于是后面再怎么建项目级 UA 都白搭。所以 strip 之后要把「人是队成员」接回来，
-  # 用**非 Owner** 角色（否则 strip 白清，owner_user? 又命中）。
+  # 用**非 Owner** 角色（否则 strip 白清，team_admin? 又命中）。
   def ensure_team_member!(user, team, role: 'User')
     role_obj = ::UserRole.find_by(name: role)
     raise "角色 #{role} 不存在（用例前提）" if role_obj.nil?
@@ -475,16 +513,35 @@ class WorkbenchTest < AcTest::Base
     role
   end
 
-  # 造一条 Owner 赋值（Team 级即可，宽口径：任意一条命中就算单位管理员）
-  def make_owner_assignment!(user:, team:)
+  # 造一条 Owner 赋值。
+  #   assignable 默认 **team** —— 这是「单位管理员」的正确承载面（Team 级）。
+  #   ⚠ 传 project 会造出「**项目级** Owner」，那是**项目负责人**不是单位管理员 ——
+  #     UserAssignment 是多态表，同一条 SQL 换个 assignable_type 就是另一个层级的角色。
+  #     见 test_role_is_not_admin_for_project_level_owner_only。
+  def make_owner_assignment!(user:, team:, assignable: nil)
+    target = assignable || team
     role = owner_role!
-    ua = ::UserAssignment.find_by(user_id: user.id, assignable_type: 'Team', assignable_id: team.id)
+    ua = ::UserAssignment.find_by(user_id: user.id,
+                                  assignable_type: target.class.name,
+                                  assignable_id: target.id)
     if ua
       ua.update!(user_role: role)
     else
-      ::UserAssignment.create!(user: user, assignable: team, user_role: role,
+      ::UserAssignment.create!(user: user, assignable: target, user_role: role,
                                assigned_by: user, team: team, assigned: assigned_flag)
     end
+  end
+
+  # ---- 承载面守卫（用例自己的前提校验，不是业务断言）----
+
+  def team_owner_assignment?(user, team)
+    ::UserAssignment.where(user_id: user.id, assignable_type: 'Team', assignable_id: team.id)
+                    .joins(:user_role).where(user_roles: { name: 'Owner' }).exists?
+  end
+
+  def project_owner_assignment?(user, project)
+    ::UserAssignment.where(user_id: user.id, assignable_type: 'Project', assignable_id: project.id)
+                    .joins(:user_role).where(user_roles: { name: 'Owner' }).exists?
   end
 
   # ⚠ MyModuleStatus 是原生动态状态流（my_module_status_id），测试里造一个自己的

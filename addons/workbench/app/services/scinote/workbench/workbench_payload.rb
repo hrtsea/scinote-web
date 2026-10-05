@@ -23,8 +23,9 @@
 #   「当前用户能读的 project」= ::Project.readable_by_user(user) ∩ 当前 team。
 #
 # ⚠ 未决项：OPEN-WORKBENCH-1（UserGroup 无 leader 承载列 → `leader` 恒 '—'）、
-#           OPEN-WORKBENCH-2（Notification 无细粒度触发源 → notice 只报条数）、
-#           OPEN-1（项目负责人双轨：Owner 优先，其次 supervised_by）。
+#           OPEN-WORKBENCH-2（Notification 无细粒度触发源 → notice 只报条数）。
+# ✅ 已闭环：OPEN-1（项目负责人双轨）—— 2026-10-05 落成 `project_lead?`：
+#           supervised_by 或 Project 级 Owner 命中任一即算（生产实测两条轨道各有一半人）。
 module Scinote
   module Workbench
     class WorkbenchPayload
@@ -34,6 +35,12 @@ module Scinote
       ROLE_LEAD = '项目负责人'
       ROLE_MEMBER = '普通组员'
       ROLE_ADMIN_WITH_OWNER = "#{ROLE_ADMIN} · #{OWNER_ROLE_NAME}"
+
+      # 🔴 UserAssignment 是**多态**表，角色判定必须限定承载面。
+      #   不加这两个常量就会出现「项目上的 Owner 被算成单位管理员」——
+      #   见 team_admin? 上方的事故记录。以后新增角色判定，先问「承载面是哪一级」。
+      TEAM_ASSIGNABLE_TYPE = 'Team'
+      PROJECT_ASSIGNABLE_TYPE = 'Project'
 
       # 条形图色降级：原生「Not started」的色是 #FFFFFF，画在白底卡片上等于隐形。
       NEUTRAL_BAR_COLOR = '#B0B0B0'
@@ -89,7 +96,7 @@ module Scinote
       # ------------------------------------------------------------
       # 共用：当前 team 下「我能读」的 project（Canaid 同源同层）
       # ------------------------------------------------------------
-      # ⚠ 只读**两处**（scope + ids），supervised_project? 复用同一个 scope，
+      # ⚠ 只读**两处**（scope + ids），project_lead? / project_owner? 复用同一个 scope，
       #   不再各自重算一遍 `readable_by_user ∩ team`。
       def readable_projects
         @readable_projects ||= ::Project.readable_by_user(@user).where(team_id: @team.id)
@@ -121,28 +128,54 @@ module Scinote
       end
 
       def role_value
-        return ROLE_ADMIN_WITH_OWNER if owner_user?
-        return ROLE_LEAD if supervised_project?
+        return ROLE_ADMIN_WITH_OWNER if team_admin?
+        return ROLE_LEAD if project_lead?
 
         ROLE_MEMBER
       end
 
-      # ⚠ users 表没有 role/admin 列（项目铁律），Owner 只能从
-      #   UserAssignment → UserRole 反查；命中任意一条 Owner 赋值即算。
-      def owner_user?
-        return false if @user.nil?
+      # 「单位管理员」= 当前**单位（Team）**上的宿主角色是 Owner。
+      #
+      # 🔴 2026-10-05 修（原实现把三种人混算成一种）：
+      #   原写法是
+      #     UserAssignment.where(user_id:).joins(:user_role).where(user_roles: { name: 'Owner' }).exists?
+      #   —— **不限 assignable_type**，于是「在某个 Project / Experiment / MyModule 上
+      #   挂着 Owner」也被算作单位管理员。
+      #   生产实测（4 个用户的库）：3 个被贴上「单位管理员 · Owner」，
+      #   而全库 **Team 级 Owner 只有 1 条**。
+      #   典型样本 hrtsea@qq.com：Team 级角色是 `User`，Owner 命中全是
+      #   {Experiment: 96, MyModule: 50, Project: 4} —— 他其实是 203 个项目的负责人。
+      def team_admin?
+        return false if @user.nil? || @team.nil?
 
-        ::UserAssignment.where(user_id: @user.id)
+        ::UserAssignment.where(user_id: @user.id,
+                               assignable_type: TEAM_ASSIGNABLE_TYPE,
+                               assignable_id: @team.id)
                         .joins(:user_role)
                         .where(user_roles: { name: OWNER_ROLE_NAME })
                         .exists?
       end
 
-      # OPEN-1 未决，宽口径：任一可读 project 的 supervised_by 是自己。
-      def supervised_project?
+      # 「项目负责人」双轨（OPEN-1）：supervised_by 或 Project 级 Owner，命中任一即算。
+      #   生产实据 —— 两条轨道各有一半人，只认一条必然把另一半降级：
+      #     dy@qq.com      : Project 级 Owner 283 个 / supervised_by 0 个
+      #     hrtsea@qq.com  : supervised_by 203 个 / Project 级 Owner 4 个
+      #   ⚠ 双轨是**并列**不是「Owner 优先」：两者都指向同一档展示文案，
+      #     分优先级只会多一次查询，改变不了任何人的标签。
+      def project_lead?
         return false if @user.nil?
 
-        readable_projects.where(supervised_by_id: @user.id).exists?
+        readable_projects.where(supervised_by_id: @user.id).exists? || project_owner?
+      end
+
+      # ⚠ 用子查询而不是 `assignable_id: readable_project_ids`：
+      #   后者会把全部 id 拼成 IN 列表（生产实测单用户可读项目可达 288 个）。
+      def project_owner?
+        ::UserAssignment.where(user_id: @user.id, assignable_type: PROJECT_ASSIGNABLE_TYPE)
+                        .where(assignable_id: readable_projects.select(:id))
+                        .joins(:user_role)
+                        .where(user_roles: { name: OWNER_ROLE_NAME })
+                        .exists?
       end
 
       # ⚠ 原生 Notification 只有 GeneralNotification / ActivityNotification 两态，
