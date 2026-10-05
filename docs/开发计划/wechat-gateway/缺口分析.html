@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SciNote · WechatGateway 领域模型与缺口分析</title>
+<style>
+  :root{
+    --bg:#ffffff; --panel:#f7f8fa; --line:#e3e6ea; --text:#1f2328; --muted:#656d76;
+    --green:#1a7f37; --green-bg:#eaf6ec; --amber:#9a6700; --amber-bg:#fdf3e1;
+    --red:#cf222e; --red-bg:#fbe9ea; --blue:#0969da; --blue-bg:#eef4fb;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       color:var(--text);background:var(--bg);line-height:1.6;font-size:14px}
+  header{padding:28px 32px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fbfcfe,#fff)}
+  header h1{margin:0 0 6px;font-size:22px}
+  header .sub{color:var(--muted);font-size:13px}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px 32px 60px}
+  section{margin:26px 0}
+  h2{font-size:17px;border-left:4px solid var(--blue);padding-left:10px;margin:0 0 14px}
+  h3{font-size:14px;color:var(--muted);margin:18px 0 8px}
+  .callout{border-radius:8px;padding:14px 16px;margin:12px 0;font-size:13.5px}
+  .callout.warn{background:var(--amber-bg);border:1px solid #f0d18a;color:#7a5200}
+  .callout.danger{background:var(--red-bg);border:1px solid #f3b9bd;color:#a3151b}
+  .callout.ok{background:var(--green-bg);border:1px solid #b7e0bf;color:#155f2a}
+  .callout b{font-weight:700}
+  .tree{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+  .tree ul{list-style:none;margin:0;padding-left:18px;border-left:1px dashed var(--line)}
+  .tree > ul{padding-left:0;border-left:none}
+  .tree li{margin:6px 0;position:relative}
+  .node{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:6px;
+        padding:3px 10px;font-size:13px}
+  .node .tag{font-size:11px;color:var(--muted);margin-left:6px}
+  .node.host{border-color:#c9d6e3}
+  .node.own{border-color:#d8c9e3}
+  table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel);font-weight:600}
+  .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .b-done{background:var(--green-bg);color:var(--green);border:1px solid #b7e0bf}
+  .b-part{background:var(--amber-bg);color:var(--amber);border:1px solid #f0d18a}
+  .b-none{background:var(--red-bg);color:var(--red);border:1px solid #f3b9bd}
+  .b-block{background:#fdecea;color:#b71c1c;border:1px solid #f3b9bd;font-weight:700}
+  .ev{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:var(--muted)}
+  .prio{font-weight:700}
+  .p-block{color:var(--red)} .p-high{color:var(--amber)} .p-mid{color:var(--blue)} .p-low{color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:#fff}
+  .card.block{border-left:4px solid var(--red)}
+  .card.high{border-left:4px solid var(--amber)}
+  .card.mid{border-left:4px solid var(--blue)}
+  .card h4{margin:0 0 6px;font-size:14px}
+  .card p{margin:4px 0;color:var(--muted);font-size:12.5px}
+  .kv{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;color:#444}
+  footer{color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding:16px 32px}
+  code{background:#f0f1f3;padding:1px 5px;border-radius:4px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>SciNote · WechatGateway 领域模型与缺口分析</h1>
+  <div class="sub">基于 <code>scinote-web</code> 真实代码 + <code>docs/开发计划/wechat-gateway</code> 三份计划文档交叉核对 · 生成于 2026-09-24</div>
+</header>
+<div class="wrap">
+
+  <div class="callout danger">
+    <b>⚠ 关键发现 — 计划文档已严重过时：</b>《实现现状与开发计划.md》(文档 C) 把 F4/F5/F6/F7/F9/F10 全部标注为
+    <b>「❌ 待实现（Ticket 01/03/04 写入层）」</b>，但对照真实 <code>addons/wechat_gateway</code> 代码，<b>写入层主体已经落地</b>
+    （<code>scinote_service_writer</code> 已实装 Experiment 写入、设备预约、管理员查询、企微@指派、指令路由、/confirm 软锁）。
+    文档 C 的"核心缺口 Ticket 01"结论不再成立，缺口分析应以<b>代码事实</b>为基线重做。
+  </div>
+
+  <!-- ============ 一、SciNote 核心领域模型 ============ -->
+  <section>
+    <h2>一、SciNote 核心领域模型（host 实体）</h2>
+    <p style="color:var(--muted);font-size:13px">实体内核：多租户 Team → Project → Experiment → MyModule(任务) → Protocol → Step；配方 Formulation 为 ai_eln addon 提供的一等实体，复用 RepositoryRow 物料主数据。</p>
+    <div class="tree">
+      <ul>
+        <li><span class="node host">Team<span class="tag">租户根 / 强约束 team_id</span></span>
+          <ul>
+            <li><span class="node host">User<span class="tag">created_by 即此主键；持有 api_key / user_identities</span></span></li>
+            <li><span class="node host">Project<span class="tag">一级容器</span></span>
+              <ul>
+                <li><span class="node host">Experiment<span class="tag">二级容器 · 网关核心写入目标</span></span>
+                  <ul>
+                    <li><span class="node host">MyModule <span class="tag">= 任务 / Task（API 路由名 tasks，模型名 MyModule，勿混淆）</span></span>
+                      <ul>
+                        <li><span class="node host">Protocol → Step<span class="tag">方法/步骤；Step 直接 belongs_to Protocol</span></span></li>
+                        <li><span class="node host">UserMyModule<span class="tag">任务成员 + assigned_by 指派者</span></span></li>
+                        <li><span class="node host">Result / Asset<span class="tag">结果 / 版本化附件</span></span></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+                <li><span class="node host">Repository → RepositoryRow<span class="tag">库存表 / 物料行主数据</span></span></li>
+                <li><span class="node host">Report<span class="tag">报告</span></span></li>
+              </ul>
+            </li>
+            <li><span class="node own">Formulation <span class="tag">配方（PP 核心·ai_eln addon 一等实体）</span></span>
+              <ul>
+                <li><span class="node own">FormulationComponent<span class="tag">formulation + repository_row + amount + unit</span></span></li>
+                <li><span class="node own">FormulationProperty<span class="tag">name + measured/target + comparator + 可选 my_module_id</span></span></li>
+              </ul>
+            </li>
+            <li><span class="node host">EquipmentBooking<span class="tag">CalendarEvent 子类 · 设备预约</span></span></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <div class="callout ok" style="margin-top:14px">
+      <b>审计链约束（写入层设计基石）：</b>API v1 的 <code>experiments#create</code> / <code>tasks#create</code> 均硬编码 <code>created_by: current_user</code> 且参数白名单不含该字段；
+      addon 与宿主同进程，改以 <code>Experiments::CreateService.call(user:, params)</code> 直置 <code>created_by</code> —— 即<b>记录永远落在真实绑定用户名下，网关无法伪造他人</b>。
+    </div>
+  </section>
+
+  <!-- ============ 二、WechatGateway 集成层模型 ============ -->
+  <section>
+    <h2>二、WechatGateway 集成层领域模型（addon）</h2>
+    <div class="grid">
+      <div class="card">
+        <h4>① 双通道入口（已收敛）</h4>
+        <p><b>iLink</b>（私聊 DM，AES-128-ECB）：<code>ilink_bridge / ilink_crypto / ilink_message_parser</code></p>
+        <p><b>企微自建应用</b>（群聊+@+派任务，AES-256-CBC）：<code>wecom_crypto / wecom_message_parser / wecom_controller</code></p>
+        <p>两通道归一为统一 <code>Message(user_id, text, media, type, platform, raw, timestamp)</code>，下游写入共用。</p>
+      </div>
+      <div class="card">
+        <h4>② 身份绑定（一次性绑定码，非 OAuth）</h4>
+        <p><code>WechatUserBinding(wechat_id, platform, scinote_user_id)</code> + 迁移 <code>20260910120000</code></p>
+        <p><code>BindCode</code>：8位 / 10分钟过期 / 生成时绑定 current_user（防冒领）/ 存 Rails.cache</p>
+        <p><code>BindingResolver</code>：(wechat_id, platform) → scinote_user_id</p>
+      </div>
+      <div class="card">
+        <h4>③ 指令与草稿编排</h4>
+        <p><code>Inbound.receive</code>：解密→解析→身份解析→指令/写入链路</p>
+        <p><code>intake</code>：指令路由 + 会话草稿（/new /use #id /done /cancel /confirm /list /search /admin /book）</p>
+        <p><code>SessionDraftStore</code>：进程内 Hash（<b>多 worker 并发风险</b>）</p>
+      </div>
+      <div class="card">
+        <h4>④ 写入与 AI 加工</h4>
+        <p><code>scinote_service_writer</code>：Experiments::CreateService / append_note / assign_user / book_equipment / admin_experiments</p>
+        <p><code>ai_processor</code>：多模态归一 + LLM 结构化抽取（components/results）</p>
+        <p><code>formulation_writer</code>：写 Formulation/Component/Property（<b>缺 material_resolver 致 component 全跳过</b>）</p>
+      </div>
+    </div>
+    <div class="callout warn">
+      <b>出站回包链路断裂：</b>所有回调控制器收到 <code>reply</code> 后仅 <code>Rails.logger.info</code> + <code>head :ok</code>，<b>不回复发回用户</b>。这是当前阻断端到端闭环的最大缺口（<code>wecom_controller.rb:11-16</code>、<code>ilink_controller.rb:8-12</code>）。
+    </div>
+  </section>
+
+  <!-- ============ 三、缺口矩阵 ============ -->
+  <section>
+    <h2>三、代码现状 vs 计划 — 缺口矩阵</h2>
+    <p style="color:var(--muted);font-size:13px">状态以真实代码为准。<span class="badge b-done">已实装</span> <span class="badge b-part">部分/风险</span> <span class="badge b-none">未实现</span> <span class="badge b-block">阻断</span></p>
+    <table>
+      <thead>
+        <tr><th style="width:22%">模块 / 功能</th><th style="width:13%">计划状态(文档C)</th><th style="width:13%">代码现状</th><th>说明与证据</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>引擎挂载 / 路由自注册 <code>/wechat_gateway</code></td>
+          <td><span class="badge b-done">已实现</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">engine.rb:35-40</span> 受 <code>WECHAT_GATEWAY_ENABLED</code> 门控</td>
+        </tr>
+        <tr>
+          <td>绑定表 + 迁移 + 唯一约束</td>
+          <td><span class="badge b-done">已完成</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">20260910120000_create_wechat_user_bindings.rb</span> 唯一索引 (wechat_id, platform)</td>
+        </tr>
+        <tr>
+          <td>绑定码（一次性+过期+用户强绑定）</td>
+          <td><span class="badge b-done">已完成</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">bind_code.rb:10-40</span>；<span class="ev">active_record_binding_store.rb</span> 存 Rails.cache</td>
+        </tr>
+        <tr>
+          <td>聊天内 <code>/bind &lt;码&gt;</code> 主流程</td>
+          <td><span class="badge b-part">部分</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">bind_command.rb / inbound.rb:60-66</span> 逻辑闭合</td>
+        </tr>
+        <tr>
+          <td>生成绑定码端点（为 current_user 铸码）</td>
+          <td><span class="badge b-part">依赖宿主UI</span></td><td><span class="badge b-none">未实现</span></td>
+          <td>全仓库无 controller action 调 <code>BindCode.generate</code>，依赖宿主设置页（deface）</td>
+        </tr>
+        <tr>
+          <td><code>HTTP /bind/:code</code> 确认端点</td>
+          <td><span class="badge b-none">未实现</span></td><td><span class="badge b-block">已损坏</span></td>
+          <td><span class="ev">bind_controller.rb:6</span> 调 <code>BindingResolver.confirm_by_code</code>（<b>方法不存在</b>，会 500）；且即便补上也不建绑定行</td>
+        </tr>
+        <tr>
+          <td>企微验签 + AES-256-CBC + XML 解析</td>
+          <td><span class="badge b-done">已完成</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">wecom_crypto.rb:42-80</span> 纯 Ruby，单测覆盖</td>
+        </tr>
+        <tr>
+          <td>企微群 @ 解析与指派</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-part">已实装</span></td>
+          <td><span class="ev">wecom_message_parser.rb:15</span> 启发式正则；<span class="ev">scinote_service_writer#assign_user</span>（实验级成员指派，非 MyModule 级）</td>
+        </tr>
+        <tr>
+          <td>iLink 解析 + AES-128-ECB 媒体解密</td>
+          <td><span class="badge b-done">已完成</span></td><td><span class="badge b-part">未验证</span></td>
+          <td><span class="ev">ilink_crypto.rb:8-11</span> AES 推导待真机/SDK 核对；<span class="ev">ilink_bridge.rb:8-9</span> 长轮询 transport 未实现</td>
+        </tr>
+        <tr>
+          <td>企微媒体下载（media_id 场景）</td>
+          <td><span class="badge b-none">未实现</span></td><td><span class="badge b-none">未实现</span></td>
+          <td><span class="ev">media.rb:7-8</span> 仅 media_id 无 url 时返回 nil</td>
+        </tr>
+        <tr>
+          <td>指令路由 <code>/new /use #id /done /cancel /list /search</code></td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">intake.rb:63-105</span> 与 Python 版协议一致</td>
+        </tr>
+        <tr>
+          <td>会话草稿存储</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-part">已实装·有风险</span></td>
+          <td><span class="ev">session_draft_store.rb:11-12</span> 进程内 Hash；多 worker 下草稿不可见</td>
+        </tr>
+        <tr>
+          <td>F4 以用户名义建实验（CreateExperimentService）</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">scinote_service_writer.rb:27-36</span> 置 <code>created_by=@user</code>，审计链正确</td>
+        </tr>
+        <tr>
+          <td>两阶段 <code>/confirm</code> 锁定</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-part">软锁</span></td>
+          <td><span class="ev">intake.rb:249-259</span> 软锁非 SciNote 强锁；强锁状态语义待实例核</td>
+        </tr>
+        <tr>
+          <td>F9 管理员跨用户查询</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">scinote_service_writer.rb:96-108</span> InstanceAdmin 直查</td>
+        </tr>
+        <tr>
+          <td>F10 设备预约（CalendarEvent）</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">scinote_service_writer.rb:112-128</span></td>
+        </tr>
+        <tr>
+          <td>AI 结构化抽取（components/results）</td>
+          <td><span class="badge b-none">增强</span></td><td><span class="badge b-done">已实装</span></td>
+          <td><span class="ev">ai_processor.rb:13-104</span> OpenAI 兼容 JSON mode</td>
+        </tr>
+        <tr>
+          <td>F12 Formulation 落库</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-part">半实装</span></td>
+          <td><span class="ev">formulation_writer.rb:19-69</span> 写 Formulation/Property 成功；<b>component 因缺 material_resolver 全跳过</b>（engine.rb:58 未接线）</td>
+        </tr>
+        <tr>
+          <td>MyModule（任务）创建写入</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-none">未实现</span></td>
+          <td>全仓库无 <code>Tasks::CreateService</code> 调用；"派任务"仅实现为实验级成员指派</td>
+        </tr>
+        <tr>
+          <td>Result / 真实附件写入（ActiveStorage）</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-none">未实现</span></td>
+          <td><span class="ev">scinote_service_writer.rb:53-55</span> 媒体仅「📎附件：…」文本占位</td>
+        </tr>
+        <tr>
+          <td>命名规范 naming（重命名+校验）</td>
+          <td><span class="badge b-none">待实现</span></td><td><span class="badge b-none">未实现</span></td>
+          <td>本 addon 目录未见 <code>naming.rb</code>；Python naming.py 待移植</td>
+        </tr>
+        <tr>
+          <td>出站回包 Sender（把 reply 发回用户）</td>
+          <td><span class="badge b-none">未实现</span></td><td><span class="badge b-block">阻断</span></td>
+          <td>控制器只 log 不回包；用户操作后无任何反馈，端到端闭环断裂</td>
+        </tr>
+        <tr>
+          <td>测试覆盖</td>
+          <td><span class="badge b-part">rspec</span></td><td><span class="badge b-part">部分</span></td>
+          <td>13 个 spec 覆盖解析/写入层；缺 wecom_message_parser/@解析、ilink_crypto、bind_code、controller、bind#confirm 集成测试</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ 四、关键缺口优先级 ============ -->
+  <section>
+    <h2>四、剩余缺口与优先级</h2>
+    <div class="grid">
+      <div class="card block">
+        <h4><span class="prio p-block">[阻断]</span> 出站回包 Sender 缺失</h4>
+        <p>用户发 /new、/bind、/confirm 等指令后收不到任何回复，所有通道不可用。</p>
+        <p class="kv">修复：被动 XML 回复 / 企微客服消息 API / iLink 主动推送；见 docs/multi-channel-design.md §4</p>
+      </div>
+      <div class="card block">
+        <h4><span class="prio p-block">[阻断]</span> BindController#confirm 损坏</h4>
+        <p>调用不存在的 <code>BindingResolver.confirm_by_code</code>，访问即 500；且不建绑定行。</p>
+        <p class="kv">修复：补方法并接 create_binding，或删除该端点（聊天内 /bind 已是主流程）</p>
+      </div>
+      <div class="card high">
+        <h4><span class="prio p-high">[高]</span> Formulation 成分落库为空</h4>
+        <p><code>engine.rb:58</code> 注入 FormulationWriter 未传 material_resolver，导致所有 component 被跳过，只有配方头 + property 写入。</p>
+        <p class="kv">修复：补"成分名→RepositoryRow"解析器并接线（PP 配方核心）</p>
+      </div>
+      <div class="card high">
+        <h4><span class="prio p-high">[高]</span> 生成绑定码的宿主端点 / 设置页 UI</h4>
+        <p>绑定码需由 current_user 在 SciNote 设置页生成；addon 内无铸码入口，/bind 流程无法自闭环。</p>
+        <p class="kv">修复：deface 注入"WechatGateway 绑定"面板调用 BindCode.generate</p>
+      </div>
+      <div class="card high">
+        <h4><span class="prio p-high">[高]</span> 草稿存储并发风险</h4>
+        <p>进程内 Hash 在多 worker / 多实例部署下草稿互相不可见，会丢用户工作态。</p>
+        <p class="kv">修复：换 Redis / DB 后端（SessionDraftStore 注释已承认）</p>
+      </div>
+      <div class="card mid">
+        <h4><span class="prio p-mid">[中]</span> MyModule（任务）创建未实现</h4>
+        <p>"派任务"目前仅为实验级成员指派，未创建独立任务实体；F6 完整语义待补 <code>Tasks::CreateService</code>。</p>
+      </div>
+      <div class="card mid">
+        <h4><span class="prio p-mid">[中]</span> Result / 真实附件写入</h4>
+        <p>媒体仅文本占位，未建 Result/Asset（ActiveStorage 挂接）。影响图片/文件证据留存。</p>
+      </div>
+      <div class="card mid">
+        <h4><span class="prio p-mid">[中]</span> 企微 media_id 下载</h4>
+        <p>仅 media_id 无 url 的企微图片/文件无法下载（media.rb 返回 nil）。</p>
+      </div>
+      <div class="card mid">
+        <h4><span class="prio p-mid">[待验证]</span> iLink AES 推导 / 企微 @ 真机格式</h4>
+        <p>ilink_crypto AES 推导、wecom_message_parser 群 @ 标记格式均为启发式，需真机/SDK 核对。</p>
+      </div>
+      <div class="card mid">
+        <h4><span class="prio p-mid">[中]</span> 测试缺口</h4>
+        <p>wecom_message_parser（@解析）、ilink_crypto、bind_code、各 controller、损坏的 bind#confirm 缺单测。</p>
+      </div>
+      <div class="card mid">
+        <h4><span class="prio p-mid">[中]</span> /confirm 强锁 + 命名规范 naming</h4>
+        <p>当前软锁非 SciNote 强锁；naming.rb 尚未移植，附件命名/校验缺位。</p>
+      </div>
+      <div class="card" style="border-left:4px solid var(--muted)">
+        <h4><span class="prio p-low">[低/增强]</span> 语音 asr / user_identities 反向映射</h4>
+        <p>Whisper 转写推后（Ticket 07）；微信 provider 反向映射推后（文档 A §3.3）。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 五、下一步建议 ============ -->
+  <section>
+    <h2>五、建议的修复顺序（以代码现状为基线）</h2>
+    <table>
+      <thead><tr><th style="width:8%">序</th><th style="width:30%">动作</th><th style="width:14%">解决缺口</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>补 Sender 出站回包（被动 XML / 企微客服 / iLink 推送）</td><td class="prio p-block">阻断</td><td>打通端到端闭环，否则任何通道对用户不可用</td></tr>
+        <tr><td>2</td><td>修复或删除 BindController#confirm</td><td class="prio p-block">阻断</td><td>消除 500；聊天内 /bind 已可作主流程</td></tr>
+        <tr><td>3</td><td>接线 material_resolver → FormulationWriter</td><td class="prio p-high">高</td><td>让 PP 配方成分真正落库（engine.rb:58）</td></tr>
+        <tr><td>4</td><td>宿主设置页 deface 注入绑定码生成入口</td><td class="prio p-high">高</td><td>/bind 自闭环，免手搓码</td></tr>
+        <tr><td>5</td><td>SessionDraftStore 换 Redis/DB</td><td class="prio p-high">高</td><td>消除多 worker 并发丢失</td></tr>
+        <tr><td>6</td><td>补 MyModule 任务创建 + Result/Asset 真实写入</td><td class="prio p-mid">中</td><td>F6 完整语义 + 证据留存</td></tr>
+        <tr><td>7</td><td>企微 media_id 下载 + 真机验证 iLink/企微加密与 @ 格式</td><td class="prio p-mid">中</td><td>媒体完整 + 加解密正确性</td></tr>
+        <tr><td>8</td><td>补齐缺失单测 + 更新《实现现状与开发计划.md》</td><td class="prio p-mid">中</td><td>文档与代码重新对齐（消除"写入层待实现"误判）</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn" style="margin-top:14px">
+      <b>环境阻塞（持续悬挂）：</b>本地 SciNote 实例因 C 盘满 / Docker 未装仍起不来，导致"service <code>user:</code> 语义、/confirm 强锁状态、指派 create 语义、企微群 @ 真机字段"等仍无法实例核实。建议先用 <code>mock_scinote</code> 风格的服务桩联调，再逐步消项。
+    </div>
+  </section>
+
+</div>
+<footer>
+  本分析基于 addons/wechat_gateway 真实代码（43 文件）与 docs/开发计划/wechat-gateway 三份文档交叉核对。领域术语已同步更新至 CONTEXT.md（补充 SciNote 核心实体、修正写入层过时状态、消解 Task≡MyModule）。
+</footer>
+</body>
+</html>
