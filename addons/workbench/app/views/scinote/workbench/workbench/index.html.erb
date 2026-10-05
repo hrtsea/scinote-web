@@ -9,12 +9,14 @@
          sprockets 精确匹配，不带则 AssetNotFound → 整页 500。
       7. ⚠ 「状态机」说明、链接地址、条形色值全部由 payload 下发，
          这里不再硬编任何宿主路由或画布演示文案。
+      8. ⚠ JSON 转义交给 `json_escape`（自带 < > & U+2028/U+2029），别手写 gsub 只挡 '<'。
+         json_escape 返回非 html_safe → 必须 `raw`，否则 ERB 会把 " 再转义成 &quot; 让 JSON 变废。
 %>
 <% provide(:head_title, '工作台') %>
 
 <link rel="stylesheet" href="<%= asset_path 'workbench_vue3/eln_workbench.css' %>">
 <script type="application/json" id="eln-workbench-data" nonce="<%= content_security_policy_nonce %>">
-  <%= raw @payload_json %>
+  <%= raw json_escape(@payload.to_json) %>
 </script>
 <script nonce="<%= content_security_policy_nonce %>">
   window.__ELN_WORKBENCH__ = JSON.parse(

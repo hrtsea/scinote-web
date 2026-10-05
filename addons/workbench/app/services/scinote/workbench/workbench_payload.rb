@@ -245,19 +245,19 @@ module Scinote
       # 3. todos（个人待办，最多 6 条）
       # ------------------------------------------------------------
       def todos_block
-        approvals = pending_approvals.first(TODO_APPROVAL_SLOTS).map { |app| approval_todo(app) }
+        approvals = pending_approvals(TODO_APPROVAL_SLOTS).map { |app| approval_todo(app) }
         room = [TODO_LIMIT - approvals.size, 0].max
-        mine = my_open_modules.first(room).map { |mod| module_todo(mod) }
-        (approvals + mine).first(TODO_LIMIT)
+        (approvals + module_todos(room)).first(TODO_LIMIT)
       end
 
       # ① 待我审的资源申请：同队 + 非本人（审批口径与 ResourceApplicationWorkflow 同源）。
-      def pending_approvals
+      #    ⚠ limit 交给 SQL：先 .to_a 再 .first(N) 会把全队申请全捞进内存再砍。
+      def pending_approvals(limit)
         ::Scinote::ElnUi::ResourceApplication.for_team(@team)
                                              .where(status: %w[submitted group_approved])
                                              .where.not(requestor_id: @user.id)
-                                             .order('eln_ui_resource_applications.created_at' => :desc)
-                                             .to_a
+                                             .order(created_at: :desc)
+                                             .limit(limit)
       end
 
       def approval_todo(app)
@@ -279,22 +279,39 @@ module Scinote
         "#{name}（#{app.no}）"
       end
 
-      # ② 我的进行中任务（MyModule 经 UserAssignment 指向我）
-      def my_open_modules
+      # ② 我的任务（MyModule 经 UserAssignment 指向我）
+      #    ⚠ limit 交给 SQL：默认场景我的任务有几十条，而画布只放得下 6 条。
+      def my_open_modules(limit)
         team_my_modules.joins(:user_assignments)
                        .where(user_assignments: { user_id: @user.id })
                        .distinct
                        .order(created_at: :desc)
-                       .to_a
+                       .limit(limit)
       end
 
-      def module_todo(mod)
+      # ⚠ 「次次问 ORM」在这里是纯浪费：`my_module_status` 还好预加载，
+      #   但 `final_status?` 是**查询方法不是关联** —— includes 救不了它，
+      #   实测 72 条任务在这段发 200+ 条 SQL。
+      #   正解：一次性取任务 → 一次性补齐状态 → 拿 id 集合做包含判断。
+      def module_todos(limit)
+        return [] if limit.to_i.zero?
+
+        mods = my_open_modules(limit).to_a
+        return [] if mods.empty?
+
+        statuses = statuses_for(mods.map(&:my_module_status_id).compact.uniq)
+        finals = final_status_ids
+        mods.map { |mod| module_todo(mod, statuses[mod.my_module_status_id],
+                                     finals.include?(mod.my_module_status_id)) }
+      end
+
+      def module_todo(mod, status, final)
         {
           type: '任务',
           title: mod.name.to_s,
           due: due_label(mod),
-          status: mod.my_module_status&.name.to_s.presence || DASH,
-          tone: mod.my_module_status&.final_status? ? 'primary' : 'warn'
+          status: status&.name.to_s.presence || DASH,
+          tone: final ? 'primary' : 'warn'
         }
       end
 
@@ -328,7 +345,17 @@ module Scinote
       end
 
       def status_for(status_id)
-        ::MyModuleStatus.unscoped.find_by(id: status_id)
+        statuses_by_id[status_id]
+      end
+
+      # dist / tasks_kpi 取的都出自同一份 status_counts → 一次查完。
+      #   ⚠ 别在 map 里逐条 find_by：每多一种状态就多一条 SQL，且两处各雷一遍。
+      def statuses_by_id
+        @statuses_by_id ||= statuses_for(status_counts.map(&:first).compact.uniq)
+      end
+
+      def statuses_for(ids)
+        ::MyModuleStatus.unscoped.where(id: ids).index_by(&:id)
       end
 
       # 色值由**本服务**下发（组件内不硬编颜色）；原生浅色（如 Not started 的
@@ -339,8 +366,21 @@ module Scinote
         status.color.to_s.strip.presence || NEUTRAL_BAR_COLOR
       end
 
+      # ⚠ final_status_ids 是小组完成率的判定基准，必须 memo —— 每个小组都要用它。
+      #   原生 MyModuleStatus#final_status? = `my_module_status_flow.final_status == self`，
+      #   而 MyModuleStatusFlow#final_status 又是一次 left_outer_joins + find_by ——
+      #   **每条状态两次查询**；外面套 select(&:final_status?) 就是全表逐条问 ORM。
+      #   改成按 **flow** 问而不是按 **状态** 问：flow 只有恒定的几个，SQL 数从 O(状态数×小组数)
+      #   降到 O(flow 数)。
+      #
+      #   🔴 别下推成「id 不在任何 previous_status_id 里」那种 SQL —— 看着优雅，实际错：
+      #      它成立的前提是状态链线性（一条最多一个后继）。实测不成立：同一个 flow 里可以挂
+      #      多条**互不相连**的状态（本仓库 test 工厂 make_status! 就是这么造的），
+      #      此时「没有后继」的不止一条，而 flow.final_status 只认其中一条
+      #      → 完成率被算高（用例实测：50% 直接变 100%）。
+      #   ⚠ workbench_test 有一条用例盯着「批量版 == 逐条版」，改坏会立刻红。
       def final_status_ids
-        ::MyModuleStatus.unscoped.select(&:final_status?).map(&:id)
+        @final_status_ids ||= ::MyModuleStatusFlow.all.map { |flow| flow.final_status&.id }.compact.uniq
       end
 
       # ------------------------------------------------------------
@@ -365,16 +405,19 @@ module Scinote
       end
 
       # 组内组员「被指派任务」的完成态占比
+      # ⚠ 两次 pluck 完事，不逐条查：assignment 只需要 id，任务只需要 (id, status_id)。
+      #    分子/分母按**指派行**计（同一任务被多个组员指派算多次），保持原口径。
       def member_task_stats(user_ids)
-        assignments = ::UserAssignment.where(assignable_type: 'MyModule')
-                                      .where(assignable_id: team_my_modules.select(:id))
-                                      .where(user_id: user_ids)
-        return [0, 0] if assignments.empty?
+        assignable_ids = ::UserAssignment.where(assignable_type: 'MyModule')
+                                         .where(assignable_id: team_my_modules.select(:id))
+                                         .where(user_id: user_ids)
+                                         .pluck(:assignable_id)
+        return [0, 0] if assignable_ids.empty?
 
-        mods = team_my_modules.where(id: assignments.pluck(:assignable_id)).index_by(&:id)
         finals = final_status_ids
-        [assignments.size,
-         assignments.count { |a| finals.include?(mods[a.assignable_id]&.my_module_status_id) }]
+        status_by_mod = team_my_modules.where(id: assignable_ids.uniq).pluck(:id, :my_module_status_id).to_h
+        [assignable_ids.size,
+         assignable_ids.count { |mod_id| finals.include?(status_by_mod[mod_id]) }]
       end
 
       # ------------------------------------------------------------

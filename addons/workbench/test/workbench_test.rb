@@ -373,6 +373,25 @@ class WorkbenchTest < AcTest::Base
   end
 
   # ============================================================
+  # 完成率基准：final_status_ids 的批量取法必须等价于逐条 final_status?
+  # ============================================================
+
+  # payload 为了不再每条状态问两次 ORM，改成按 **flow** 批量取终态。
+  #   ⚠ 这条用例锁的是「口径不变」—— 有人再把它下推成「id 不在任何 previous_status_id 里」
+  #     那种 SQL 会立刻红：同一 flow 里允许挂多条互不相连的状态（本文件 make_status! 就这么造），
+  #     「没有后继」的状态不止一个，而 flow.final_status 只认其中一条 → 完成率被算高。
+  def test_final_status_ids_matches_native_predicate
+    make_status!(name: 'WB-终态基准') if ::MyModuleStatus.unscoped.count.zero?
+
+    ruby_ids = ::MyModuleStatus.unscoped.select(&:final_status?).map(&:id).uniq.sort
+    batched_ids = ::Scinote::Workbench::WorkbenchPayload.new(user: nil, team: nil)
+                                                        .send(:final_status_ids).sort
+
+    refute_empty ruby_ids, '至少得有一个真终态，否则这条断言是空断言'
+    assert_equal ruby_ids, batched_ids, 'final_status_ids 的批量取法与逐条 final_status? 不一致'
+  end
+
+  # ============================================================
   # 私有工厂（只在这里被上面的用例调用）
   # ============================================================
 
