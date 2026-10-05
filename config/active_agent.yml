@@ -1,0 +1,36 @@
+# ActiveAgent 配置（实现 ai_eln 的全部能力）
+# 推理后端走 RubyLLM（统一 15+ 家 provider），DeepSeek 经 OpenAI 兼容。
+# API key 存 Rails credentials：rails credentials:edit -> deepseek: { api_key: "..." }
+#
+# VERIFY（部署前核对 ActiveAgent / RubyLLM 文档）：
+#   - RubyLLM 凭 model 名 "deepseek-chat" 自动选 deepseek provider；
+#     凭证读 credentials[:deepseek][:api_key]。若你的 RubyLLM 版本要求显式 provider，
+#     可改用下方 openai 服务 + base_url 的 OpenAI 兼容写法（注释示例）。
+default: &default
+  ruby_llm:
+    service: "RubyLLM"
+    access_token: <%= Rails.application.credentials.dig(:deepseek, :api_key) %>
+    model: "deepseek-chat"
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+
+production:
+  <<: *default
+
+# actionagent 面板（开发期可观测：trace / token / 成本 / 对话）
+# 启用后访问 /activeagents 可看每次生成的 trace。
+telemetry:
+  enabled: true
+  local_storage: true
+
+# 备选：若 RubyLLM 未自动路由 DeepSeek，改用 openai 服务指向 DeepSeek 兼容端点
+# default: &default
+#   openai:
+#     service: "OpenAI"
+#     access_token: <%= Rails.application.credentials.dig(:deepseek, :api_key) %>
+#     model: "deepseek-chat"
+#     uri: "https://api.deepseek.com/v1"
