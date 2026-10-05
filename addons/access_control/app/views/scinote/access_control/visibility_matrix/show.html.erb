@@ -1,0 +1,305 @@
+<% provide(:head_title, t('scinote_access_control.visibility_matrix.head_title', project: @matrix[:project][:name])) %>
+
+<div class="content-pane">
+  <div class="container py-4" id="acMatrix">
+    <div class="d-flex align-items-baseline justify-content-between mb-2">
+      <h4 class="mb-0"><%= t('scinote_access_control.visibility_matrix.page_title') %></h4>
+      <%= link_to t('scinote_access_control.visibility_matrix.back'),
+                  access_permissions_project_path(id: @matrix[:project][:id]),
+                  class: 'btn btn-sm btn-outline-secondary' %>
+    </div>
+
+    <p class="text-muted small">
+      <%= t('scinote_access_control.visibility_matrix.hint') %>
+    </p>
+
+    <% if @project.respond_to?(:experiment_visibility_strategy) %>
+      <div class="card mb-3" id="acStrategyCard">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center flex-wrap gap-3">
+            <strong class="small mb-0"><%= t('scinote_access_control.visibility_matrix.strategy_title') %></strong>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="radio" name="acStrategy" id="acStrategyInherit"
+                     value="inherit" <%= 'checked' if @strategy.to_s == 'inherit' %>>
+              <label class="form-check-label small" for="acStrategyInherit">
+                <%= t('scinote_access_control.visibility_matrix.strategy_inherit') %>
+              </label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="radio" name="acStrategy" id="acStrategyIsolated"
+                     value="isolated" <%= 'checked' if @strategy.to_s == 'isolated' %>>
+              <label class="form-check-label small" for="acStrategyIsolated">
+                <%= t('scinote_access_control.visibility_matrix.strategy_isolated') %>
+              </label>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary" id="acStrategySave">
+              <%= t('scinote_access_control.visibility_matrix.strategy_save') %>
+            </button>
+            <%# D5 —— 存量补回。只在 inherit 下出现：isolated 是 PI 主动选的「默认不继承」，
+                在那种策略下给「一键补继承」等于自相矛盾的按钮。 %>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="acBackfill"
+                    <%= 'hidden' unless @strategy.to_s == 'inherit' %>>
+              <%= t('scinote_access_control.visibility_matrix.backfill_button') %>
+            </button>
+          </div>
+          <div class="form-text small mt-1" id="acStrategyHint"></div>
+        </div>
+      </div>
+    <% end %>
+
+    <% unless @enabled %>
+      <div class="alert alert-warning">
+        <%= t('scinote_access_control.visibility_matrix.unavailable') %>
+      </div>
+    <% end %>
+
+    <div id="acMatrixNotice" class="alert alert-info d-none"></div>
+
+    <% if @matrix[:members].blank? %>
+      <div class="alert alert-secondary"><%= t('scinote_access_control.visibility_matrix.empty_members') %></div>
+    <% elsif @matrix[:experiments].blank? %>
+      <div class="alert alert-secondary"><%= t('scinote_access_control.visibility_matrix.empty_experiments') %></div>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover" id="acMatrixTable">
+          <thead>
+            <tr>
+              <th scope="col" style="min-width: 180px;"><%= t('scinote_access_control.visibility_matrix.member') %></th>
+              <% @matrix[:experiments].each do |experiment| %>
+                <%# D10.1 —— 列宽必须给下限：项目实验多时（epp 导电项目实测 57 列）表格会被压到每列
+                    24px，表头实验名和格子里的「任务」标签会竖排溢出、糊成一片字符（生产实拍「乱码」）。
+                    156px 来自页面规格 §4.1 V1.1（原型实测末列开关需 ≥152px，取整防亚像素掉行）。 %>
+                <th scope="col" class="text-center" data-experiment-id="<%= experiment[:id] %>"
+                    style="min-width: 156px;">
+                  <%= experiment[:name] %>
+                </th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @matrix[:members].each do |member| %>
+              <tr data-user-id="<%= member[:id] %>">
+                <th scope="row"><%= member[:full_name].presence || member[:name] %></th>
+                <% @matrix[:experiments].each do |experiment| %>
+                  <% key = "#{member[:id]}-#{experiment[:id]}" %>
+                  <% cell = @matrix[:cells][key] || {} %>
+                  <td class="text-center">
+                    <div class="d-inline-flex flex-column align-items-center ac-cell-group">
+                      <button type="button"
+                              class="ac-cell <%= cell[:manual] ? 'ac-cell--manual' : '' %> <%= cell[:visible] && !cell[:manual] ? 'ac-cell--auto' : '' %>"
+                              data-cell="<%= key %>"
+                              data-scope="experiment"
+                              data-user-id="<%= member[:id] %>"
+                              data-experiment-id="<%= experiment[:id] %>"
+                              data-on="<%= cell[:manual] ? 'true' : 'false' %>"
+                              aria-pressed="<%= cell[:manual] ? 'true' : 'false' %>"
+                              title="<%= cell[:manual] ? t('scinote_access_control.visibility_matrix.toggle_off') : t('scinote_access_control.visibility_matrix.toggle_on') %>">
+                        <%# D10.2 —— 图标类名必须是 SciNote 图标字体里真实存在的（sn-icon-font.css 共 232 个类，
+                            里面没有 check-circle / close-circle）。用不存在的类名时 ::before 没有 content，
+                            <i> 尺寸为 0 —— 开关长期「没有任何状态标识」，只能靠边框虚实猜。 %>
+                        <i class="sn-icon <%= cell[:manual] || cell[:visible] ? 'sn-icon-check' : 'sn-icon-close' %>"></i>
+                      </button>
+                      <% task_total = experiment[:task_count].to_i %>
+                      <button type="button"
+                              class="ac-cell-task <%= cell[:task_manual] ? 'ac-cell-task--on' : '' %>"
+                              data-scope="task"
+                              data-user-id="<%= member[:id] %>"
+                              data-experiment-id="<%= experiment[:id] %>"
+                              data-on="<%= cell[:task_manual] ? 'true' : 'false' %>"
+                              aria-pressed="<%= cell[:task_manual] ? 'true' : 'false' %>"
+                              title="<%= t('scinote_access_control.visibility_matrix.task_title',
+                                           count: cell[:task_visible_count].to_i, total: task_total) %>">
+                        <%= t('scinote_access_control.visibility_matrix.task') %>
+                      </button>
+                    </div>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<style type="text/css">
+  /* D10.1 —— 表格不许被压成窄列：实验列由 <th> 的 min-width: 156px 撑住，
+     这里再给 max-content 下限，超出视口就交给 .table-responsive 横向滚（overflow-x: auto）。
+     没有它，table-layout: auto 会一路压缩直到文字竖排溢出。 */
+  #acMatrixTable { min-width: max-content; }
+  /* 横向滚动时锁定成员列，否则滚到右边就认不出这一行是谁 */
+  #acMatrixTable > thead > tr > th:first-child,
+  #acMatrixTable > tbody > tr > th:first-child {
+    position: sticky; left: 0; z-index: 2; background: #fff;
+    box-shadow: 1px 0 0 #dee2e6;
+  }
+  #acMatrixTable > thead > tr > th:first-child { z-index: 3; }
+  .ac-cell {
+    width: 34px; height: 34px; line-height: 1;
+    border: 1px dashed #c2c7cd; border-radius: 6px; background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #9aa0a6; cursor: pointer; padding: 0;
+  }
+  .ac-cell:hover { border-color: #2f6fd0; color: #2f6fd0; }
+  .ac-cell--manual { border: 1px solid #2f6fd0; background: #eaf2fd; color: #2f6fd0; }
+  .ac-cell--auto { border: 1px dashed #7a8aa3; background: #f6f8fb; color: #7a8aa3; }
+  .ac-cell[disabled] { opacity: .55; cursor: progress; }
+  .ac-cell-group { gap: 3px; }
+  /* 次级开关：实验可见 ≠ 任务可见，任务要单独放行（permission_granted? 只查对象自身 UA） */
+  .ac-cell-task {
+    font-size: 10px; line-height: 1; padding: 2px 5px;
+    border: 1px dashed #c2c7cd; border-radius: 4px; background: #fff;
+    color: #9aa0a6; cursor: pointer;
+    /* D10.3 —— 不许换行：窄列里「任务」被拆成 t/a/s/k/s 竖排，是生产实拍「乱码」的第二个来源 */
+    white-space: nowrap;
+  }
+  .ac-cell-task:hover { border-color: #2f6fd0; color: #2f6fd0; }
+  .ac-cell-task--on { border: 1px solid #2f6fd0; background: #eaf2fd; color: #2f6fd0; }
+  .ac-cell-task[disabled] { opacity: .55; cursor: progress; }
+</style>
+
+<%# CSP：生产环境 script-src 为 'self' + nonce，行内脚本必须带 nonce 才能执行（否则点击开关无反应） %>
+<script type="text/javascript" nonce="<%= content_security_policy_nonce %>">
+  (function () {
+    var table = document.getElementById('acMatrixTable');
+    var notice = document.getElementById('acMatrixNotice');
+    var projectId = <%= raw @matrix[:project][:id].to_json %>;
+
+    function togglePath(userId, experimentId) {
+      return '/access_permissions/projects/' + projectId + '/visibility_matrix/' + userId + '/' + experimentId;
+    }
+
+    function meta(name) {
+      var el = document.querySelector('meta[name="csrf-' + name + '"]');
+      return el ? el.getAttribute('content') : null;
+    }
+
+    function showNotice(text) {
+      if (!notice) return;
+      notice.textContent = text;
+      notice.classList.remove('d-none');
+      window.setTimeout(function () { notice.classList.add('d-none'); }, 4000);
+    }
+
+    // D2 —— 项目级策略切换（只影响此后新建的实验）
+    var saveBtn = document.getElementById('acStrategySave');
+    var hintEl = document.getElementById('acStrategyHint');
+
+    function renderStrategyHint() {
+      if (!hintEl) return;
+      var checked = document.querySelector('input[name=acStrategy]:checked');
+      if (!checked) return;
+      hintEl.textContent = checked.value === 'isolated'
+        ? '<%= j t('scinote_access_control.visibility_matrix.strategy_hint_isolated') %>'
+        : '<%= j t('scinote_access_control.visibility_matrix.strategy_hint_inherit') %>';
+    }
+
+    document.querySelectorAll('input[name=acStrategy]').forEach(function (radio) {
+      radio.addEventListener('change', renderStrategyHint);
+    });
+    renderStrategyHint();
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function () {
+        var checked = document.querySelector('input[name=acStrategy]:checked');
+        if (!checked) return;
+
+        saveBtn.disabled = true;
+        fetch('<%= access_permissions_project_visibility_strategy_path(project_id: @matrix[:project][:id]) %>', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-CSRF-Token': meta('token') || ''
+          },
+          body: 'strategy=' + encodeURIComponent(checked.value)
+        })
+          .then(function (response) {
+            saveBtn.disabled = false;
+            if (!response.ok) { location.reload(); return; }
+            showNotice('<%= j t('scinote_access_control.visibility_matrix.strategy_saved') %>');
+          })
+          .catch(function () { saveBtn.disabled = false; location.reload(); });
+      });
+    }
+
+    // D5 —— 存量补回：把当前 inherit 策略补回到已有的实验/任务。
+    // 切换策略只影响「之后新建」的对象，存量不会自己补，所以必须显式触发一次。
+    var backfillBtn = document.getElementById('acBackfill');
+    if (backfillBtn) {
+      backfillBtn.addEventListener('click', function () {
+        if (!window.confirm('<%= j t('scinote_access_control.visibility_matrix.backfill_confirm') %>')) return;
+
+        backfillBtn.disabled = true;
+        fetch('<%= access_permissions_project_visibility_backfill_path(project_id: @matrix[:project][:id]) %>', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-CSRF-Token': meta('token') || ''
+          },
+          body: ''
+        })
+          .then(function (response) {
+            backfillBtn.disabled = false;
+            if (!response.ok) { location.reload(); return; }
+            return response.json().then(function (json) {
+              showNotice('<%= j t('scinote_access_control.visibility_matrix.backfill_done') %>'
+                .replace('%{experiments}', json.experiments || 0)
+                .replace('%{tasks}', json.tasks || 0));
+              location.reload();
+            });
+          })
+          .catch(function () { backfillBtn.disabled = false; location.reload(); });
+      });
+    }
+
+    if (!table) return;
+
+    table.addEventListener('click', function (event) {
+      var cell = event.target.closest('.ac-cell, .ac-cell-task');
+      if (!cell) return;
+
+      var scope = cell.getAttribute('data-scope') || 'experiment';
+      var on = cell.getAttribute('data-on') === 'true';
+      var wantOn = !on;
+      cell.disabled = true;
+
+      var payload = new URLSearchParams();
+      payload.append('on', wantOn ? 'true' : 'false');
+      payload.append('scope', scope);
+
+      fetch(togglePath(cell.getAttribute('data-user-id'), cell.getAttribute('data-experiment-id')), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-CSRF-Token': meta('token') || ''
+        },
+        body: payload
+      })
+        .then(function (response) { return response.json().then(function (json) { return { ok: response.ok, json: json }; }); })
+        .then(function (result) {
+          if (!result.ok) { location.reload(); return; }
+
+          // 任务级放行会把实验行一起升级成 WL+task（实验也随之可见），
+          // 一格里两个开关的状态都会变 —— 原地打补丁容易和真实读数不一致，直接刷新。
+          if (scope === 'task') { location.reload(); return; }
+
+          var manual = result.json.on === true;
+          cell.setAttribute('data-on', manual ? 'true' : 'false');
+          cell.setAttribute('aria-pressed', manual ? 'true' : 'false');
+          cell.classList.toggle('ac-cell--manual', manual);
+          cell.classList.toggle('ac-cell--auto', manual ? false : result.json.visible === true);
+          var icon = cell.querySelector('i');
+          if (icon) {
+            // D10.2 —— 只能用图标字体里真实存在的类（sn-icon-check / sn-icon-close）；
+            // 早期写成 sn-icon-*-circle（不存在）时，点完开关图标就地变成 0 尺寸的空 <i>。
+            icon.className = 'sn-icon ' + (manual ? 'sn-icon-check' : 'sn-icon-close');
+          }
+          if (result.json.result === 'still_readable') {
+            showNotice('<%= j t('scinote_access_control.visibility_matrix.hint_still_readable') %>');
+          }
+        })
+        .catch(function () { location.reload(); });
+    });
+  })();
+</script>
