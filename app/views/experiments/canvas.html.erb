@@ -34,6 +34,7 @@
           experiment-url="<%= experiment_path(@experiment) %>"
         ></experiment-description-modal>
       </span>
+      <%= render partial: 'scinote/ai_eln/experiments/ai_assistant_button', locals: { label: 'AI 助手' } %>
     </span>
 
     <%= render partial: 'task_view_dropdowns' %>
@@ -107,3 +108,9 @@
 
 <%= render 'shared/tiny_mce_packs' %>
 <%= javascript_include_tag 'vue_experiment_description_modal' %>
+
+<%# AI 助手抽屉（ActiveAgent 实现 ai_eln，来自 addons/ai_eln 引擎，参数化多实体） %>
+<%= render partial: 'scinote/ai_eln/experiments/ai_assistant_drawer',
+           locals: { title: 'AI 助手',
+                     actions: [{ label: '生成实验摘要',
+                                 url: "/ai_eln/experiments/#{@experiment.id}/summarize" }] } %>

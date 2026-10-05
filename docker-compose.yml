@@ -155,14 +155,8 @@ networks:
     name: scinote_development_network
 
 volumes:
-  # 复用旧 project 名下的数据卷（已装好的 gems / 已迁移的开发库 / 附件），
-  # 配合 -p scinote_dev 独立 project 启动，与生产环境彻底隔离
+  # Docker 为新装环境，原先引用的 scinote-web_* 外部卷并不存在，
+  # 这里改为由 compose 自行创建并管理（project 名为 scinote-web）
   scinote_development_postgres:
-    external: true
-    name: scinote-web_scinote_development_postgres
   scinote_development_bundler:
-    external: true
-    name: scinote-web_scinote_development_bundler
   scinote_development_storage:
-    external: true
-    name: scinote-web_scinote_development_storage

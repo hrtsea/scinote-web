@@ -3,9 +3,9 @@ MAINTAINER SciNote <info@scinote.net>
 
 # === 本机网络环境修复 ===
 # 容器内 DNS 优先返回 IPv6，但本环境无可用 IPv6 出口，导致 apt/wget 连接挂起。
-# 让 glibc 优先使用 IPv4，并把 Debian 源替换为可达的阿里云镜像以加速下载。
+# 让 glibc 优先使用 IPv4，并把 Debian 源替换为可达的清华镜像以加速下载。
 RUN echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf && \
-    sed -i 's#http://deb.debian.org/debian#http://mirrors.aliyun.com/debian#g; s#http://deb.debian.org/debian-security#http://mirrors.aliyun.com/debian-security#g' /etc/apt/sources.list.d/debian.sources
+    sed -i 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g; s#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' /etc/apt/sources.list.d/debian.sources
 
 ARG TIKA_DIST_URL="https://mirrors.huaweicloud.com/apache/tika/3.2.3/tika-app-3.2.3.jar"
 ENV TIKA_PATH=/usr/local/bin/tika-app.jar

@@ -2,9 +2,10 @@
 FROM ruby:3.4-trixie AS builder
 
 # === 网络环境修复（与 Dockerfile.build 一致）===
-# 容器内 DNS 优先返回 IPv6 但无 IPv6 出口，强制 IPv4 优先；Debian 源替换为阿里云镜像
+# 容器内 DNS 优先返回 IPv6 但无 IPv6 出口，强制 IPv4 优先；Debian 源替换为清华镜像
+# （阿里云镜像对 trixie 的 Packages.gz 超时、debian-security/trixie-security 路径 404，已验证不可用）
 RUN echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf && \
-    sed -i 's#http://deb.debian.org/debian#http://mirrors.aliyun.com/debian#g; s#http://deb.debian.org/debian-security#http://mirrors.aliyun.com/debian-security#g' /etc/apt/sources.list.d/debian.sources
+    sed -i 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g; s#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' /etc/apt/sources.list.d/debian.sources
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN \
@@ -26,7 +27,8 @@ RUN apt-get update -qq && \
   libjpeg62-turbo-dev \
   libpango1.0-dev \
   libgif-dev \
-  librsvg2-dev && \
+  librsvg2-dev \
+  libvips42 && \
   rm -rf /var/lib/apt/lists/*
 
 ENV APP_HOME=/usr/src/app
@@ -54,6 +56,7 @@ RUN git config --global url."/usr/src/app/vendor/git-mirror/scinote-eln/".instea
     ln -s /usr/src/app/vendor/git-mirror/scinote-eln/omniauth-okta /usr/src/app/vendor/git-mirror/scinote-eln/omniauth-okta.git && \
     ln -s /usr/src/app/vendor/git-mirror/scinote-eln/img2zpl /usr/src/app/vendor/git-mirror/scinote-eln/img2zpl.git && \
     ln -s /usr/src/app/vendor/git-mirror/scinote-eln/canaid /usr/src/app/vendor/git-mirror/scinote-eln/canaid.git && \
+    ln -s /usr/src/app/vendor/git-mirror/scinote-eln/odf-report /usr/src/app/vendor/git-mirror/scinote-eln/odf-report.git && \
     ln -s /usr/src/app/vendor/git-mirror/scinote-eln/tui.image-editor /usr/src/app/vendor/git-mirror/scinote-eln/tui.image-editor.git
 RUN \
   --mount=target=/usr/src/app/tmp/bundle,type=cache \
@@ -67,6 +70,18 @@ RUN \
   find vendor/bundle/ruby -type d -name '.git' -exec rm -rf {} + && \
   ln -s /usr/bin/yarnpkg /usr/bin/yarn && \
   bundle config --local path vendor/bundle
+
+# === CI 门禁：Zeitwerk 常量命名/自动加载检查（构建期快速失败）===
+# eager load 全部 Ruby 常量。生产 boot 时才暴露的同类错误
+# （命名空间与目录结构不一致、lib/ 模块未 require、acronym 冲突等）
+# 在此 ~30s 内失败，省去后续 yarn/webpack/资源预编译的 ~20 分钟。
+# 新增 addon 的 rb 文件若触发此步失败，通常是常量名与目录不匹配（参考
+# app/models/scinote/ai_eln/ 的子目录命名惯例）或 lib/ 模块缺 require_relative。
+RUN \
+  DATABASE_URL=postgresql://postgres@db/scinote_production \
+  SECRET_KEY_BASE=dummy \
+  DEFACE_ENABLED=true \
+  bin/rails zeitwerk:check
 
 # === 前端资源构建：yarn install + webpack + sass + tailwind ===
 # node-canvas 需源码编译（GitHub 预编译二进制不可达），置 npm_config_build_from_source
@@ -112,9 +127,9 @@ MAINTAINER SciNote <info@scinote.net>
 ARG TIKA_DIST_URL="https://mirrors.huaweicloud.com/apache/tika/3.2.3/tika-app-3.2.3.jar"
 ENV TIKA_PATH=/usr/local/bin/tika-app.jar
 
-# 与 builder 相同的网络修复：IPv4 优先 + 阿里云 apt 源
+# 与 builder 相同的网络修复：IPv4 优先 + 清华 apt 源
 RUN echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf && \
-    sed -i 's#http://deb.debian.org/debian#http://mirrors.aliyun.com/debian#g; s#http://deb.debian.org/debian-security#http://mirrors.aliyun.com/debian-security#g' /etc/apt/sources.list.d/debian.sources
+    sed -i 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g; s#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' /etc/apt/sources.list.d/debian.sources
 
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN \

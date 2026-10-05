@@ -17,6 +17,14 @@ gem 'solid_cable', '~> 3.0'
 gem 'sprockets-rails'
 gem 'view_component'
 
+# ===== AI 助手（ActiveAgent）—— 实现 ai_eln 的全部能力 =====
+# activeagent : agent 运行时 + action 能力单元 + 可观测面板
+# actionagent : 开发期 dashboard（trace / token / 成本），挂 /activeagents
+# ruby_llm    : ActiveAgent 的推理后端（DeepSeek 经 OpenAI 兼容）；activeagent 已传递依赖，此处显式声明便于 pin
+gem 'activeagent', '~> 1.7'
+gem 'actionagent', '~> 1.7'
+gem 'ruby_llm'
+
 # Gems for OAuth2 subsystem
 gem 'doorkeeper', '>= 4.6'
 gem 'omniauth', '~> 2.1'
@@ -146,7 +154,7 @@ gem 'scinote_ai_protocols', path: 'addons/ai_protocols'
 gem 'scinote_esignatures', path: 'addons/esignatures'
 gem 'scinote_project_insights', path: 'addons/project_insights'
 gem 'scinote_addon_settings', path: 'addons/addon_settings'
-
-gem 'scinote_workbench', path: 'addons/workbench'
-
+gem 'scinote_ai_eln', path: 'addons/ai_eln'
+gem 'scinote_access_control', path: 'addons/access_control'
 gem 'scinote_eln_ui', path: 'addons/eln_ui'
+gem 'scinote_workbench', path: 'addons/workbench'

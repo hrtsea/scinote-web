@@ -17,6 +17,13 @@
         </div>
       <% end %>
     </h1>
+    <% if respond_to?(:can_manage_project_users?, true) && can_manage_project_users?(@project) %>
+      <span class="ml-auto">
+        <%= link_to t('scinote_access_control.visibility_matrix.page_title'),
+                    access_permissions_project_visibility_matrix_path(project_id: @project.id),
+                    class: 'btn btn-sm btn-outline-primary' %>
+      </span>
+    <% end %>
   </div>
 </div>
 

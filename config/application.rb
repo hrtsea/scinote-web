@@ -56,6 +56,10 @@ module Scinote
 
     Rails.autoloaders.main.ignore(Rails.root.join('addons/*/app/decorators'))
     Rails.autoloaders.main.ignore(Rails.root.join('addons/*/app/overrides'))
+    # addon 的 app/permissions 由 canaid 在 railtie 中自行 require；若交给 Zeitwerk 管理，
+    # 它会要求文件名与常量名严格对应（如 ai_protocols.rb -> AiProtocols），
+    # 而这些文件只注册权限规则、不定义同名常量，eager load 时会报 Zeitwerk::NameError。
+    Rails.autoloaders.main.ignore(Rails.root.join('addons/*/app/permissions'))
 
     # Add SkipWopiRequestParsing middleware for parsing skipping of WOPI binary requests, if WOPI is enabled
     config.middleware.insert_before 0, Rack::SetWopiBinaryRequestType if ENV['WOPI_ENABLED'] == 'true'

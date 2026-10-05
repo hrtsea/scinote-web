@@ -88,6 +88,8 @@
     data-datetime-picker-format="<%= datetime_picker_format_date_only %>"
     data-datetime-picker-format-vue="<%= datetime_picker_format_date_only_vue %>"
     data-user-timezone="<%= current_user.settings['time_zone'] %>"
+    data-ai-entity-type="<%= @experiment ? 'experiment' : (@protocol ? 'protocol' : (@asset ? 'asset' : '')) %>"
+    data-ai-entity-id="<%= @experiment&.id || @protocol&.id || @asset&.id || '' %>"
     <% end %>
   >
     <span style="display: none;" data-hook="body-js"></span>
@@ -146,6 +148,26 @@
       <%= render "shared/export_stock_consumption_modal" %>
       <!-- Manage Stock Modal -->
       <%= render partial: 'shared/manage_stock_value_modal' %>
+
+      <% if Scinote::AiEln.enabled? %>
+        <%
+          ai_entity_type = @experiment ? 'experiment' : (@protocol ? 'protocol' : (@asset ? 'asset' : nil))
+          ai_entity_id   = @experiment&.id || @protocol&.id || @asset&.id
+          ai_context_action = case ai_entity_type
+                              when 'experiment' then { label: '摘要本实验', url: "/ai_eln/experiments/#{ai_entity_id}/summarize" }
+                              when 'protocol'  then { label: '解析本配方', url: "/ai_eln/protocols/#{ai_entity_id}/parse_recipe" }
+                              when 'asset'     then { label: '解析本附件', url: "/ai_eln/attachments/#{ai_entity_id}/parse" }
+                              end
+          ai_global_actions = [{ label: '全站语义检索', url: '/ai_eln/semantic_search' }]
+          ai_global_actions << ai_context_action if ai_context_action
+        %>
+        <%= render partial: 'scinote/ai_eln/experiments/ai_assistant_fab' %>
+        <%= render partial: 'scinote/ai_eln/experiments/ai_assistant_drawer',
+                   locals: { id: 'aiAssistantGlobalDrawer',
+                             title: 'AI 助手（全站）',
+                             input_label: '检索词（语义检索）',
+                             actions: ai_global_actions } %>
+      <% end %>
     <% end %>
 
     <span style="display: none;" data-hook="application-body-end-html"></span>
