@@ -301,26 +301,115 @@ class WorkbenchTest < AcTest::Base
     refute body[:kpis].any? { |k| k[:label].include?('Token') }, '私有化部署不输出 Token 卡'
   end
 
-  # ③ 项目花费 = 消耗明细聚合（带符号求和：还回是负数）
-  def test_cost_kpi_sums_consume_records
+  # ------------------------------------------------------------
+  # ③ 参与项目卡（V1.27：替换原「项目总花费」卡）
+  #
+  # 口径单一真源 = Scinote::ElnUi::ProjectListScope（列表页与卡片共用）。本组用例守四件事：
+  #   1. **卡片数字 ≡ 点进去列表页筛出来的条数**（走真 HTTP 端点，非循环论证）；
+  #   2. 下钻 URL 带「成员=我」+ view_mode=active 且真能 match 路由；
+  #   3. 负责数**不给下钻**（trend 纯文本、不给 anchor）；
+  #   4. M=0 时 trend 是**空串**（不是「其中我负责 0 个」）。
+  # ------------------------------------------------------------
+
+  # ① 卡片数字 ≡ 列表页筛出条数（逐位一致）—— **本轮第一护栏**
+  #
+  # 🔴 为何非循环：左边走 WorkbenchPayload → ProjectListScope.participation（内联算的），
+  #   右边走**真 controller → 原生 Lists::ProjectsService#filter_project_records**（HTTP）。
+  #   两个数来自两个不同入口，断言里**没有**任何 scope 的二次重抄 —— 这才是它的全部意义。
+  #   ⚠ 特意造一条「**可读但非成员**」的项目（TeamAssignment 给全队只读）：若卡片改用
+  #     readable 范围（绕开成员筛选），卡片会多算这一条 → 立刻红（见对拍 RC-1）。
+  def test_participated_card_equals_list_page_count
     scene = build_scene!
     user = scene[:creator]
-    project = readable_project(scene)
-    allow_project_read!(project, user)
-    # ⚠ 2026-10-04 QA 修：occurred_at / source_type 都是 NOT NULL，
-    #   原工厂只给 6 个字段 → PG::NotNullViolation。
-    Scinote::ElnUi::ConsumeRecord.create!(
-      kind: 'material', name: 'WB-基料', quantity: 10.to_d, unit: 'kg',
-      unit_price: 30.to_d, amount: 300.to_d, project: project, user: user,
-      occurred_at: Time.current, source_type: 'RepositoryLedgerRecord', source_id: 0
-    )
+    team = scene[:team]
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: scene[:team])
+    # 3 个「我参与」的项目（我 = 创建者 → 自动有 Project 级 Owner UA，既是成员也是负责）
+    member_projects = 3.times.map { make_project!(team: team, creator: user) }
+    # 1 个「我可读但**非成员**」的项目（别人建、给全队只读；我没有项目级 UA）
+    foreign = foreign_readable_project!(team: team)
 
-    kpi = body[:kpis].find { |k| k[:label] == '项目总花费' }
-    refute_nil kpi, '花费 KPI 必须存在'
-    assert_equal '¥300', kpi[:value]
-    assert_includes kpi[:trend], '材料 100%'
+    # 前提守卫：foreign 必须真的「可读」且真的「非成员」，否则这条不变式退化成假绿
+    assert foreign.readable_by_user?(user),
+           '前提守卫失败：foreign 对 user 不可读，则「可读但非成员」这个区分不存在，对拍无效'
+    assert_nil ua_for(foreign, user),
+               '前提守卫失败：foreign 竟有一条 Project 级 UA，则它不是「非成员」，对拍无效'
+
+    card = participated_card(user, team)[:value]
+
+    session = ActionDispatch::Integration::Session.new(Rails.application)
+    Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+    session.get('/eln_project_list',
+                params: { filters: { members: [user.id] }, view_mode: 'active', format: :json })
+    assert_equal 200, session.response.status, '真端点必须可用（json 出口）'
+    rows = JSON.parse(session.response.body)['projects']
+
+    refute_equal '0', card, '卡片数字非空（防空断言）'
+    refute_empty rows, 'HTTP 列表非空（防空断言）'
+    assert_equal rows.size.to_s, card,
+                 '卡片数字必须 ≡ 点进去列表页筛出来的条数（逐位一致）—— '
+                 'left=WorkbenchPayload，right=真 controller→原生 service'
+    # 顺带对齐已知真值：scene 项目 + 我建的 3 个 = 4（foreign 是非成员，被正确排除）
+    assert_equal (member_projects.size + 1).to_s, card, '参与数 = scene 项目 + 我建的 3 个'
+    assert_equal (member_projects.size + 1), rows.size,
+                 '列表页条数也恰为我参与的项目数（foreign 被成员筛选排除）'
+  end
+
+  # ② 下钻 URL：带成员筛选 + view_mode=active，且真能 match 宿主路由
+  def test_participated_card_carries_member_filtered_drill_url
+    scene = build_scene!
+    user = scene[:creator]
+    card = participated_card(user, scene[:team])
+
+    refute_nil card[:to], '参与项目卡必须给整页下钻目标'
+    assert_includes card[:to], "filters%5Bmembers%5D%5B%5D=#{user.id}",
+                    '下钻必须带「成员=我」筛选（否则卡片数与列表数对不上）'
+    assert_includes card[:to], 'view_mode=active',
+                    '下钻必须显式带 view_mode=active（否则一致依赖默认视图这个隐含约定）'
+    assert_nil card[:anchor], '整页跳转卡不得再给页内锚点（to / anchor 互斥）'
+    assert_routable(card[:to])
+  end
+
+  # ③ 负责数**不给下钻**：trend 是纯文本、无 anchor、不夹带任何地址
+  def test_participated_trend_is_plain_text_without_drill
+    scene = build_scene!
+    user = scene[:creator]
+    card = participated_card(user, scene[:team])
+
+    assert_match(/\A(其中我负责 \d+ 个)?\z/, card[:trend].to_s,
+                 'trend 只能是空串或「其中我负责 M 个」，且 M 为真实数字')
+    refute_match(%r{https?://|/eln_|/projects}, card[:trend].to_s,
+                 '负责数必须纯文本，不夹带任何下钻地址（「负责数不给下钻」的固化）')
+    assert_nil card[:anchor], '负责数不给页内锚点'
+  end
+
+  # ④ M=0 时 trend 留空串 + KPI 行仍是 3 张卡
+  #
+  # 「参与>0 且负责=0」的构造：别人建项目（别人=Owner），我以**非 Owner 角色**被加入。
+  def test_participated_trend_blank_when_zero_responsible
+    scene = build_scene!(visibility: :visible)
+    team = scene[:team]
+    plain = join_team!(make_user!(name: 'wb-plain'), team)
+    owner = join_team!(make_user!(name: 'wb-owner'), team)
+    project = make_project!(team: team, creator: owner)
+    allow_project_read!(project, plain, role: 'User')
+
+    # 前提守卫：plain 必须真的参与（参与>0），否则这条是空断言
+    assert_equal 1, Scinote::ElnUi::ProjectListScope
+                          .participated(team: team, user: plain).distinct.count(:id),
+                 '前提守卫失败：plain 没有参与任何项目'
+    # 前提守卫：plain 负责数必须为 0，否则构造无效（测不到 M=0 分支）
+    assert_equal 0, Scinote::ElnUi::ProjectListScope
+                          .participation(team: team, user: plain)[:responsible],
+                 '前提守卫失败：plain 竟被判为负责'
+
+    card = participated_card(plain, team)
+    assert_equal '参与项目', card[:label]
+    assert_equal '1', card[:value], '参与数应为 1'
+    assert_equal '', card[:trend], 'M=0 时 trend 必须是空串（不是「其中我负责 0 个」）'
+
+    body = Scinote::Workbench::WorkbenchPayload.call(user: plain, team: team)
+    assert_equal 3, body[:kpis].size, 'KPI 行仍是 3 张卡'
+    assert_equal %w[小组数 项目任务 参与项目], body[:kpis].map { |k| k[:label] }
   end
 
   # ============================================================
@@ -400,6 +489,82 @@ class WorkbenchTest < AcTest::Base
     refute_includes labels, '报表中心', '宿主无承载面 → 不输出'
   end
 
+  # ============================================================
+  # kpis 下钻目标（spec V1.25 · SCN-DASH-8 / SCN-DASH-9）
+  #
+  # 用户报的原 bug：卡片只有数字、点不动。所以目标由**后端下发**（前端不猜路由），
+  # 这里锁三张卡各自的落点，并锁「不给假 target」。
+  # ============================================================
+
+  # 三张卡各自带一个真源可达的下钻目标：
+  #   小组数     → **页内锚点**（右列「小组汇总」卡），值由 GROUPS_ANCHOR_ID 下发；
+  #   项目任务   → 宿主项目列表页（原生没有跨项目任务清单页，只能给四级链路入口）；
+  #   参与项目   → 宿主项目列表页 **带「成员=我」筛选**（V1.27，替换原花费卡）。
+  # ⚠ 同一条卡不允许既给 to 又给 anchor（前端无法判断该跳还是该滚）。
+  def test_kpi_cards_carry_real_drill_targets
+    scene = build_scene!
+    allow_project_read!(readable_project(scene), scene[:creator])
+
+    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    kpis = body[:kpis].index_by { |k| k[:label] }
+
+    groups_card = kpis['小组数']
+    refute_nil groups_card
+    assert_equal Scinote::Workbench::WorkbenchPayload::GROUPS_ANCHOR_ID, groups_card[:anchor],
+                 '小组数卡 → 同页「小组汇总」卡锚点'
+    assert_nil groups_card[:to], '锚点卡不再给整页跳转'
+
+    tasks_card = kpis['项目任务']
+    refute_nil tasks_card
+    assert_equal '/eln_project_list', tasks_card[:to], '项目任务卡 → 项目列表页'
+    assert_nil tasks_card[:anchor], '整页跳转卡不再给锚点'
+
+    participated_card = kpis['参与项目']
+    refute_nil participated_card
+    assert_includes participated_card[:to],
+                    "filters%5Bmembers%5D%5B%5D=#{scene[:creator].id}",
+                    '参与项目卡 → 项目列表页（成员=我）'
+    assert_nil participated_card[:anchor], '整页跳转卡不再给锚点'
+  end
+
+  # 下钻目标必须**真能 match 到宿主路由表**才算「真源可达」。
+  #   ⚠ 只断言字符串形状不够：本次修的 notifications_payload 就是「URL 看着像、
+  #     路由里没有」，光比对字符串抓不住。所以这里逐条 recognize_path。
+  def test_kpi_drill_targets_are_routable
+    scene = build_scene!
+    allow_project_read!(readable_project(scene), scene[:creator])
+
+    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+
+    targets = body[:kpis].filter_map { |k| k[:to] }
+    refute_empty targets, '至少要有两处整页跳转，否则这条是空断言'
+    targets.each { |to| assert_routable(to) }
+  end
+
+  # ⚠ 反面：宿主**没有**承载面的概念不许给 target（显式留白）。
+  #   本轮 Q1-A 已裁定：跨项目「小组列表页」/「任务列表页」都不新建，
+  #   所以这张卡只能给锚点/列表页入口，不能凭空给出 /eln_user_groups 之类的假路由。
+  #   这条用例是给未来加卡的人看的：加卡时先问「原生哪张表/哪个页面承载它」。
+  def test_kpi_targets_are_never_invented
+    scene = build_scene!
+    allow_project_read!(readable_project(scene), scene[:creator])
+
+    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+
+    body[:kpis].each do |kpi|
+      [kpi[:to], kpi[:anchor]].compact.each do |target|
+        refute_match(/eln_user_groups|\/groups\b|eln_tasks_path|eln_task_list/, target.to_s,
+                     "疑似臆造的目标：#{kpi[:label]} → #{target}（宿主无此承载面）")
+      end
+    end
+  end
+
+  # 🔴 V1.27 已删除 `test_cost_card_value_equals_res_center_cost_tab`（「卡片金额 ≡ 资源中心
+  #   花费页签累计花费」的对账不变式）：第三张 KPI 卡由「项目总花费」改为「参与项目」，
+  #   金额不变式随卡一并退出。花费展示完整地留在资源中心花费页签，工作台不再复述。
+  #   ⚠ 花费本身的护栏（ProjectCosts / MoneyFormat 对账）仍在 eln_ui 侧套件覆盖，
+  #     不是「删了就没人管了」。
+
   # 六块齐全（前端只读这六个 key）
   def test_payload_exposes_exactly_the_six_defined_blocks
     scene = build_scene!
@@ -435,8 +600,43 @@ class WorkbenchTest < AcTest::Base
 
   private
 
+  # 反向护栏：下钻目标必须真能 match 到宿主路由表（去掉 query 再识别）。
+  #   只断言「字符串以 / 开头」抓不住「形状像但路由里没有」这类错 ——
+  #   隔壁 notifications_payload 就是手写了一个少一段的 URL，且被写进断言，
+  #   套件长期全绿、真机 404。所以这里过一遍真实路由识别。
+  def assert_routable(to)
+    path = to.to_s.split('?').first
+    Rails.application.routes.recognize_path(path, method: :get)
+  rescue ActionController::RoutingError => e
+    flunk "下钻目标匹配不到任何宿主路由：#{to}（#{e.message}）"
+  end
+
   def payload_for(scene)
     Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+  end
+
+  # 工作台「参与项目」卡（V1.27 第三张 KPI 卡）。
+  def participated_card(user, team)
+    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: team)
+    card = body[:kpis].find { |k| k[:label] == '参与项目' }
+    refute_nil card, '参与项目 KPI 卡必须存在'
+    card
+  end
+
+  # 造一个「别人建、给全队只读」的项目：被考察的用户对它**可读**（TeamAssignment 携带
+  # project_read → 命中 readable_by_user 的 team_assignments 分支），但**没有 Project 级
+  # UserAssignment**（因此不是成员）。这是「可读 ≠ 参与」的区分载体 ——
+  # 卡片若绕开成员筛选改用它算数，就会多算这一条（对拍 RC-1 因此变红）。
+  #
+  # ⚠ TeamAssignment 必须限 team + 用带 project_read 的真实角色：普通成员角色
+  #   （find_predefined_normal_user_role）的权限里含 ProjectPermissions::READ。
+  def foreign_readable_project!(team:)
+    stranger = join_team!(make_user!(name: 'wb-stranger'), team)
+    project = make_project!(team: team, creator: stranger)
+    ::TeamAssignment.create!(assignable: project, team: team,
+                             user_role: ::UserRole.find_predefined_normal_user_role,
+                             assigned: :manually)
+    project
   end
 
   # build_scene! 建的 project 未必对 creator 可读 —— 工作台口径是「可读 project」，

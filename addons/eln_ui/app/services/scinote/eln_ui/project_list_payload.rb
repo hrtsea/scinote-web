@@ -55,6 +55,13 @@ module Scinote
       DATE_FMT = '%Y-%m-%d'
       DATETIME_FMT = '%Y-%m-%d %H:%M'
 
+      # V1.27：深链筛选条件里「日期类」的键（与前端 store/ui.js 的 EMPTY_FILTERS 对齐）。
+      # 这几个原样传字符串即可（FilterPanel 用的是 <input type="date">，值是字符串）。
+      INITIAL_DATE_FILTER_KEYS = %w[
+        start_date_from start_date_to due_date_from due_date_to
+        archived_on_from archived_on_to
+      ].freeze
+
       # 工具栏（原生 toolbar.vue 那 7 个控件）需要的全部能力，都在 payload 里出一份：
       #   canCreateFolder —— 「新建文件夹」按钮（原生 TeamPermissions::CREATE_PROJECT_FOLDERS）
       #   folders/members/headOfProjects/statuses/defaultRoles —— 筛选面板/新建弹窗的可选项
@@ -68,7 +75,8 @@ module Scinote
         def call(projects, can_create_project: false, can_create_folder: false,
                  folders: [], members: [], head_of_projects: [], statuses: [],
                  default_roles: [], create_urls: {}, list_url: nil, view_mode: 'active',
-                 detail_url_base: nil, current_user: nil, workbench_url: nil)
+                 detail_url_base: nil, current_user: nil, workbench_url: nil,
+                 option_errors: [], initial_filters: {})
           new(projects,
               can_create_project: can_create_project,
               can_create_folder: can_create_folder,
@@ -82,14 +90,17 @@ module Scinote
               view_mode: view_mode,
               detail_url_base: detail_url_base,
               current_user: current_user,
-              workbench_url: workbench_url).call
+              workbench_url: workbench_url,
+              option_errors: option_errors,
+              initial_filters: initial_filters).call
         end
       end
 
       def initialize(projects, can_create_project: false, can_create_folder: false,
                      folders: [], members: [], head_of_projects: [], statuses: [],
                      default_roles: [], create_urls: {}, list_url: nil, view_mode: 'active',
-                     detail_url_base: nil, current_user: nil, workbench_url: nil)
+                     detail_url_base: nil, current_user: nil, workbench_url: nil,
+                     option_errors: [], initial_filters: {})
         @projects = projects.to_a
         @current_user = current_user
         @can_create_project = can_create_project
@@ -109,6 +120,9 @@ module Scinote
         # ActionController::UrlGenerationError，所以用字面基址，路由段与
         # config/routes.rb 的 'eln_workbench' 对齐。
         @workbench_url = workbench_url
+        @option_errors = Array(option_errors)
+        # V1.27（OPEN-WB-DRILL-8）：本次请求的筛选条件（controller 已转成普通 Hash）。
+        @initial_filters = initial_filters.is_a?(Hash) ? initial_filters : {}
       end
 
       def call
@@ -120,9 +134,16 @@ module Scinote
           headOfProjects: @head_of_projects,
           statuses: @statuses,
           defaultRoles: @default_roles,
+          # 筛选项取数失败的项（正常恒为 []）。非空 = 页面上那些下拉是真的拿不到数据，
+          # 前端必须显式提示，不能让人以为「就是没数据」。
+          filterOptionErrors: @option_errors,
           createUrls: @create_urls,
           listUrl: @list_url,
           viewMode: @view_mode,
+          # V1.27（OPEN-WB-DRILL-8）：本次请求已生效的筛选条件（归一化，键与 ui.filters 一致）。
+          # 前端 entry 在挂载时 Object.assign(ui.filters, initialFilters) —— 让深链条件
+          # 「面板可见 + 重拉不丢」。没条件时是 {}（前端 assign 为空 = 不变）。
+          initialFilters: normalized_initial_filters,
           # 行菜单「访问权限」弹窗里的「添加成员」下拉：**可指派成员**端点真源。
           # 没有它，下拉就只剩一个「选择成员…」占位 —— 那是显式留白，不是 bug，
           # 但既然原生有真端点，就别让这个入口点不动。
@@ -495,6 +516,59 @@ module Scinote
         return nil if value.blank?
 
         value.respond_to?(:strftime) ? value.strftime(DATETIME_FMT) : value.to_s
+      end
+
+      # ------------------------------------------------------------
+      # V1.27：深链筛选条件归一化（闭合 OPEN-WB-DRILL-8）
+      #
+      # 把 controller 传来的 `params[:filters]`（普通 Hash、**字符串键**）归一化成与前端
+      # `ui.filters` **完全同形**的对象，供 entry 直接 `Object.assign(ui.filters, ...)`。
+      #
+      # ⚠ 类型必须归一（本改动最容易静默失败的点）：
+      #   深链 URL 里 `filters[members][]=35` 解码后是**字符串** "35"，而 FilterPanel 的
+      #   `<option :value="m.id">`（真机 members 选项 id 是**数字**）—— `v-model` 多选按
+      #   **严格相等**匹配 option，字符串 vs 数字会匹配不上 → 现象是「回填了但多选框不显示」，
+      #   属于最难查的那类静默失败。所以这里把纯数字串转成 Integer。
+      #   （headOfProject 的 id 同理。）
+      # ⚠ 键名要与 ui.filters 一一对齐：UI 里是 `headOfProject`（驼峰），原生参数是
+      #   `head_of_project`（下划线）—— 这里做最后一次映射，别把两种词汇表漏到前端。
+      # ------------------------------------------------------------
+      def normalized_initial_filters
+        raw = @initial_filters.to_h.stringify_keys
+        return {} if raw.blank?
+
+        out = {}
+        out['query'] = raw['query'].to_s if raw['query'].present?
+
+        members = normalize_id_array(raw['members'])
+        out['members'] = members if members.any?
+
+        out['headOfProject'] = normalize_id(raw['head_of_project']) if raw['head_of_project'].present?
+
+        INITIAL_DATE_FILTER_KEYS.each do |key|
+          out[key] = raw[key].to_s if raw[key].present?
+        end
+
+        statuses = Array(raw['statuses']).map(&:to_s).reject(&:blank?)
+        out['statuses'] = statuses if statuses.any?
+
+        out
+      end
+
+      # 纯数字串 → Integer（对齐真机 option id 的类型）；非数字原样保留字符串。
+      def normalize_id(value)
+        str = value.to_s
+        str.match?(/\A\d+\z/) ? str.to_i : str
+      end
+
+      # 数组逐项归一（members 多选值）；空白项丢弃。
+      def normalize_id_array(value)
+        Array(value).filter_map do |item|
+          str = item.to_s
+          next nil if str.blank?
+
+          str.match?(/\A\d+\z/) ? str.to_i : str
+        end
       end
     end
   end

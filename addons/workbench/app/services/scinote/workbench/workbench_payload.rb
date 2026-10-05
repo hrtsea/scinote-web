@@ -4,7 +4,7 @@
 #
 # 形状（严格对齐原型 ELN系统-Vue3/src/views/Workbench.vue + src/data/mock.js）：
 #   meta:   { greeting, role, updatedAt, notice, statusMachine }
-#   kpis:   [{ label, value, trend, tone? }]
+#   kpis:   [{ label, value, trend, to? / anchor?, tone? }]
 #   todos:  [{ type, title, due, status, tone? }]
 #   dist:   [{ label, num, color }]
 #   groups: [{ name, leader, rate, tone? }]
@@ -26,6 +26,9 @@
 #           OPEN-WORKBENCH-2（Notification 无细粒度触发源 → notice 只报条数）。
 # ✅ 已闭环：OPEN-1（项目负责人双轨）—— 2026-10-05 落成 `project_lead?`：
 #           supervised_by 或 Project 级 Owner 命中任一即算（生产实测两条轨道各有一半人）。
+# ✅ 已闭环（V1.27）：第三张 KPI 卡由「项目总花费」改为「参与项目」。参与/负责口径与
+#           项目列表页**共用单一真源** `Scinote::ElnUi::ProjectListScope` —— 卡片数字必须
+#           逐位等于点进去列表页筛出来的条数，两侧同一段可变代码才守得住该不变式。
 module Scinote
   module Workbench
     class WorkbenchPayload
@@ -58,10 +61,30 @@ module Scinote
       # 无真源时的显式留白（不是演示文案）
       DASH = '—'
 
-      # 计入项目花费的行：物资行恒计，服务行只有 settled 才计（spec L109）。
-      COSTABLE_WHERE = "kind = 'material' OR (kind = 'service' AND result_status = 'settled')"
-      # 花费拆分只看**消耗方向**（正金额）；还回冲减记在总额里，不当分项。
-      CONSUME_ONLY_WHERE = 'amount > 0'
+      # 「小组数」卡页内锚点的目标 DOM id（= 右列「小组汇总」卡的 id，Q2 裁决）。
+      #   ⚠ 由 **payload 下发**，不在组件里硬编 —— 与「前端不写死宿主路由」同一条铁律：
+      #   跳转目标属于「服务端知道、前端不该猜」的信息。
+      #   ⚠ 原型 `ELN系统-prototype.html` 里同一张卡的 id 必须与这个值一致
+      #   （改这里要同步改原型，否则三方对齐断链）。
+      GROUPS_ANCHOR_ID = 'eln-wb-groups'
+
+      # ------------------------------------------------------------
+      # 🔴 V1.27：本类**不再输出任何花费卡**（第三张 KPI 卡已由「项目总花费」改为「参与项目」）。
+      #
+      #   历史（V1.25）：这里原先持有两条花费口径常量（`COSTABLE_WHERE` / `CONSUME_ONLY_WHERE`），
+      #   它们是 eln_ui 侧同一件事的**第二份定义**（漏了设备模板剔除、范围也不同），故被删除，
+      #   统一改调 `Scinote::ElnUi::ProjectCosts`（单一真源）。
+      #   V1.27 又把「项目总花费」整张卡连同其取数私有方法一并删除 —— 花费展示完整地留在资源中心
+      #   花费页签，工作台不再复述。
+      #
+      #   🔴🔴 但**千万别顺手把下面这些也删了**（删了当场 500 或破坏别处）：
+      #     · `WorkbenchPayload#pct` —— 本文件**小组完成率**在用（group_row），与花费无关；
+      #     · `Scinote::ElnUi::ProjectCosts` / `Scinote::ElnUi::MoneyFormat` —— 资源中心
+      #       花费页签（res_center_payload）、项目详情花费面板（project_detail_payload#cost_block）、
+      #       `Scinote::ElnUi::EquipmentTemplateFilter` 都还在用；
+      #     · 前端 mock.js 里资源中心/项目详情用的花费数据。
+      #   「工作台不再用」≠「没人用」—— 删之前先 grep 全仓。
+      # ------------------------------------------------------------
 
       class << self
         def call(user:, team:)
@@ -92,6 +115,15 @@ module Scinote
       end
 
       private
+
+      # 宿主真实 path helper 的入口（entries 快捷入口 + kpis 下钻目标共用）。
+      #   ⚠ 必须真的存在：写错 helper 名 = 加载期 NoMethodError，
+      #   这是好事（当场炸），别再包一层 rescue 把它变成静默兜底 ——
+      #   隔壁 notifications_payload 就因为这么干，把 `eln_res_apply_path`
+      #   这个错误名字藏了很久（见该文件 subject_url 的注释）。
+      def host_routes
+        @host_routes ||= ::Rails.application.routes.url_helpers
+      end
 
       # ------------------------------------------------------------
       # 共用：当前 team 下「我能读」的 project（Canaid 同源同层）
@@ -185,8 +217,14 @@ module Scinote
         count.to_i.zero? ? '暂无未读通知' : "#{count} 条未读通知"
       end
 
+      # 🔴 V1.25：未读数走 **eln_ui 的单一真源**（`NotificationsPayload.scope_for`）——
+      #   宿主顶栏徽标（navigations_controller.rb:103）与通知中心列表用的是同一个
+      #   `notifications.in_app.where(read_at: nil)` 口径。三处必须是同一个数，
+      #   否则「铃铛显示 3、点开只有 1 条」这个 bug 会换个地方复发。
+      #   ⚠ 旧写法用 `recipient_type/recipient_id` 明文条件且不筛 in_app ——
+      #   多态列名写死是脆的（写错静默查空），`in_app` 漏筛会把 hide_in_app 的通知也数进去。
       def unread_notification_count
-        ::Notification.where(recipient_type: 'User', recipient_id: @user.id, read_at: nil).in_app.count
+        ::Scinote::ElnUi::NotificationsPayload.unread_count_for(@user)
       end
 
       def status_machine_value
@@ -195,16 +233,30 @@ module Scinote
 
       # ------------------------------------------------------------
       # 2. kpis（私有化部署不输出云版 Token 卡 → 只出 3 张）
+      #
+      # V1.27 三张卡：小组数（页内锚点）/ 项目任务（项目列表页）/ **参与项目**（成员筛选后的
+      #   项目列表页）。第三张原为「项目总花费」，已删除。
+      #
+      # 🔴 V1.25：每张卡都带**下钻目标**（spec SCN-DASH-8）。两个字段互斥：
+      #   `to`     = 宿主真实路由（整页跳转），由宿主 path helper 生成；
+      #   `anchor` = 本页内目标卡的 DOM id（页内滚动 + 高亮），不下发 '#' 前缀。
+      #   原生没有承载面的概念**一律不给 target**（拿到假 punch 前端照样跳不动），
+      #   前端据此决定「可点 / 不可点」，不再由自己去猜路由。
       # ------------------------------------------------------------
       def kpis_block
-        [groups_kpi, tasks_kpi, cost_kpi]
+        [groups_kpi, tasks_kpi, participation_kpi]
       end
 
       # ① 小组数 = 当前 team 的小组数；trend = 覆盖组员人数（真数）
+      #
+      # 下钻 = **页内锚点**到右下「小组汇总」卡（本轮 Q2 裁决）。
+      #   ⚠ 为什么不是新建「小组列表页」：原生没有跨项目小组清单的承载面，
+      #     而同页右下角本来就有一张小组汇总 —— 跳走反而丢上下文（Q1：只接已存在的承载面）。
       def groups_kpi
         groups = team_user_groups
         { label: '小组数', value: groups.size.to_s,
-          trend: groups.empty? ? '' : "覆盖 #{group_member_count(groups)} 名组员" }
+          trend: groups.empty? ? '' : "覆盖 #{group_member_count(groups)} 名组员",
+          anchor: GROUPS_ANCHOR_ID }
       end
 
       def team_user_groups
@@ -218,6 +270,11 @@ module Scinote
       # ② 项目任务 = 该 team 可读 project 下的 MyModule 总数
       #    trend 取**数量最多的前 3 个真实状态名**（不翻译、不猜语义），
       #    逐条与 dist 的条形标签对得上，不出现靠正则猜出来的「已完成 N」假数。
+      #
+      # 下钻 = 项目列表页（Q3 裁决）：原生任务始终挂在某个实验下，**没有跨项目的
+      #   任务清单页**，所以这里给的是四级链路的入口（REQ-PROJ-LIST：
+      #   项目列表 → 项目详情 → 实验详情 → 任务详情）。
+      #   「跨项目任务列表页」另立 issue（宿主无承载面时不编页面，Q1）。
       def tasks_kpi
         { label: '项目任务', value: team_my_modules.count.to_s,
           trend: status_counts.first(TASK_TREND_LIMIT).map { |status_id, num|
@@ -225,53 +282,50 @@ module Scinote
                    next nil if status.nil?
 
                    "#{status.name} #{num}"
-                 }.compact.join(' · ') }
+                 }.compact.join(' · '),
+          to: host_routes.eln_project_list_path.to_s }
       end
 
-      # ③ 项目总花费 = 消耗明细按可读 project 聚合，求和交给库算。
-      def cost_kpi
-        total = cost_total
-        { label: '项目总花费', value: money(total), trend: cost_trend(total) }
+      # ③ 参与项目 = 我在本单位的**参与项目数**；trend = 「其中我负责 M 个」。
+      #
+      # 口径（用户拍板，勿改）单一真源 = `Scinote::ElnUi::ProjectListScope`
+      #   （与项目列表页 controller 同一个类 —— 不再是「两处各写一遍 scope」，
+      #    那正是本项目两次出事的形态）：
+      #     参与 = 项目列表 scope（team ∩ template[false,nil] ∩ readable ∩ active）
+      #            ∩ 我的 Project 级 UserAssignment；
+      #     负责 = projects.supervised_by_id==我 或 我在该项目上有 Project 级 Owner 角色的 UA
+      #            （双轨并集，与 project_lead? / project_owner? 同语义，由真源类复用求值）。
+      #
+      # 下钻 = 宿主项目列表页，**带成员筛选** + **显式 view_mode=active**：
+      #   · 不带成员筛选 → 卡片数字（参与数）与点进去的列表（可读全量）会对不上，
+      #     这正是本卡存在的意义（卡片数字 ≡ 点进去筛出来的条数）。
+      #   · 显式带 view_mode=active：卡片只统计**活动**项目，把口径写进 URL 才自描述 ——
+      #     否则两侧一致就依赖「列表页默认视图恰好是 active」这个隐含约定，将来谁把默认
+      #     改成全量就静默漂开（同一件事两份定义的复发形态）。
+      #   ⚠ URL 由宿主 path helper 生成，**不手写字符串路径**（路由改名自动跟随）。
+      #
+      # 「负责数」**不给下钻**：宿主没有「我负责的项目列表」承载面（列表页只按成员筛，
+      #   没有「负责人=我」这一轴），所以 trend 是**纯文本**、整卡只给一个 to，不给 anchor。
+      #   ⚠ M=0 时 trend 必须是**空串**（不是「其中我负责 0 个」）：0 是噪声，会让副行
+      #     看起来像有信息（用户明确要求）。
+      def participation_kpi
+        stats = ::Scinote::ElnUi::ProjectListScope.participation(team: @team, user: @user)
+        responsible = stats[:responsible].to_i
+
+        {
+          label: '参与项目',
+          value: stats[:participated].to_i.to_s,
+          trend: responsible.zero? ? '' : "其中我负责 #{responsible} 个",
+          to: host_routes.eln_project_list_path(
+            filters: { members: [@user.id] }, view_mode: 'active'
+          ).to_s
+        }
       end
 
-      # ⚠ amount **带符号**（与 Ledger 同源：正=消耗、负=还回），直接 sum 就是净花费，
-      #   取绝对值会把「还回冲减」变成「额外增加」。
-      def cost_total
-        cost_scope.where(COSTABLE_WHERE).sum(:amount)
-      end
-
-      def cost_trend(total)
-        return '' if total.to_d.zero?
-
-        parts = %w[material service].map do |kind|
-          sum = cost_scope.where(kind: kind).where(CONSUME_ONLY_WHERE).sum(:amount)
-          next nil if sum.to_d.zero?
-
-          "#{kind == 'material' ? '材料' : '服务'} #{pct(sum, total)}%"
-        end.compact
-        return '' if parts.empty?
-
-        parts.join(' · ')
-      end
-
-      # ⚠ 跨 addon 依赖：消耗明细表在 eln_ui 上。两个 addon 同为 Gemfile 里的 path gem，
-      #   永远一起挂载 —— 取不到是启动期的事，不是请求期兜一层 `rescue NameError → nil`。
-      def cost_scope
-        ::Scinote::ElnUi::ConsumeRecord.where(project_id: readable_project_ids)
-      end
-
+      # ⚠ 保留下方 `pct`（V1.27 删花费卡时**绝不能跟着删**）：它是**小组完成率**在用的
+      #   百分比算法（见 group_row → rate / tone），与花费无关。删它 = 小组完成率当场 500。
       def pct(part, total)
         ((part.to_d * 100) / total.to_d).round
-      end
-
-      # ⚠ 别换成 number_to_currency：它恒输出两位小数（¥300.00），而工作台口径是
-      #   **整数不带小数**（¥300）、只有真有零头才补两位（¥300.50）——改了就是
-      #   UI 全线变丑 + 测试 assert_equal '¥300' 直接红。
-      def money(value)
-        v = value.to_d
-        int = v.round.to_i
-        formatted = int == v ? int.to_s : format('%.2f', v)
-        "¥#{formatted.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
       end
 
       # ------------------------------------------------------------
@@ -458,10 +512,9 @@ module Scinote
       # ------------------------------------------------------------
       # ⚠ 原型的「新建实验任务」「报表中心」宿主没有承载面 → **不输出**（显式留白）。
       def entries_block
-        helpers = ::Rails.application.routes.url_helpers
         [
-          { label: '项目管理', to: helpers.eln_project_list_path.to_s },
-          { label: '资源中心', to: helpers.eln_res_center_path.to_s }
+          { label: '项目管理', to: host_routes.eln_project_list_path.to_s },
+          { label: '资源中心', to: host_routes.eln_res_center_path.to_s }
         ]
       end
     end

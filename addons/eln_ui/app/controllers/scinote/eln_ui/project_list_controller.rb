@@ -93,12 +93,23 @@ module Scinote
         end
       end
 
+      # ⚠ 筛选项取数失败不许**安静地**变成空下拉：整段兜 [] 之后页面上就是一个空的
+      #   「负责人/角色/文件夹」下拉，用户只会以为「没数据」，真凶躺在 log 里。
+      #   这里除了 log，再把失败项记进 @option_errors 由 payload 下发（filterOptionErrors），
+      #   前端据此显式提示「部分筛选项不可用」——失败必须看得见。
+      def option_failed!(key, error)
+        Rails.logger.error("[eln_ui] option #{key} failed #{error.class}: #{error.message}")
+        (@option_errors ||= []) << key.to_s
+        nil
+      end
+
       def head_of_project_users
         current_team.users.where(id: Project.where(team_id: current_team.id)
                                             .where.not(supervised_by_id: nil)
                                             .select(:supervised_by_id))
                      .order(:id).map { |u| { id: u.id, name: u.full_name.presence || u.email.to_s } }
-      rescue StandardError
+      rescue StandardError => e
+        option_failed!('headOfProjects', e)
         []
       end
 
@@ -138,7 +149,8 @@ module Scinote
       # 不是原型那四个字符串常量。
       def default_roles
         UserRole.predefined.order(:id).map { |r| { id: r.id, name: r.name.to_s } }
-      rescue StandardError
+      rescue StandardError => e
+        option_failed!('defaultRoles', e)
         []
       end
 
@@ -147,7 +159,8 @@ module Scinote
         return [] unless current_team.respond_to?(:project_folders)
 
         current_team.project_folders.order(:name).map { |f| { id: f.id, name: f.name.to_s } }
-      rescue StandardError
+      rescue StandardError => e
+        option_failed!('folders', e)
         []
       end
 
@@ -173,16 +186,17 @@ module Scinote
       #   于是这一层就整个漏掉了 —— 实测后果：归档 #40 之后本行还留在「活动」列表里，
       #   而原生 /projects 的同名视图会把它挪到归档视图。
       #   这里照原生那两行对齐：archived 视图看归档、其它（含默认 active）看活动。
+      #
+      # 🔴 V1.27：上面这三条口径（template 可空布尔 / 归档过滤 / distinct）**已搬到唯一真源**
+      #   `Scinote::ElnUi::ProjectListScope#for_listing`，本方法只做委托 —— 因为工作台
+      #   「参与项目」卡片要保证 **卡片数字 ≡ 点进去列表页筛出来的条数**，两侧必须走同一段
+      #   可变代码，不能再各写一遍 WHERE（本项目已两次因「同一件事两份定义」出事）。
+      #   ⚠ 历史注释故意保留在此 + 新类里各一份：新类里是"为什么这样写"，这里是"调用方为什么
+      #     相信它"。谁要改这三条口径，去 ProjectListScope 改，**别在这里重写**。
       def scoped_projects
-        scope = Project.where(team_id: current_team.id, template: [false, nil])
-                       .distinct
-                       .readable_by_user(current_user)
-        scope = if @view_mode == 'archived'
-                  scope.archived
-                else
-                  scope.active
-                end
-        scope.order(name: :asc)
+        ::Scinote::ElnUi::ProjectListScope
+          .for_listing(team: current_team, user: current_user, view_mode: @view_mode)
+          .order(name: :asc)
       end
 
       # view_mode 与原生 projects#index 同名同义：active（默认）/ archived。
@@ -201,6 +215,7 @@ module Scinote
           head_of_projects: @hop ||= head_of_project_users,
           statuses: @statuses ||= project_statuses,
           default_roles: @default_roles ||= default_roles,
+          option_errors: @option_errors ||= [],
           create_urls: @create_urls ||= create_urls,
           # ⚠ 别用 eln_project_list_path(format: :json)：这个 controller 上下文里它抛
           #   ActionController::UrlGenerationError（No route matches ... format: :json），
@@ -210,6 +225,14 @@ module Scinote
           #   request.path 恒等于它自己，路由改名也不会脱钩。
           list_url: @list_url ||= json_self_path,
           view_mode: @view_mode ||= params[:view_mode].presence || 'active',
+          # V1.27（闭合 OPEN-WB-DRILL-8）：把本次请求的筛选条件归一化后随 payload 下发，
+          # 前端 entry 在挂载时回填 ui.filters。不回填有两层后果：
+          #   ① 打开筛选面板看不到已生效条件（深链 ?filters[members][]=35 貌似"没生效"）；
+          #   ② 任何工具栏交互都会走 refreshList()→buildListQuery()，只用**空的** ui.filters
+          #      重拼 query → 深链筛选被静默丢弃（列表突然变多，页面无任何提示）。
+          # ⚠ 传**已转成普通 Hash** 的值（不用 ActionController::Parameters）：service 不收
+          #   Parameters（铁律）；且 Parameters 直接进 JSON 会带 permitted 语义。
+          initial_filters: initial_filter_hash,
           # 下钻基址：前端拿它拼每行的 detailUrl。走同一套 _recall坑已知的
           # url_for 在本controller 里会炸，所以这里也用字面基址拼接，
           # 路由段与 config/routes.rb 的 'projects/:project_id/eln_project_detail' 一致。
@@ -230,6 +253,17 @@ module Scinote
       def json_self_path
         base = request.path.to_s.sub(/\.json\z/, '')
         "#{base}.json"
+      end
+
+      # 本次请求的筛选条件（普通 Hash）—— 用于随 payload 下发 initialFilters，
+      # 让前端深链回填 ui.filters（V1.27 / OPEN-WB-DRILL-8）。
+      # ⚠ `params[:filters]` 是 ActionController::Parameters：这里转成普通 Hash 再交给
+      #   ProjectListPayload（service 不收 Parameters），键保持**字符串**（to_unsafe_h 的原样）。
+      def initial_filter_hash
+        raw = params[:filters]
+        return {} if raw.blank?
+
+        raw.respond_to?(:to_unsafe_h) ? raw.to_unsafe_h : raw.to_h
       end
 
       # ------------------------------------------------------------
