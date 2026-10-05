@@ -31,9 +31,7 @@ module Scinote
       end
 
       def check_team_membership
-        return if current_team
-
-        render_403 and return
+        render_403 if current_team.nil?
       end
 
       def payload
