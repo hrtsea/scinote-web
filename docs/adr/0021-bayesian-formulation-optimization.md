@@ -8,7 +8,7 @@ Proposed（规划）
 
 ## Context
 
-spec 原 §8.2「贝叶斯优化闭环」此前列为非范围；现纳入范围。需确定训练数据从 SciNote 何处读取、候选如何产出（且生成 draft 不得扣库存）、计算后端形态。关联：`docs/ai-eln/实现现状与开发计划.md` §12、`docs/ai-eln/CONTEXT.md` §五 / §六。
+spec 原 §8.2「贝叶斯优化闭环」此前列为非范围；现纳入范围。需确定训练数据从 SciNote 何处读取、候选如何产出（且生成 draft 不得扣库存）、计算后端形态。关联：`docs/开发计划/ai-eln/实现现状与开发计划.md` §12、`docs/开发计划/ai-eln/CONTEXT.md` §五 / §六。
 
 ## Decision
 
@@ -29,4 +29,4 @@ spec 原 §8.2「贝叶斯优化闭环」此前列为非范围；现纳入范围
 - 0001（AI-ELN，落地载体）
 - 0004（LLM 适配层——本 ADR 不依赖 LLM）
 - 0020（addon 配置自声明）
-- `docs/ai-eln/CONTEXT.md`、`docs/ai-eln/实现现状与开发计划.md`（P1–P17 Issue 拆分）
+- `docs/开发计划/ai-eln/CONTEXT.md`、`docs/开发计划/ai-eln/实现现状与开发计划.md`（P1–P17 Issue 拆分）

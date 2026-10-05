@@ -1,6 +1,6 @@
 # 产品功能 × 本 fork 实现现状 与 开发计划
 
-> 配套文档：`docs/PRODUCT_OVERVIEW.md`（官网功能原文总览）、`docs/FEATURE_FLAGS.md`（本 fork 开关现状）、`docs/development/addon-dev-workflow.md`（二次开发铁律）、`docs/ai-eln/实现现状与开发计划.md`（AI & Automations 专项计划）。
+> 配套文档：`docs/PRODUCT_OVERVIEW.md`（官网功能原文总览）、`docs/FEATURE_FLAGS.md`（本 fork 开关现状）、`docs/development/addon-dev-workflow.md`（二次开发铁律）、`docs/开发计划/ai-eln/实现现状与开发计划.md`（AI & Automations 专项计划）。
 > 探查手段：codebase-memory 知识图谱（17,442 节点 / 48,821 边，全量索引）+ 关键词源码核验（grep）。
 > 铁律：本 fork 自托管且无法 pull 上游，所有新增功能**只以 `addons/<name>/` Rails Engine 形式实现**，不得改核心 `app/`（`addon-dev-workflow.md` 〇）。
 
@@ -60,7 +60,7 @@
 | Protocols.io | ✅ | `PROTOCOLS_IO_ACCESS_TOKEN`（需真实令牌） |
 | FLUICS 标签 | ✅ | `ENABLE_FLUICS_SYNC`、`LabelPrinters::Fluics` |
 | Zebra 标签打印机 | ✅ | `zebra_label_template`、`BrowserPrint-Zebra` |
-| **AI & Automations** | ❌（已规划） | `docs/ai-eln/实现现状与开发计划.md` 已完成 grill + PRD + Issues，**尚未实现** |
+| **AI & Automations** | ❌（已规划） | `docs/开发计划/ai-eln/实现现状与开发计划.md` 已完成 grill + PRD + Issues，**尚未实现** |
 | 21 CFR Part 11 / GLP/GMP | ⚠️ | 电子签名 ❌、审计追踪 ⚠️（见上） |
 | Data Protection & Security | ⚠️ | 有加密/2FA（`_2fa_modal`）/SSO 开关；FedRAMP/ISO 为合规声明 |
 | ELN Mobile App | ⚠️ | PWA 脚手架在（`pwa_helper.rb`、`pwa_mobile_app.js`、`SCINOTE_PWA_DOMAIN_NAME` 开关），未完整交付 |
@@ -91,7 +91,7 @@ PWA 脚手架（`pwa_helper.rb`、`pwa_mobile_app.js`、CORS 域名开关）已�
 - 需新增：manifest、service worker、离线缓存、移动端适配路由；以 `addons/mobile_pwa` 形式补齐，避免改核心。
 
 ### G5 — AI & Automations（❌ 已规划，独立交付）
-`docs/ai-eln/实现现状与开发计划.md` 已完成 grill + PRD + Issues 拆分（addon `ai_protocols` + `automations_ext`），**本计划不再重复**，直接进入 `/implement` 即可。列此仅为完整性。
+`docs/开发计划/ai-eln/实现现状与开发计划.md` 已完成 grill + PRD + Issues 拆分（addon `ai_protocols` + `automations_ext`），**本计划不再重复**，直接进入 `/implement` 即可。列此仅为完整性。
 
 ---
 

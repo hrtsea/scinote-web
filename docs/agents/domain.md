@@ -6,7 +6,7 @@ Engineering skills 探索 codebase 时，应如何消费这个 repo 的 domain d
 
 ## 探索前，先读这些
 
-- 与当前话题相关的 **术语表 `CONTEXT.md`**。本仓库按功能分目录存放，例如 `docs/ai-eln/CONTEXT.md`（AI-ELN 插件术语）；不要假设术语表一定在 repo 根。
+- 与当前话题相关的 **术语表 `CONTEXT.md`**。本仓库按功能分目录存放，例如 `docs/开发计划/ai-eln/CONTEXT.md`（AI-ELN 插件术语）；不要假设术语表一定在 repo 根。
 - **`docs/adr/`** — 读取与你即将处理区域相关的 ADR。按编号或 slug 定位（如 addon 类看 `0005-addon-registration-convention.md`、AI-ELN 看 `0001`~`0007`）。
 
 如果某个文件不存在，**静默继续**。不要标记缺失；不要提前建议创建。`/domain-modeling` skill（经由 `/grill-with-docs` 和 `/improve-codebase-architecture` 调用）会在 terms 或 decisions 实际被解决时懒创建它们。
@@ -20,9 +20,10 @@ Engineering skills 探索 codebase 时，应如何消费这个 repo 的 domain d
 │   │   ├── 0001-ai-eln-engine-architecture.md
 │   │   ├── 0005-addon-registration-convention.md
 │   │   └── …
-│   ├── ai-eln/                      ← 功能目录：实现计划 + 术语表
-│   │   ├── 实现现状与开发计划.md
-│   │   └── CONTEXT.md
+│   ├── 开发计划/
+│   │   └── ai-eln/                  ← 功能目录：实现计划 + 术语表
+│   │   │   ├── 实现现状与开发计划.md
+│   │   │   └── CONTEXT.md
 │   └── ARCHITECTURE_DECISIONS.md    ← 聚合式 ADR 日志（已归并，仅留作索引）
 └── addons/<name>/                   ← 各 addon 源码（独立 Rails Engine）
 ```
