@@ -54,11 +54,11 @@ AI 输出一律 **HITL**——预览 + 显式确认，禁止自动写 host 原�
 - Engine 完全可独立启停；关闭后系统退化为原生 SciNote，原生数据不受影响。
 - 规格 §4 的 `note_id` / `recipe_id` 字段改为多态关联，避免虚构不存在的外键。
 - 升级 SciNote 时只要官方 addon 扩展点稳定，Engine 不受影响；避免猴子补丁核心模型。
-- **影响 / 风险**：ai_eln 与 ai_protocols 的 LLM 客户端为共享耦合，若未来禁用 ai_protocols 需同步处理（易逆转）；AI-102 OCR 引擎、P12/P13 语义检索 v1 形态、审计迁移命名等仍有待确认项（见 `docs/ai-eln/实现现状与开发计划.md` §10）。向量数据库（spec §8.1）明确推迟。
+- **影响 / 风险**：ai_eln 与 ai_protocols 的 LLM 客户端为共享耦合，若未来禁用 ai_protocols 需同步处理（易逆转）；AI-102 OCR 引擎、P12/P13 语义检索 v1 形态、审计迁移命名等仍有待确认项（见 `docs/开发计划/ai-eln/实现现状与开发计划.md` §10）。向量数据库（spec §8.1）明确推迟。
 
 ## 关联
 
 - 0002（AI 审计日志）、0003（语义检索）、0004（LLM 适配层）
 - 0005（addon 注册约定）、0022（addon 路由自注册统一策略）
 - 0013（ai_protocols：姊妹 addon，各自独立 LLM 客户端）、0020（addon 配置自声明）
-- `docs/ai-eln/CONTEXT.md`、`docs/ai-eln/实现现状与开发计划.md`、`docs/development/addon-dev-workflow.md`
+- `docs/开发计划/ai-eln/CONTEXT.md`、`docs/开发计划/ai-eln/实现现状与开发计划.md`、`docs/development/addon-dev-workflow.md`
