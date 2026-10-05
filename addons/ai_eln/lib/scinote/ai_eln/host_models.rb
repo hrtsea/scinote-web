@@ -25,6 +25,10 @@ module Scinote
         Scinote::AiEln.configuration.user_class.constantize
       end
 
+      def asset_class
+        Scinote::AiEln.configuration.asset_class.constantize
+      end
+
       # 权限复用：转发宿主的 can_read/can_create 实现，不自行实现权限逻辑
       def can_read_experiment?(user, experiment)
         Scinote::AiEln.configuration.can_read_experiment_proc.call(user, experiment)
@@ -32,6 +36,14 @@ module Scinote
 
       def can_create_experiment?(user, experiment)
         Scinote::AiEln.configuration.can_create_experiment_proc.call(user, experiment)
+      end
+
+      def can_read_protocol?(user, protocol)
+        Scinote::AiEln.configuration.can_read_protocol_proc.call(user, protocol)
+      end
+
+      def can_read_asset?(user, asset)
+        Scinote::AiEln.configuration.can_read_asset_proc.call(user, asset)
       end
     end
   end

@@ -16,6 +16,6 @@ Scinote::AiEln::Engine.routes.draw do
   post "attachments/:asset_id/parse",            to: "ai_actions#parse_attachment", as: :attach_parse
   post "semantic_search",                        to: "ai_actions#semantic_search",  as: :semantic_search
 
-  # 合规审计导出（规格 AI-403）
+  # 合规审计导出（规格 AI-403）—— DEPRECATED：导出改走 actionagent 面板（D-persist=B 全盘替换）
   get "audit_logs", to: "ai_audit_logs#index", as: :audit_logs
 end

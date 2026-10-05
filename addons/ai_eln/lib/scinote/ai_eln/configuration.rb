@@ -5,7 +5,7 @@ module Scinote
     class Configuration
       # ── 宿主模型契约：全部字符串引用，绝不硬编码 ::Experiment / ::Protocol ──
       attr_accessor :experiment_class, :protocol_class, :report_class,
-                    :user_class, :recipe_class
+                    :user_class, :recipe_class, :asset_class
 
       # ── 全局开关与 LLM 后端（规格 §7）──
       attr_accessor :enable, :llm_backend, :api_endpoint, :model_name, :api_key, :max_token
@@ -17,7 +17,8 @@ module Scinote
       attr_accessor :llm_retry
 
       # ── 宿主能力注入点（由 SciNote 在 initializer 中提供实现）──
-      attr_accessor :can_read_experiment_proc, :can_create_experiment_proc
+      attr_accessor :can_read_experiment_proc, :can_create_experiment_proc,
+                    :can_read_protocol_proc, :can_read_asset_proc
 
       def initialize
         @experiment_class = "Experiment"
@@ -25,6 +26,7 @@ module Scinote
         @report_class     = "Report"
         @recipe_class     = "Recipe"
         @user_class       = "User"
+        @asset_class      = "Asset"
 
         @enable       = false
         @llm_backend  = "ollama"            # ollama / openai_compatible
@@ -38,6 +40,8 @@ module Scinote
         # 权限默认拒绝，宿主必须注入真实实现（零侵入、权限复用 §1.2-2）
         @can_read_experiment_proc     = ->(_user, _exp) { false }
         @can_create_experiment_proc   = ->(_user, _exp) { false }
+        @can_read_protocol_proc       = ->(_user, _proto) { false }
+        @can_read_asset_proc          = ->(_user, _asset) { false }
       end
     end
   end

@@ -1,0 +1,6 @@
+<%# AI 助手触发按钮（ai_eln 引擎，ActiveAgent 实现）。挂任意实体页工具栏，打开同页的 AI 抽屉。 %>
+<button class="btn btn-light ai-assistant-open-btn" type="button"
+        data-bs-toggle="offcanvas" data-bs-target="#aiAssistantDrawer"
+        title="<%= local_assigns[:label] || 'AI 助手' %>">
+  <span class="sn-icon sn-icon-ai"></span> <%= local_assigns[:label] || 'AI 助手' %>
+</button>

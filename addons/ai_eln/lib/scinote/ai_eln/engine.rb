@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# lib/ 不参与 Zeitwerk 自动加载，宿主模型解析模块须显式 require
+require_relative "host_models"
+
 module Scinote
   module AiEln
     class Engine < ::Rails::Engine
@@ -10,6 +13,16 @@ module Scinote
       # 幂等：仅把配置挂到宿主 config 命名空间，不写 DB、不跑迁移
       initializer 'scinote_ai_eln.configuration', before: :load_config_initializers do
         config.scinote_ai_eln = Scinote::AiEln.configuration
+      end
+
+      # 路由自挂载（宿主契约 docs/development/addons-host-contract.md §5）：
+      # 宿主 config/routes.rb 保持零 mount，引擎自行 append 挂载。
+      # 故从 Gemfile 注释掉本 addon 时，宿主仍能正常 boot，仅本 addon 端点 404。
+      # 仿 ai_protocols / esignatures 的实现。
+      initializer 'scinote_ai_eln.routes', after: :add_routes do |app|
+        app.routes.append do
+          mount Scinote::AiEln::Engine => '/ai_eln'
+        end
       end
 
       # Precompile engine-specific assets

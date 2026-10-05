@@ -1,0 +1,13 @@
+<%# AI 助手浮动按钮（ai_eln 引擎）。固定右下角，打开全局 AI 抽屉。
+#   须配合 application.html.erb 渲染的 id=aiAssistantGlobalDrawer 的 offcanvas。
+#   不放入 Vue 顶部导航（Vue 组件不可 ERB 注入，ADR-0002 已记）。
+%>
+<button class="btn btn-primary ai-assistant-fab" type="button"
+        data-bs-toggle="offcanvas" data-bs-target="#aiAssistantGlobalDrawer"
+        title="AI 助手（全站）" aria-label="AI 助手（全站）"
+        style="position: fixed; right: 24px; bottom: 24px; z-index: 1050;
+               width: 56px; height: 56px; padding: 0; border-radius: 50%;
+               display: flex; align-items: center; justify-content: center;
+               box-shadow: 0 2px 8px rgba(0,0,0,.25);">
+  <span class="sn-icon sn-icon-ai"></span>
+</button>

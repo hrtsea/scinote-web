@@ -1,44 +1,23 @@
 # frozen_string_literal: true
-
-# 宿主接入片段（零侵入）：复制此文件内容到 SciNote 宿主的
-# config/initializers/scinote_ai_eln.rb，按需调整配置与权限转发。
 #
-# 引擎经官方 addon 发现机制（addons_helper#list_all_addons 识别
-# `Scinote::AiEln` 命名空间前缀）自动被枚举，但权限需此处的 Canaid 注册。
-
-# 1) 全局开关与 LLM / OCR 后端配置
-Scinote::AiEln.configure do |config|
-  config.enable      = ENV.fetch("AI_ELN_ENABLED", "false") == "true"
-  config.llm_backend = ENV.fetch("AI_ELN_LLM_BACKEND", "ollama")
-  config.api_endpoint = ENV.fetch("AI_ELN_API_ENDPOINT", "http://127.0.0.1:11434/v1")
-  config.model_name  = ENV.fetch("AI_ELN_MODEL_NAME", "qwen2.5-14b-instruct")
-  config.api_key     = ENV["AI_ELN_API_KEY"]
-  config.max_token   = ENV.fetch("AI_ELN_MAX_TOKEN", "4096").to_i
-  config.ocr_backend = ENV.fetch("AI_ELN_OCR_BACKEND", "local")
-  config.llm_retry   = ENV.fetch("AI_ELN_LLM_RETRY", "false") == "true"
-end
-
-# 2) Canaid 权限注册（issue-01：ai:use 挂到 owner / normal_user / technician）
-Canaid.register_permissions_under(:ai) do
-  root 'ai' do
-    can :use, 'ai:use'
-  end
-
-  role :owner do
-    can :use
-  end
-
-  role :normal_user do
-    can :use
-  end
-
-  role :technician do
-    can :use
-  end
-end
-
-# 3) 宿主能力注入（create-engine HARD-GATE #3：不硬编码宿主常量，复用宿主鉴权）
-Scinote::AiEln.configure do |config|
-  config.can_read_experiment_proc   = ->(user, experiment) { user.can_read_experiment?(experiment) }
-  config.can_create_experiment_proc = ->(user, experiment) { user.can_create_experiment?(experiment) }
-end
+# ⚠️ 已废弃（2026-09-29）：本片段不再使用，请勿复制到宿主。
+#
+# 原因：本片段含三处会致 boot / 运行期失败的错误，且宿主接入已按
+# `docs/development/addons-host-contract.md` 契约直接落地：
+#
+#   1. 路由：宿主 `config/routes.rb` 保持**零 mount**——路由由引擎
+#      `lib/scinote/ai_eln/engine.rb` 的 `'scinote_ai_eln.routes'` initializer 自挂载。
+#      （同目录 `host_routes.rb` 的 `mount` 片段同属作废，勿复制。）
+#
+#   2. 权限：`Canaid.register_permissions_under(:ai)` 在 Canaid 1.0.4 中**并不存在**
+#      （已核实：全仓仅本片段出现该方法）；且 ai_eln 未引入新权限谓词，
+#      按契约 §5.1.3 **不需要** `app/permissions` 目录。
+#
+#   3. 谓词名错误：`user.can_read_protocol?` 与 `user.can_create_experiment?` 均**不存在**。
+#      宿主真实谓词（见 `app/permissions/`）：
+#        - `user.can_read_experiment?`              ← experiment.rb:21
+#        - `user.can_read_protocol_in_repository?`  ← protocol.rb:15
+#        - `user.can_read_protocol_in_module?`      ← protocol.rb:103
+#        - `user.can_read_asset?`                   ← asset.rb:4
+#
+# 现行的宿主配置见：`config/initializers/scinote_ai_eln.rb`
