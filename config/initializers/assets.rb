@@ -132,5 +132,35 @@ Rails.application.config.assets.precompile += %w(sn_icon_font.css)
 # Separate translations file
 Rails.application.config.assets.precompile += %w(i18n_bundle.js)
 
+# ELN UI（addons/eln_ui）—— 按 Vue3 原型重建的项目详情页。
+#
+# addon 的 app/assets/* 已经自动进了 sprockets 的 load path，但**不会自动预编译**；
+# 生产是 assets.compile = false，没登记进这里的话 asset_path 会直接抛
+# "The asset ... is not present in the asset pipeline"（实测就是这一步把首屏打成 500）。
+# 改完必须重新 assets:precompile，否则线上照 500。
+Rails.application.config.assets.precompile += %w(
+  eln_vue3/eln_project_detail.js
+  eln_vue3/eln-system-vue3.css
+)
+
+# ELN UI —— 项目列表页（同 addon 的第二页，规则与上一段完全一致）。
+# ⚠ 列表页的 CSS 是**单独打包**的（vite.embed.list.config.js，cssCodeSplit:false）：
+#   它只含 tokens + 列表页用到的组件样式，跟详情页那份 eln-system-vue3.css 不是同一份。
+#   **两页不能共用一份 CSS** —— 列表页引详情页那份会缺 .proj-list 系列样式。
+#   所以这里登记 eln_project_list.css（对应 addons/eln_ui/.../eln_vue3/eln_project_list.css），
+#   页面各自引自己那一份。
+Rails.application.config.assets.precompile += %w(
+  eln_vue3/eln_project_list.js
+  eln_vue3/eln_project_list.css
+)
+
+# ELN UI —— 实验详情页（addon 的第三页，规则与上两段完全一致）。
+# 同样**独立打包、独立一份 CSS**（vite.embed.exp.config.js）：三页共用同一批组件，
+# 但每页只引自己那一份，引错页面就会缺样式。
+Rails.application.config.assets.precompile += %w(
+  eln_vue3/eln_exp_detail.js
+  eln_vue3/eln_exp_detail.css
+)
+
 # Add stuff installed by yarn
 Rails.application.config.assets.paths << Rails.root.join('node_modules')

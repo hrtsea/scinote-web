@@ -1,0 +1,21 @@
+<%# ELN UI —— 资源申请详情页（按 Vue3 原型 ELN系统-Vue3/src/views/ResApplyDetail.vue 重建）
+    § 挂载契约（与 ResCenter 一致）：
+      1. #eln-apply-detail 是唯一挂载点，对应 ELN系统-Vue3/src/entries/apply_detail.js。
+      2. 数据只能来自 #eln-apply-detail-data（JSON 块）。
+      3. CSP nonce 必须有。
+      4. CSS 是详情页自己的 eln_apply_detail.css。
+      5. asset_path / javascript_include_tag 必须带扩展名。
+%>
+<% provide(:head_title, "资源申请 #{params[:no]}") %>
+
+<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_apply_detail.css' %>">
+<script type="application/json" id="eln-apply-detail-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_APPLY_DETAIL__ = JSON.parse(
+    document.getElementById('eln-apply-detail-data').textContent
+  );
+</script>
+<div id="eln-apply-detail"></div>
+<%= javascript_include_tag 'eln_vue3/eln_apply_detail.js', nonce: content_security_policy_nonce %>

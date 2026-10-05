@@ -1,0 +1,27 @@
+<%# ELN UI —— 实验详情页（按 Vue3 原型 ELN系统-Vue3 重建）
+    § 挂载契约（改动前先读这段，与列表页/详情页是同一套）：
+      1. #eln-exp-detail 是**唯一**挂载点，对应 ELN系统-Vue3/src/entries/exp_detail.js。
+         名字改了两边都要改，改完必须真机复测（bundle 找不到节点会静默不渲染）。
+      2. 数据只能来自 #eln-exp-detail-data（JSON 块）；bundle 里的 mock 会被它覆盖。
+      3. 生产 CSP 的 script-src 是 'self' + nonce：注入块与挂载脚本一律带 nonce，
+         否则点了没反应（access_control D10 踩过）。
+      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle。
+      5. ⚠ 这里的 CSS 是**实验页自己那一份**（eln_exp_detail.css），跟列表页的
+         eln_project_list.css、详情页的 eln-system-vue3.css 都不共用 ——
+         三页 vite 各打各的 bundle，组件样式只在自己那份里，引错会整页裸奔。
+%>
+<% provide(:head_title, @experiment ? @experiment.name : '实验') %>
+
+<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_exp_detail.css' %>">
+<script type="application/json" id="eln-exp-detail-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_EXP_DETAIL__ = JSON.parse(
+    document.getElementById('eln-exp-detail-data').textContent
+  );
+</script>
+<div id="eln-exp-detail"></div>
+<%# 扩展名不能省：这个 SciNote 的 sprockets 走 precompile 名单精确匹配，
+    不带 .js 会直接 AssetNotFound → 整页 500（列表页那条坑的同一套原因）。 %>
+<%= javascript_include_tag 'eln_vue3/eln_exp_detail.js', nonce: content_security_policy_nonce %>

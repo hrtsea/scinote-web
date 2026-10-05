@@ -148,3 +148,5 @@ gem 'scinote_project_insights', path: 'addons/project_insights'
 gem 'scinote_addon_settings', path: 'addons/addon_settings'
 
 gem 'scinote_workbench', path: 'addons/workbench'
+
+gem 'scinote_eln_ui', path: 'addons/eln_ui'

@@ -1388,3 +1388,71 @@ end
     get 'eln_workbench',
         to: 'scinote/workbench/workbench#index',
         as: :eln_workbench
+
+    # ELN UI —— 按 Vue3 原型（ELN系统-Vue3）重建的项目详情页。
+    #
+    # ⚠ to: **不能带前导斜杠**（与上面 visibility_matrix 那条相反），原因实测过：
+    #   Rails 7.2 的 Mapper#translate_controller 只放行 /\A[a-z_0-9][a-z_0-9\/]*\z/，
+    #   前导斜杠会直接抛 "is not a supported controller name"。
+    #   而 add_controller_module 只在**有 namespace 模块**时才把前导 '/' 剥掉 ——
+    #   visibility_matrix 那条外层包着 namespace :access_permissions，所以必须带 /
+    #   才能让 controller 变成 scinote/access_control/visibility_matrix；
+    #   本条挂在外层（无 namespace 模块），直接写相对名即可，不会有多余前缀。
+    #
+    # Vue 只接管内容区：宿主 layout 仍提供侧栏/顶栏，页面内唯一挂载点是 #eln-project-detail。
+    get 'projects/:project_id/eln_project_detail',
+        to: 'scinote/eln_ui/project_detail#show',
+        as: :project_eln_detail
+
+    # ELN UI —— 项目列表页（Vue3 原型第二页，详情页的入口）。
+    # 同样**不能带前导斜杠**，原因见上面那条的详细注释。
+    # 面包屑回跳（原型的 <router-link to="/projects">「项目列表」）在 bundle 侧被改写到这里，
+    # 于是「列表 → 详情 → 回列表」是闭环，来回都不吃原生页面。
+    get 'eln_project_list',
+        to: 'scinote/eln_ui/project_list#index',
+        as: :eln_project_list
+
+    # ELN UI —— 实验详情页（Vue3 原型第三页，项目详情 → 实验详情的落点）。
+    # 形状同上面两条：不能带前导斜杠，否则 to: 会被当成绝对路径解析。
+    #
+    get 'experiments/:id/eln_exp_detail',
+        to: 'scinote/eln_ui/exp_detail#index',
+        as: :eln_exp_detail
+
+    # ELN UI —— 任务详情页（Vue3 原型第四页，实验详情 → 任务详情的落点）。
+    #
+    # ⚠ 这里**不是**当年那句「先落到原生任务页」的遗留：原 comment 写着的
+    #   「PAGE-TASK-DETAIL 还没建、本轮先落到原生任务页、不做一个假的 /eln_task_detail
+    #    空壳（不编造的规矩）」—— 那句话针对的是**那一年**还没有任务页的事实。
+    #   现在 PAGE-TASK-DETAIL 已按原型建成（MyModuleDetailPayload + #eln-task-detail），
+    #   任务链接指向本页：/experiments/34/eln_task_detail/73。
+    #   「不编造」的规矩没变，变的是这条链路现在有真东西可落了。
+    #
+    # 路由形状沿用原生两级（/experiments/:experiment_id/my_modules/:id）再挂 /eln_task_detail，
+    # 这样面包屑「项目 → 实验 → 任务」三级都在 URL 上，回跳不必靠 payload 拼。
+    get 'experiments/:experiment_id/my_modules/:id/eln_task_detail',
+        to: 'scinote/eln_ui/my_module_detail#index',
+        as: :eln_task_detail
+
+    # ELN UI —— 资源中心页（Vue3 原型第 5 页）。跨项目视图，挂载点 #eln-res-center。
+    get 'eln_res_center',
+        to: 'scinote/eln_ui/res_center#index',
+        as: :eln_res_center
+
+    # ELN UI —— 资源申请详情页（Vue3 原型第 6 页，资源中心 → 申请单点入）。
+    # 业务编号 SQ-YYYY-NNNN 直接作为路径段（不编业务 ID 列，迁移里 :no 是 unique）。
+    get 'eln_res_apply/:no',
+        to: 'scinote/eln_ui/res_apply_detail#show',
+        as: :eln_res_apply_detail
+
+    # ELN UI —— 资源申请写操作端点（OPEN-10 · REQ-RES-APPROVE 二段式审批）。
+    # type: submit / approve_group / approve_project / reject / complete
+    post 'eln_res_apply/:no/actions',
+         to: 'scinote/eln_ui/res_apply_action#create',
+         as: :eln_res_apply_action
+
+    # ELN UI —— 新建资源申请（SCN-RES-APPLY-1 · OPEN-10 收尾）。
+    # 表单直建草稿，编号 SQ-YYYY-NNNN 由 Workflow.create_draft 自动生成。
+    post 'eln_res_applications',
+         to: 'scinote/eln_ui/res_apply_create#create',
+         as: :eln_res_applications

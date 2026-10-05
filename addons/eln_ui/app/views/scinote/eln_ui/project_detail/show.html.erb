@@ -1,0 +1,31 @@
+<%# ELN UI —— 项目详情页（按 Vue3 原型 ELN系统-Vue3 重建）
+    § 挂载契约（改动前先读这段）：
+      1. #eln-project-detail 是**唯一**挂载点，对应 ELN系统-Vue3/src/entries/project_detail.js。
+         名字改了两边都要改，改完必须真机复测（bundle 找不到节点会静默不渲染）。
+      2. 数据只能来自 #eln-project-detail-data（JSON 块）；bundle 里的 mock 会被它覆盖。
+         不要把数据再塞进行内 JS 字符串里 —— 那是第二个数据源，一旦不一致就没人看得出来。
+      3. 生产 CSP 的 script-src 是 'self' + nonce：外链 bundle 走 'self' 够用，
+         但下面这行注入块与挂载脚本一律带 nonce，否则点了没反应（access_control D10 踩过）。
+      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle（bundle 读 window 上的数据 + 找挂载点）。
+%>
+<% provide(:head_title, @project.name) %>
+
+<%# ⚠ 必须带扩展名！这个 SciNote 的 sprockets 走的是「precompile 名单精确匹配 + digest manifest」，
+    asset_path 'eln_vue3/eln-system-vue3'（不带 .css）会直接抛
+    Sprockets::Rails::Helper::AssetNotFound → 整页 500（实测，同目录下的原生
+    sn_icon_font 不带 .css 也一样抛）。所以这里老老实实写全 .css / .js。 %>
+<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln-system-vue3.css' %>">
+<script type="application/json" id="eln-project-detail-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<%# 数据只有一个来源：上面那块 JSON。这里只是把它搬到 window 上给 bundle 读（bundle 认的是
+    window.__ELN_PROJECT_DETAIL__）。写成两处注入是第二个数据源，不一致时没人看得出来。
+    CSP 只放 self + nonce，所以这行必须带 nonce，否则 window 上永远是空的、Vue 静默用回 mock。 %>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_PROJECT_DETAIL__ = JSON.parse(
+    document.getElementById('eln-project-detail-data').textContent
+  );
+</script>
+<div id="eln-project-detail"></div>
+<%# 同上：'.js' 扩展名不能省，见上面那条坑说明 %>
+<%= javascript_include_tag 'eln_vue3/eln_project_detail.js', nonce: content_security_policy_nonce %>

@@ -1,0 +1,11 @@
+<%# 恢复说明：
+     commit 59e94b6ea「Clean old tags code and fix tests [SCI-12336]」删除了本文件，
+     但漏删了 app/views/my_modules/_show.html.erb:6 里的
+     `<%= render partial: "description_label" %>` 调用，
+     导致任何人打开任务详情页（/modules/:id）都 500 MissingTemplate。
+     内容取自 59e94b6ea^（删除前的最后一版），未作改动。 %>
+<% if @my_module.description.blank? %>
+  <em><%=t "experiments.canvas.popups.no_description" %></em>
+<% else %>
+  <%= custom_auto_link(@my_module.description, team: current_team) %>
+<% end %>

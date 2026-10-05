@@ -1,0 +1,31 @@
+<%# ELN UI —— 项目列表页（按 Vue3 原型 ELN系统-Vue3 重建）
+    § 挂载契约（改动前先读这段，与详情页 show.html.erb 是同一套）：
+      1. #eln-project-list 是**唯一**挂载点，对应 ELN系统-Vue3/src/entries/project_list.js。
+         名字改了两边都要改，改完必须真机复测（bundle 找不到节点会静默不渲染）。
+      2. 数据只能来自 #eln-project-list-data（JSON 块）；bundle 里的 mock 会被它覆盖。
+      3. 生产 CSP 的 script-src 是 'self' + nonce：注入块与挂载脚本一律带 nonce，
+         否则点了没反应（access_control D10 踩过）。
+      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle。
+      5. ⚠ 这里的 CSS 是**列表页自己那一份**（eln_project_list.css），不是详情页的
+         eln-system-vue3.css —— 两页 vite 各打各的 bundle，组件样式只在自己那份里，
+         引错会整页裸奔（实测提醒：别图省事共用一份）。
+%>
+<% provide(:head_title, '项目') %>
+
+<%# 「新建项目 / 新建文件夹」是 POST 原生端点，必须带 CSRF，否则原生 422 InvalidAuthenticityToken。
+    ⚠ 不能靠 csrf_meta_tags 之外的隐式行为：addon 视图默认不输出 CSRF，前端 bundle 手里没 token。
+    这里单独吐一个 meta，与原生 projects/index.html.erb 的做法一致（原生也是 meta + fetch 取用）。 %>
+<%= tag.meta name: 'csrf-token', content: form_authenticity_token %>
+<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_project_list.css' %>">
+<script type="application/json" id="eln-project-list-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_PROJECT_LIST__ = JSON.parse(
+    document.getElementById('eln-project-list-data').textContent
+  );
+</script>
+<div id="eln-project-list"></div>
+<%# 扩展名不能省：这个 SciNote 的 sprockets 走 precompile 名单精确匹配，
+    不带 .js 会直接 AssetNotFound → 整页 500（详情页那条坑的同一套原因）。 %>
+<%= javascript_include_tag 'eln_vue3/eln_project_list.js', nonce: content_security_policy_nonce %>

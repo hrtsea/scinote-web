@@ -1,0 +1,23 @@
+<%# ELN UI —— 资源中心页（按 Vue3 原型 ELN系统-Vue3 重建）
+    § 挂载契约（与 exp_detail/show 是同一套）：
+      1. #eln-res-center 是唯一挂载点，对应 ELN系统-Vue3/src/entries/res_center.js。
+      2. 数据只能来自 #eln-res-center-data（JSON 块）。
+      3. CSP: script-src 'self' + nonce —— 注入块与挂载脚本一律带 nonce。
+      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle。
+      5. CSS 是资源中心自己的 eln_res_center.css，不与其他页共用（vite lib 模式各打各的）。
+      6. ⚠ asset_path / javascript_include_tag 必须带扩展名（.css/.js），
+         sprockets 精确匹配，不带则 AssetNotFound → 整页 500。
+%>
+<% provide(:head_title, '资源中心') %>
+
+<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_res_center.css' %>">
+<script type="application/json" id="eln-res-center-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_RES_CENTER__ = JSON.parse(
+    document.getElementById('eln-res-center-data').textContent
+  );
+</script>
+<div id="eln-res-center"></div>
+<%= javascript_include_tag 'eln_vue3/eln_res_center.js', nonce: content_security_policy_nonce %>
