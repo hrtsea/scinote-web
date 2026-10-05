@@ -89,4 +89,4 @@ If either fails the button is hidden. Hitting the URLs directly is also blocked:
   extracts `.pdf` text via `pdftotext`.
 - Generated protocols land as **draft protocol templates** for review before import.
 
-See `docs/ai-eln/实现现状与开发计划.md` for the full PRD / issue breakdown.
+See `docs/开发计划/ai-eln/实现现状与开发计划.md` for the full PRD / issue breakdown.
