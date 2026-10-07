@@ -149,7 +149,7 @@
       <!-- Manage Stock Modal -->
       <%= render partial: 'shared/manage_stock_value_modal' %>
 
-      <% if Scinote::AiEln.enabled? %>
+      <% if defined?(Scinote::AiEln) && Scinote::AiEln.enabled? %>
         <%
           ai_entity_type = @experiment ? 'experiment' : (@protocol ? 'protocol' : (@asset ? 'asset' : nil))
           ai_entity_id   = @experiment&.id || @protocol&.id || @asset&.id

@@ -8,7 +8,6 @@
 
 <%= render partial: "users/settings/sidebar" %>
 <div class="tab-content">
-  <div class="tab-pane content-pane" role="tabpanel"></div>
   <div class="tab-pane content-pane active" role="tabpanel">
     <div>
       <% if @member_of > 0 %>
@@ -20,31 +19,20 @@
         <br><br>
         <em><%= t("users.settings.teams.index.no_teams") %></em>
       <% end %>
-      <% if can_create_teams? %>
-        <span id="new-team-button" data-e2e="e2e-BT-settings-workspaces-newWorkspace">
-          <%= link_to new_team_path, class: "btn btn-primary", style: "margin-left: 30px;" do %>
-            <span class="sn-icon sn-icon-new-task"></span>
-            <span class="hidden-xs">
-              <%= t("users.settings.teams.index.new_team") %>
-            </span>
-          <% end %>
-        </span>
-      <% end %>
     </div>
 
     <% if @member_of > 0 %>
-      <div class="teams-datatable">
-        <table id="teams-table" class="table" data-source="<%= teams_datatable_path(format: :json) %>" style="width:100%">
-          <thead>
-            <tr>
-              <th id="team-name"><%= t("users.settings.teams.index.thead_name") %></th>
-              <th id="team-role"><%= t("users.settings.teams.index.thead_role") %></th>
-              <th id="team-members"><%= t("users.settings.teams.index.thead_members") %></th>
-              <th id="leave-team">&nbsp;</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <%# ADR-0034 (rev 2026-10-07): 改为宿主 webpack 源码构建，源码在 addons/eln_ui/app/javascript。
+          数据经下方全局变量注入后作为 prop 传给 <teams-table>，避免把任意 JSON 塞进 HTML 属性导致引号断裂 %>
+      <script nonce="<%= content_security_policy_nonce %>">
+        window.__ELN_TEAMS__ = <%= raw @teams_payload.to_json.gsub('</', '<\/') %>;
+      </script>
+      <div id="teams-table-vue">
+        <teams-table
+          :teams="window.__ELN_TEAMS__"
+          :can-create="<%= can_create_teams? ? 'true' : 'false' %>"
+          new-team-url="<%= can_create_teams? ? new_team_path : '' %>"
+        />
       </div>
     <% else %>
       <br />
@@ -52,7 +40,4 @@
   </div>
 </div>
 
-<%= render partial: "users/settings/user_teams/leave_user_team_modal" %>
-<%= stylesheet_link_tag 'datatables' %>
-<%= javascript_include_tag "users/settings/teams/index" %>
-<%= javascript_include_tag "users/settings/teams/datatable" %>
+<%= javascript_include_tag "vue_teams_table", nonce: content_security_policy_nonce %>

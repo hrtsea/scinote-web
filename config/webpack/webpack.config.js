@@ -95,7 +95,9 @@ const entryList = {
   vue_protocol_report_templates: './app/javascript/packs/vue/protocol_report_templates.js',
   vue_my_module_reports: './app/javascript/packs/vue/my_module_reports.js',
   // project_insights addon: 在 dashboard 渲染状态饼图等 widget
-  insights_charts: './addons/project_insights/app/javascript/packs/insights_charts.js'
+  insights_charts: './addons/project_insights/app/javascript/packs/insights_charts.js',
+  // eln_ui addon: 工作区列表 Vue 化（源码在 addons/eln_ui/app/javascript，宿主 webpack 构建）
+  vue_teams_table: './addons/eln_ui/app/javascript/packs/vue_teams_table.js'
 };
 
 // Engine pack loading based on https://github.com/rails/webpacker/issues/348#issuecomment-635480949

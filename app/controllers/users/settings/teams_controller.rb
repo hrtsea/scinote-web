@@ -10,7 +10,6 @@ module Users
 
       before_action :load_user, only: %i(
         index
-        datatable
         new
         create
         show
@@ -41,10 +40,7 @@ module Users
 
       def index
         @member_of = @user.teams.count
-      end
-
-      def datatable
-        render json: ::TeamsDatatable.new(view_context, @user)
+        @teams_payload = teams_payload
       end
 
       def new
@@ -125,7 +121,7 @@ module Users
         )
 
         # Redirect back to all teams page
-        redirect_to action: :index
+        redirect_to teams_path
       end
 
       def switch
@@ -156,7 +152,12 @@ module Users
 
       def load_team
         @team = Team.find_by(id: params[:id])
-        render_403 unless can_manage_team?(@team)
+        render_403 unless can_manage_team?(@team) || system_admin_bypass?
+      end
+
+      # 实例级系统管理员可进入任意工作区的设置页并执行删除（含他人创建的 workspace）
+      def system_admin_bypass?
+        current_user&.respond_to?(:system_admin?) && current_user&.system_admin?
       end
 
       def create_params
@@ -171,6 +172,34 @@ module Users
           :name,
           :description
         )
+      end
+
+      # 工作区列表 Vue 化（ADR-0034）：把列表数据注入 window.__ELN_TEAMS__，
+      # 由预打包的 teams_table.js（Sprockets 资产）读取并渲染 AG Grid。
+      def teams_payload
+        scope = current_user.system_admin? ? Team.all : @user.teams
+        scope.preload(:created_by, user_assignments: %i[user user_role]).distinct.map do |team|
+          ua = team.user_assignments.find { |a| a.user_id == @user.id }
+          role = ua&.user_role&.name
+          owner_role = UserRole.owner_role
+          other_owners = team.user_assignments
+                            .where(user_role: owner_role)
+                            .where.not(id: ua&.id)
+                            .exists?
+          last_admin = ua&.user_role&.owner? && !other_owners
+          can_leave = ua.present? && !last_admin
+          {
+            id: team.id,
+            name: team.name,
+            show_url: team_path(team),
+            created_by: team.created_by&.full_name || I18n.t('users.settings.teams.index.na'),
+            created_at: I18n.l(team.created_at, format: :full_date),
+            role: role || I18n.t('users.settings.teams.index.na'),
+            members_count: team.users.count,
+            can_leave: can_leave,
+            leave_url: ua ? destroy_user_team_path(ua, leave: true) : nil
+          }
+        end
       end
 
       def set_breadcrumbs_items

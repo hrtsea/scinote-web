@@ -149,12 +149,24 @@ end
 gem 'tzinfo-data', platforms: %i(mingw mswin x64_mingw jruby)
 
 # Addons
-gem 'scinote_i18n', path: 'addons/i18n'
-gem 'scinote_ai_protocols', path: 'addons/ai_protocols'
-gem 'scinote_esignatures', path: 'addons/esignatures'
-gem 'scinote_project_insights', path: 'addons/project_insights'
+#
+# ⚠️ 停用记录 2026-10-07 —— 以下 5 个 addon 已从 Gemfile 摘除（代码保留在 addons/ 目录，随时可恢复）。
+# 恢复方式：删掉本段注释，重新 bundle install 即可，无需改动任何业务代码。
+# 停用原因：减少默认装载的 addon 面积，缩小 /workbench 列表类页面的干扰面与性能开销。
+#
+# 已验证（停用前核查，均为 0 命中 ⇒ 可安全移除）：
+#   · 5 个 addon 之间无相互 gemspec 依赖
+#   · 保留的 4 个 addon（addon_settings / access_control / eln_ui / workbench）不引用被禁 addon 的任何命名空间
+#   · 宿主 app/ lib/ config/ 不引用 i18n addon 的 ControllerLocale / UserLocale / Scinote::I18n
+#     ⇒ 停用 i18n 不会让宿主报 NameError，仅失去语言切换入口。
+#
+# gem 'scinote_i18n',           path: 'addons/i18n'              # 语言切换
+# gem 'scinote_ai_protocols',   path: 'addons/ai_protocols'      # AI Protocol
+# gem 'scinote_esignatures',    path: 'addons/esignatures'       # 电子签名
+# gem 'scinote_project_insights', path: 'addons/project_insights' # 项目洞察
+# gem 'scinote_ai_eln',         path: 'addons/ai_eln'            # AI ELN（本就暗挂载：AI_ELN_ENABLED=false）
+
 gem 'scinote_addon_settings', path: 'addons/addon_settings'
-gem 'scinote_ai_eln', path: 'addons/ai_eln'
 gem 'scinote_access_control', path: 'addons/access_control'
 gem 'scinote_eln_ui', path: 'addons/eln_ui'
 gem 'scinote_workbench', path: 'addons/workbench'

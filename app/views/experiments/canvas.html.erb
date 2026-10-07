@@ -34,7 +34,11 @@
           experiment-url="<%= experiment_path(@experiment) %>"
         ></experiment-description-modal>
       </span>
-      <%= render partial: 'scinote/ai_eln/experiments/ai_assistant_button', locals: { label: 'AI 助手' } %>
+      <%# ai_eln addon 已于 2026-10-07 从 Gemfile 停用。partial 随 gem 一起消失，
+          故此处必须同时判「常量存在」与「功能开启」——只判后者会在停用后抛 MissingTemplate。 %>
+      <% if defined?(Scinote::AiEln) && Scinote::AiEln.enabled? %>
+        <%= render partial: 'scinote/ai_eln/experiments/ai_assistant_button', locals: { label: 'AI 助手' } %>
+      <% end %>
     </span>
 
     <%= render partial: 'task_view_dropdowns' %>
@@ -109,8 +113,11 @@
 <%= render 'shared/tiny_mce_packs' %>
 <%= javascript_include_tag 'vue_experiment_description_modal' %>
 
-<%# AI 助手抽屉（ActiveAgent 实现 ai_eln，来自 addons/ai_eln 引擎，参数化多实体） %>
-<%= render partial: 'scinote/ai_eln/experiments/ai_assistant_drawer',
-           locals: { title: 'AI 助手',
-                     actions: [{ label: '生成实验摘要',
-                                 url: "/ai_eln/experiments/#{@experiment.id}/summarize" }] } %>
+<%# AI 助手抽屉（ActiveAgent 实现 ai_eln，来自 addons/ai_eln 引擎，参数化多实体）
+    同canvas:39 —— 守卫必须同时判常量存在，否则停用 addon 后抛 MissingTemplate。 %>
+<% if defined?(Scinote::AiEln) && Scinote::AiEln.enabled? %>
+  <%= render partial: 'scinote/ai_eln/experiments/ai_assistant_drawer',
+             locals: { title: 'AI 助手',
+                       actions: [{ label: '生成实验摘要',
+                                   url: "/ai_eln/experiments/#{@experiment.id}/summarize" }] } %>
+<% end %>

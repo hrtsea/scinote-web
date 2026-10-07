@@ -103,9 +103,6 @@ Rails.application.routes.draw do
     get 'users/settings/teams',
         to: 'users/settings/teams#index',
         as: 'teams'
-    post 'users/settings/teams/datatable',
-         to: 'users/settings/teams#datatable',
-         as: 'teams_datatable'
     get 'users/settings/teams/new',
         to: 'users/settings/teams#new',
         as: 'new_team'
@@ -423,6 +420,11 @@ Rails.application.routes.draw do
         to: 'scinote/eln_ui/project_detail#show',
         as: :project_eln_detail
 
+    # ELN UI —— 项目归档导出（报告 §5 第 6 项 #10 · 结构化数据 CSV 预览包）。
+    get 'projects/:project_id/eln_project_detail/export',
+        to: 'scinote/eln_ui/project_detail#export',
+        as: :project_eln_detail_export
+
     # ELN UI —— 项目列表页（Vue3 原型第二页，详情页的入口）。
     # 同样**不能带前导斜杠**，原因见上面那条的详细注释。
     # 面包屑回跳（原型的 <router-link to="/projects">「项目列表」）在 bundle 侧被改写到这里，
@@ -458,6 +460,12 @@ Rails.application.routes.draw do
         to: 'scinote/eln_ui/res_center#index',
         as: :eln_res_center
 
+    # ELN UI —— 资源中心明细导出（报告 §5 第 6 项 #12 · 筛选+导出）。
+    # 筛选条件走 query（type/project_id/user_id/range_from/range_to），与前端胶囊对齐。
+    get 'eln_res_center/export',
+        to: 'scinote/eln_ui/res_center#export',
+        as: :eln_res_center_export
+
     # ELN UI —— 资源申请详情页（Vue3 原型第 6 页，资源中心 → 申请单点入）。
     # 业务编号 SQ-YYYY-NNNN 直接作为路径段（不编业务 ID 列，迁移里 :no 是 unique）。
     get 'eln_res_apply/:no',
@@ -475,6 +483,47 @@ Rails.application.routes.draw do
     post 'eln_res_applications',
          to: 'scinote/eln_ui/res_apply_create#create',
          as: :eln_res_applications
+
+    # ELN UI —— 项目审批人配置（REQ-RES-APPROVER · ADR-0029）。
+    # 逐项目 / 分阶段（group 初审 · project 终审）的显式审批名单；
+    # 名单为空 = 该阶段无人可批（fail-closed），入口在资源申请页签的配置面板内。
+    get 'eln_project_approvers',
+        to: 'scinote/eln_ui/project_approvers#index',
+        as: :eln_project_approvers
+    post 'eln_project_approvers',
+         to: 'scinote/eln_ui/project_approvers#create'
+    # ⚠ init 必须在 :id 路由之前声明，否则 'init' 会被当成 id 吃掉
+    post 'eln_project_approvers/init',
+         to: 'scinote/eln_ui/project_approvers#init',
+         as: :eln_project_approvers_init
+    delete 'eln_project_approvers/:id',
+           to: 'scinote/eln_ui/project_approvers#destroy',
+           as: :eln_project_approver
+
+    # ELN UI —— 到货验收的项目级策略（REQ-RES-RECEIPT · ADR-0032 D3）。
+    # 与名单分开成两个端点：「谁验货」是名单，「能不能验自己的」是策略，
+    # 语义与增删频率都不同，混在一起迟早长出 type=xxx 的分叉参数。
+    # ⚠ 读取已随 panel payload 下发（receiptPolicy 键），这两个端点只供「写」与「单查」。
+    post 'eln_project_approvers/receipt_policy',
+         to: 'scinote/eln_ui/project_approvers#update_receipt_policy',
+         as: :eln_project_approver_receipt_policy
+
+    # ELN UI —— 任务关闭审核端点（REQ-TASK-CLOSE / SCN-TASK-CLOSE-1..4 · DEC-003）。
+    # type: submit（提交完成申请）/ approve（仅项目负责人）/ reject（仅项目负责人，理由必填）
+    # ⚠ 审核态落在 addon 自有表 eln_ui_task_close_requests，不动原生 my_modules.state。
+    post 'eln_task_close/:my_module_id/actions',
+         to: 'scinote/eln_ui/task_close_action#create',
+         as: :eln_task_close_action
+
+    # ELN UI —— 通知中心端点（REQ-NOTIF / SCN-DASH-7）。
+    # 读当前用户 Noticed Notification（type=GeneralNotification），派生点开跳转 URL；
+    # 复用 NotificationPublisher 写入的同一张表，不造二开通知表。
+    get 'eln_notifications',
+        to: 'scinote/eln_ui/notifications#index',
+        as: :eln_notifications
+    patch 'eln_notifications/:id/read',
+          to: 'scinote/eln_ui/notifications#read',
+          as: :eln_notification_read
 
     # 工作台（workbench addon —— 独立 addon，不并入 eln_ui）。
     # REQ-DASHBOARD / SCN-DASH-1~7：按登录角色渲染首页，只给状态统计，

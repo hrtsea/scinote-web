@@ -16,6 +16,10 @@ class Team < ApplicationRecord
   after_create :generate_template_project
   after_create :create_default_label_templates
   after_create :create_default_repository_templates
+  # Upstream bug fix: users.current_team_id has a FK to teams, but upstream never
+  # nullifies it on team destroy, so deleting any workspace a member has selected
+  # raises PG::ForeignKeyViolation. Reset the pointer before the cascade.
+  before_destroy { User.where(current_team_id: id).update_all(current_team_id: nil) }
 
   scope :teams_select, -> { select(:id, :name).order(name: :asc) }
   scope :ordered, -> { order('LOWER(name)') }

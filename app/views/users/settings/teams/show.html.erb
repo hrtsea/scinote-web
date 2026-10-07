@@ -55,6 +55,16 @@
     <% end %>
   </div>
 
+  <!-- Delete workspace (visible to team owners and system admins) -->
+  <% if can_manage_team?(@team) || (current_user.respond_to?(:system_admin?) && current_user.system_admin?) %>
+    <div class="flex justify-end py-3">
+      <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#modal-destroy-team" data-e2e="e2e-BT-workspaceSettings-deleteWorkspace">
+        <span class="sn-icon sn-icon-delete"></span>
+        <%= t("users.settings.teams.edit.delete_team_heading") %>
+      </button>
+    </div>
+  <% end %>
+
   <div id="team_preferences">
     <team-preferences team-id="<%= params[:id] %>" mode="general" />
   </div>

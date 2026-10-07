@@ -5,13 +5,16 @@ module UserAssignments
     def initialize(team_user_assignment, unassigned_by)
       @user = team_user_assignment.user
       @team = team_user_assignment.assignable
-      @unassigned_by = unassigned_by
+      # Upstream bug fix: team Owner UA rows created by create_user_assignments! have
+      # assigned_by_id = nil (optional: true), which made @unassigned_by nil and crashed
+      # #call with NoMethodError on .id during team destroy. Fall back to team creator.
+      @unassigned_by = unassigned_by || @team&.created_by
     end
 
     def call
       @team.projects.find_each do |project|
         project.user_assignments.where(user: @user).find_each do |assignment|
-          UserAssignments::PropagateAssignmentJob.perform_now(assignment, assigner_id: @unassigned_by.id, destroy: true)
+          UserAssignments::PropagateAssignmentJob.perform_now(assignment, assigner_id: @unassigned_by&.id, destroy: true)
         end
       end
       remove_repositories_assignments

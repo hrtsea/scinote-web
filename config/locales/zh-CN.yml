@@ -3876,9 +3876,11 @@ zh-CN:
           no_teams: 你不是任何工作区的成员。
           new_team: 新建工作区
           thead_name: 工作区
-          thead_role: 角色
+          thead_id: ID
+          thead_created_by: 创建人
           thead_created_at: 创建于
           thead_joined_on: 加入时间
+          thead_role: 角色
           thead_members: 成员
           na: n/a
           leave: 退出工作区
