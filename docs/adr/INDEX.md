@@ -26,6 +26,7 @@
 | 0008 | `0008-repository-pattern-core-domain.md` | 核心领域仓库模式 |
 | 0009 | `0009-protocol-external-import.md` | 协议外部导入 |
 | 0010 | `0010-centralized-permission-model.md` | 集中式权限模型 |
+| 0033 | `0033-access-control-refactor-write-side-only.md` | access_control 重构：读写分离，判定权归还宿主（**延伸** 0010） |
 | 0011 | `0011-serializer-driven-api.md` | 序列化器驱动 API |
 | 0012 | `0012-async-jobs-export-notify.md` | 异步任务 / 导出 / 通知 |
 
@@ -59,10 +60,21 @@
 | 0027 | `0027-wechat-gateway-no-destructive-commands.md` | 无删除指令 |
 | 0028 | `0028-wechat-gateway-target-selection.md` | 目标选择（显式 > 上下文 > 引导） |
 
+## F. 资源申请 / 库存（↔ `addons/eln_ui`）
+
+| ADR | 文件 | 主题 |
+|---|---|---|
+| 0029 | `0029-resource-application-approvers.md` | 资源申请筛选、可见范围与审批人配置 |
+| 0030 | `0030-material-application-is-procurement.md` | 材料类申请＝请购单；终审通过 → 到货验收 → 入库 |
+| 0031 | `0031-embed-native-inventories-list.md` | 资源台账内嵌原生 Inventories 列表（不新造外壳；含 ERB 脚本顺序硬约束） |
+| 0032 | `0032-receipt-verification-photos-configurable-inspector.md` | 到货验收：照片 ＋ 可配置验货人 ＋ 分批验收 ＋ 未验货阻断（修正 0030 的「验货人沿用终审名单」） |
+| 0033 | `0033-access-control-refactor-write-side-only.md` | access_control addon 重构目标形态：读写分离，判定权归还宿主（Proposed） |
+| 0034 | `0034-vueify-workspace-list.md` | 工作区列表 Vue 化：自建轻量 AG Grid，打包范式对齐 eln_ui / workbench addon（预打包单体 `.js` + Sprockets），数据走 `window.__ELN_TEAMS__`（Accepted） |
+
 ---
 
 ## 平铺时序清单（编号即身份，supersede 依据编号）
 
-0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028
+0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034
 
-共 28 篇。新增 ADR 继续顺延编号（`0029-...`），并补一行到对应主题分组与本清单。
+共 34 篇。新增 ADR 继续顺延编号（`0035-...`），并补一行到对应主题分组与本清单。
