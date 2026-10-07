@@ -1,0 +1,21 @@
+# ELN UI addon 的中文文案
+#
+# 键路径用的是**宿主原生的键**（`projects.index.folder.description`，
+# `Lists::ProjectAndFolderSerializer#folder_info` 读的那个），不是自造的 addon 私有键 ——
+# 同一句文案只许一个键，否则原生页与本页会各自长出一套说法。
+#
+# 为什么必须由本 addon 补这份 zh-CN：
+#   宿主 `config/locales/zh-CN.yml` **缺**这个键，而生产开了
+#   `config.i18n.fallbacks = true`（environments/production.rb:116）
+#   ⇒ zh-CN 下会静默回落成英文 "0 projects | 0 folders"，
+#     在中文界面里突兀地冒出英文（且 `I18n.t` 的 `default:` 参数**不生效**，
+#     因为"键不存在于任何 fallback 语言"才会用 default）。
+#   本项目已因「中文界面出现英文/原型文案」返工过，这里显式补上。
+#
+# ⚠ 这是**共享键**：补完原生 `/projects` 页在中文下也会跟着显示中文 —— 这是改进，
+#   不是越界（同一句文案本来就该两侧同形）。
+zh-CN:
+  projects:
+    index:
+      folder:
+        description: "%{projects_count} 个项目 | %{folders_count} 个文件夹"

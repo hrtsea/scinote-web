@@ -36,9 +36,55 @@ module Scinote
       # 行菜单 7 项的 key（与前端 store/ui.js #rowMenuItems 一一对应）
       ACTION_KEYS = %i[edit access move export archive comment activity].freeze
 
+      # ------------------------------------------------------------
+      # V1.31 分页档位 —— **本常量是档位唯一真源**，随 payload 下发给前端。
+      #
+      # `0` 是**合法值**，语义 = 全部（不分页）：
+      #   选 0 时服务端一次返回筛选后的全部行，前端不渲染页码控件。
+      #   为什么把 0 放在档位里而不是另做一个「显示全部」开关：它与 20/50/100
+      #   是同一个决策轴上的取值（每页几条），做成两个控件会出现
+      #   「档位选 50 + 开关说显示全部」这种自相矛盾的状态。
+      # ⚠ 默认档位是 20（不是 0）：默认全量会把几百行一次塞进 DOM，
+      #   首屏与后续排序都变慢，而 20 是原生既有的默认。
+      #
+      # 档位只能在这里加/减 —— 前端从 `pagination.perPageOptions` 渲染，
+      # 不在组件里写死第二份（本项目「同一事实只许一个真源」铁律）。
+      # ------------------------------------------------------------
+      PER_PAGE_OPTIONS = [0, 20, 50, 100].freeze
+      DEFAULT_PER_PAGE = 20
+
+      # 非法 per_page（非整数 / 不在档位里 / 为空）的回落值。
+      # ⚠ 回落成 **DEFAULT_PER_PAGE 而不是 0**：spec SCN-PROJ-LIST-13 明令
+      #   「不得退化为全量返回」（全量会让前端页码控件失真）。
+      #   也就是说 0 **只有显式请求**才生效 —— 乱传参数不会意外拖库。
+      def self.normalize_per_page(raw)
+        return DEFAULT_PER_PAGE if raw.blank?
+
+        value = Integer(raw.to_s, exception: false)
+        return DEFAULT_PER_PAGE if value.nil?
+
+        PER_PAGE_OPTIONS.include?(value) ? value : DEFAULT_PER_PAGE
+      end
+
+      # 页码：非整数 / 小于 1 / 为空一律当第 1 页（不报错、不返回空页）。
+      def self.normalize_page(raw)
+        return 1 if raw.blank?
+
+        value = Integer(raw.to_s, exception: false)
+        value.nil? || value < 1 ? 1 : value
+      end
+
       # 无用户上下文时的行行动（原型独立跑 / 测试里没传 current_user）：
       # 每一项都是 enabled: false —— 菜单照渲染但点不动，绝不按演示值假装可用。
       NO_USER_ACTIONS = ACTION_KEYS.each_with_object({}) do |k, h|
+        h[k] = { enabled: false, method: 'GET', url: nil }
+      end.freeze
+
+      # 文件夹行的行动 key 集合（文件夹**专属**，与项目行的 7 项互不混用，
+      # spec SCN-PROJ-LIST-7 第 6 条）。无用户上下文时全部 enabled: false。
+      FOLDER_ACTION_KEYS = %i[edit move delete].freeze
+
+      NO_USER_FOLDER_ACTIONS = FOLDER_ACTION_KEYS.each_with_object({}) do |k, h|
         h[k] = { enabled: false, method: 'GET', url: nil }
       end.freeze
 
@@ -48,6 +94,8 @@ module Scinote
 
       # 原型头像配色（avatarPalette 的 5 个 key），按下标轮转，保证同一列表里稳定。
       AVATAR_COLORS = %w[blue green orange cyan purple].freeze
+      # 用户组授予头像用的配色键（与 avatarPalette 同源；组用图标区分，不靠颜色）。
+      GROUP_AVATAR_COLOR = 'blue'
 
       # ⚠ 原型 statusLabel 只有这三档（active/notstarted/done），真机也按这三档给出，
       #   由组件侧的 mock.statusLabel 翻译成中文（进行中 / 未开始 / 已完成）。
@@ -76,7 +124,10 @@ module Scinote
                  folders: [], members: [], head_of_projects: [], statuses: [],
                  default_roles: [], create_urls: {}, list_url: nil, view_mode: 'active',
                  detail_url_base: nil, current_user: nil, workbench_url: nil,
-                 option_errors: [], initial_filters: {})
+                 option_errors: [], initial_filters: {},
+                 page: 1, per_page: DEFAULT_PER_PAGE, total_entries: nil,
+                 project_count: nil, current_folder: nil, folder_trail: [],
+                 folder_url_base: nil)
           new(projects,
               can_create_project: can_create_project,
               can_create_folder: can_create_folder,
@@ -92,7 +143,14 @@ module Scinote
               current_user: current_user,
               workbench_url: workbench_url,
               option_errors: option_errors,
-              initial_filters: initial_filters).call
+              initial_filters: initial_filters,
+              page: page,
+              per_page: per_page,
+              total_entries: total_entries,
+              project_count: project_count,
+              current_folder: current_folder,
+              folder_trail: folder_trail,
+              folder_url_base: folder_url_base).call
         end
       end
 
@@ -100,7 +158,12 @@ module Scinote
                      folders: [], members: [], head_of_projects: [], statuses: [],
                      default_roles: [], create_urls: {}, list_url: nil, view_mode: 'active',
                      detail_url_base: nil, current_user: nil, workbench_url: nil,
-                     option_errors: [], initial_filters: {})
+                     option_errors: [], initial_filters: {},
+                     page: 1, per_page: DEFAULT_PER_PAGE, total_entries: nil,
+                     project_count: nil, current_folder: nil, folder_trail: [],
+                     folder_url_base: nil)
+        # ⚠ V1.32 起第一个位置参数是**行集合**（项目行 ∪ 文件夹行），不是纯项目数组 ——
+        #   名字沿用 `projects` 只为不惊动既有调用方，语义见 `rows_block`。
         @projects = projects.to_a
         @current_user = current_user
         @can_create_project = can_create_project
@@ -123,6 +186,22 @@ module Scinote
         @option_errors = Array(option_errors)
         # V1.27（OPEN-WB-DRILL-8）：本次请求的筛选条件（controller 已转成普通 Hash）。
         @initial_filters = initial_filters.is_a?(Hash) ? initial_filters : {}
+        # V1.31 分页：档位/页码都已在 controller 侧归一化（这里再兜一次，防老调用方乱传）。
+        @per_page = self.class.normalize_per_page(per_page)
+        @page = self.class.normalize_page(page)
+        # ⚠ `total_entries` 是**筛选后**的总条数（分页前），不是当前页行数、也不是全库总数。
+        #   不传（老调用方 / 单测直接塞数组）时退化为「本次传进来的行数」——
+        #   语义正确：那种调用没有分页，传进来的就是全部。
+        @total_entries = total_entries.nil? ? @projects.size : total_entries.to_i
+        # V1.32：`project_count` = 同一行集合里的**项目行**条数（文件夹行不计）。
+        # 为什么不复用 @total_entries：并集后「共 N 条」含文件夹行，而页头副标题
+        # 「共 N 个项目」与工作台「参与项目」卡片数字要求的都是**纯项目数**
+        # （spec SCN-DASH-8 同源不变式）—— 两个数字必须分开，不能一个顶两个用。
+        @project_count = project_count.nil? ? @projects.count { |r| project_row?(r) } : project_count.to_i
+        # V1.32 文件夹层级（SCN-PROJ-LIST-7 第 4 条）：当前所在文件夹 / 祖先链 / 下钻基址。
+        @current_folder = current_folder
+        @folder_trail = Array(folder_trail)
+        @folder_url_base = folder_url_base.presence && folder_url_base.to_s.chomp('/')
       end
 
       def call
@@ -151,14 +230,79 @@ module Scinote
           # 工作台入口（OPEN-WB-7）：工作列表页头那颗「工作台」按钮的真落点。
           # 空 = 不渲染按钮（不是渲染出来再置灰），与行菜单同口径。
           workbenchUrl: @workbench_url,
+          # V1.31：分页状态（页码 / 档位 / 档位可选集 / 筛选后总条数 / 总页数）。
+          # 前端渲染信息条与页码控件全靠它 —— 前端**不得**用 projects.length
+          # 当「共 N 条」（分页后那只是当前页行数）。
+          #
+          # ⚠ V1.32：`totalEntries` 是**行集合**条数（含文件夹行），与页头
+          #   「共 N 个项目」用的 `projectCount` 是两个数。见下方 projectCount 注释。
+          pagination: pagination_block,
+          # V1.32：纯项目行数（筛选后、分页前）。页头副标题用它，**不是** totalEntries。
+          projectCount: @project_count,
+          # V1.32：文件夹层级导航（SCN-PROJ-LIST-7 第 4 条「进入文件夹层级并提供返回上一层的入口」）。
+          # 全空 = 当前在顶层，前端不渲染面包屑（不是渲染一条空的）。
+          folderNav: folder_nav_block,
+          # 行集合：项目行 ∪ 文件夹行，**服务端排好序**（顺序即原生 sort_records 的结果），
+          # 前端按原序渲染、不得重排。
           projects: projects_block
         }
       end
 
       private
 
+      # ------------------------------------------------------------
+      # V1.31 分页块
+      #
+      # 为什么必须下发 totalEntries 而不是让前端数 projects.length：
+      #   分页生效后 `projects` 只是**当前页**的行，用它当「共 N 条」会写出
+      #   「共 20 条」这种明显错的数字，页码控件也无从生成
+      #   （spec SCN-PROJ-LIST-13 明令「不得由前端对全量数据切片来假装分页」）。
+      #
+      # ⚠ totalEntries 是**筛选后**的总数：前端翻页 / 改档位都发生在同一筛选下，
+      #   它必须跟着筛选走；「库里一共多少」是另一个数，本页不展示。
+      # ⚠ perPage = 0（全部）时 totalPages 固定为 1 —— 此时没有"下一页"可言，
+      #   前端据此不渲染页码控件（见 showPager）。
+      # ------------------------------------------------------------
+      def pagination_block
+        per = @per_page.to_i
+        total = @total_entries.to_i
+        total_pages = per.zero? ? 1 : [(total.to_f / per).ceil, 1].max
+
+        {
+          page: @page,
+          perPage: per,
+          perPageOptions: PER_PAGE_OPTIONS,
+          totalEntries: total,
+          totalPages: total_pages
+        }
+      end
+
+      # ------------------------------------------------------------
+      # 行集合（V1.32）：项目行 ∪ 文件夹行，同一数组、同一形状、按类型分流。
+      #
+      # 为什么是**一个数组**而不是两个（`projects` + `foldersRows`）：
+      #   服务端已按原生 `sort_records` 把两类混排好，两个数组会丢掉「谁在谁前面」
+      #   这个信息（文件夹可能夹在项目行中间）。这与原生同构 —— 原生 datatable 的
+      #   `rowData` 也是一个数组，用 `Lists::ProjectAndFolderSerializer#folder` 这个
+      #   **布尔字段**区分两类行。这里同名字段 `folder`，前端也据此分流。
+      #
+      # ⚠ 文件夹行**也带全了项目侧的字段**（`members: []` / `owner: 占位` / 计数 0 …），
+      #   这是**故意**的防御：模板里任何一处漏写 `v-if="!row.folder"` 的取值都会渲染成
+      #   空白，而不是 `undefined.slice(...)` 之类的整页 TypeError。
+      #   但它**不构成"假装有数据"** —— 文件夹行自己的单元格都另有 `v-if` 守卫，
+      #   真正的项目专属单元格根本不会用到这些占位值。
+      # ------------------------------------------------------------
       def projects_block
-        @projects.each_with_index.map { |p, i| project_row(p, i) }
+        @projects.map.with_index do |record, i|
+          project_row?(record) ? project_row(record, i) : folder_row(record)
+        end
+      end
+
+      # 判别**只认 `instance_of?`**（与原生 `Lists::ProjectsService#project?` 同款）。
+      # ⚠ 不能用 `is_a?(::Project)`：宿主有 STI/装饰器的话子类会被当成项目行；
+      #   也不能用 `respond_to?(:projects_count)` 之类 —— 两边都 respond_to 一堆同名方法。
+      def project_row?(record)
+        record.instance_of?(::Project)
       end
 
       def project_row(project, index)
@@ -167,7 +311,17 @@ module Scinote
 
         {
           # 原型 id 是业务编号（PR1025240）；原生没这列 → 用主键，不编业务编号。
+          #
+          # 🔴 V1.32：`id` 与 `code` 是**两个独立字段**，不得互换、不得互相推导
+          #   （spec SCN-PROJ-LIST-8 第 4 条）：
+          #     · `id`   —— 数字主键。下钻/选中集合/行请求参数/批量 body 一律用它；
+          #     · `code` —— 显示值，`PrefixedIdModel#code` = `PR<id>`，只在 ID 列显示、
+          #                 以及被原生 `where_attributes_like` 的关键词搜索命中。
+          #   ⚠ 别写成 `code.delete_prefix('PR')` 反过来求 id —— 那是推导，前缀规则一改就崩。
           id: project.id.to_s,
+          code: project_code(project),
+          # 行类型判别字段（原生 `Lists::ProjectAndFolderSerializer#folder` 同名字段）。
+          folder: false,
           name: project.name.to_s,
           # 原生没有项目级收藏列 → 恒 false（组件渲染灰星，不假装已收藏）。
           starred: false,
@@ -199,11 +353,169 @@ module Scinote
           # 下发给前端是为了让「移动」弹窗知道**起点在哪**（好做往返，也避免
           # 一个原本在文件夹里的项目被误判成"本来就在顶层"）。
           folderId: project_folder_id_of(project),
-          members: members.map { |_ua, u| avatar_of(u) }.first(3),
+          members: members.first(3),
           extra: [members.size - 3, 0].max,
           # 行菜单 7 项的真源（gate + 原生端点，前端照此渲染/分发）
           actions: row_actions(project)
         }
+      end
+
+      # ------------------------------------------------------------
+      # 文件夹行（spec SCN-PROJ-LIST-7 / SCN-PROJ-LIST-8）
+      #
+      # 显示什么：文件夹图标（前端按 `folder: true` 出）+ 名称 + `PF<id>` + 「x 个项目 | y 个文件夹」。
+      #   计数两个数取自原生 `fetch_project_folders` 的 SQL 别名 `projects_count` /
+      #   `folders_count`（原生表格的 `folder_info` 就是读它们），**不是**这里现算的 ——
+      #   现算就多一份口径，且必然与原生的「不排除归档子项」口径分叉。
+      #   别名取不到（老调用方直接塞对象进来）→ nil，此时宁可不下发文案也不编一个 0。
+      #
+      # 行菜单：文件夹**专属集合**（编辑 / 移动 / 删除），与项目行集合互不混用
+      #   （spec SCN-PROJ-LIST-7 第 6 条：不得出现访问权限 / 归档 / 评论 / 动态）。
+      #   门禁逐条对照原生 `Toolbars::ProjectsService`：
+      #     edit   → `can_create_project_folders?(folder.team)`   （原生 edit_action 的 else 支）
+      #     move   → `can_manage_team?(folder.team)`              （原生 move_action）
+      #     delete → `can_delete_project_folder?(folder)`         （原生 delete_folder_action）
+      #   ⚠ delete 的谓词自带「文件夹必须为空」条件
+      #     （`app/permissions/team.rb:89-93`：`projects.none? && project_folders.none?`）
+      #     —— 非空文件夹删不掉，此时该项**不渲染**（原生 compact 掉，不是渲染再置灰）。
+      # ------------------------------------------------------------
+      def folder_row(folder)
+        {
+          id: folder.id.to_s,
+          code: folder_code(folder),
+          folder: true,
+          name: folder.name.to_s,
+          # 「x 个项目 | y 个文件夹」——文案形状照原生 i18n
+          # `projects.index.folder.description`（en: "%{projects_count} projects | %{folders_count} folders"）。
+          # ⚠ zh-CN 里**缺**这个键（实测只有 en.yml 有），所以这里带中文 default：
+          #   不兜 default 的话中文界面会直接显示 "translation missing"。
+          folderInfo: folder_info(folder),
+          # 进入该文件夹层级（SCN-PROJ-LIST-7 第 4 条）。前端只读这个字段跳转，
+          # 绝不自己拼宿主路由（铁律：路径词汇表只一套）。
+          drillUrl: folder_url_for(folder),
+          # 「打开」项在文件夹行里的落点就是 drillUrl（见前端 menuItemsFor）。
+          detailUrl: folder_url_for(folder),
+          archived: folder.respond_to?(:archived) ? !!folder.archived : false,
+          starred: false,
+          status: nil,
+          startDate: nil,
+          due: nil,
+          owner: { name: '—', initial: '·', color: AVATAR_COLORS[0] },
+          completed: 0,
+          total: 0,
+          tasksCompleted: 0,
+          tasksTotal: 0,
+          commentsCount: 0,
+          description: nil,
+          createdAt: nil,
+          updatedAt: nil,
+          archivedOn: date(folder.respond_to?(:archived_on) ? folder.archived_on : nil),
+          folderId: folder.respond_to?(:parent_folder_id) ? folder.parent_folder_id&.to_s : nil,
+          members: [],
+          extra: 0,
+          actions: folder_actions(folder)
+        }
+      end
+
+      def folder_actions(folder)
+        return NO_USER_FOLDER_ACTIONS.dup unless current_user
+
+        {
+          edit: folder_action(:edit, 'PATCH', folder_path_of(folder), folder),
+          move: folder_action(:move, 'POST', move_to_project_folders_path_of, folder,
+                              folders_tree_url: tree_project_folders_path_of,
+                              root_key: 'root_folder'),
+          # 删除是**批量**端点（原生 `project_folders#destroy` 收 `project_folder_ids`），
+          # 单行删除也要包成数组 —— 原生 delete_folder 动作同样把 rows 映射成数组。
+          delete: folder_action(:delete, 'POST', destroy_project_folders_path_of, folder,
+                                body_key: 'project_folder_ids')
+        }
+      end
+
+      def folder_action(key, method, url, folder, **extra)
+        { enabled: !!folder_gate(key, folder), method: method, url: url }.merge(extra)
+      end
+
+      def folder_gate(key, folder)
+        case key
+        when :edit then can_create_project_folders?(folder.team)
+        when :move then can_manage_team?(folder.team)
+        when :delete then can_delete_project_folder?(folder)
+        else false
+        end
+      rescue StandardError => e
+        # 与 project 侧同款：判不出来就判 false —— 宁可少一项，也不给一个点下去 403 的入口。
+        Rails.logger.warn("[eln_ui] folder action gate failed key=#{key} #{e.class}: #{e.message}")
+        false
+      end
+
+      def folder_info(folder)
+        projects_count = folder.respond_to?(:projects_count) ? folder.projects_count : nil
+        folders_count = folder.respond_to?(:folders_count) ? folder.folders_count : nil
+        return nil if projects_count.nil? || folders_count.nil?
+
+        ::I18n.t('projects.index.folder.description',
+                 projects_count: projects_count.to_i,
+                 folders_count: folders_count.to_i,
+                 default: '%{projects_count} 个项目 | %{folders_count} 个文件夹')
+      rescue StandardError => e
+        Rails.logger.warn("[eln_ui] folder info failed: #{e.class}: #{e.message}")
+        nil
+      end
+
+      # `PrefixedIdModel#code`（`PR<id>` / `PF<id>`）。模型没混这个 concern（老库/测试替身）
+      # 就**不下发**这个字段（nil）而不是现拼字符串 —— 前缀是宿主的规则，不是我们的。
+      def project_code(project)
+        project.respond_to?(:code) ? project.code.to_s : nil
+      end
+
+      def folder_code(folder)
+        folder.respond_to?(:code) ? folder.code.to_s : nil
+      end
+
+      def folder_url_for(folder)
+        return nil unless @folder_url_base
+
+        "#{@folder_url_base}?project_folder_id=#{folder.id}"
+      end
+
+      # ------------------------------------------------------------
+      # V1.32 文件夹层级导航块
+      #
+      # current —— 当前所在文件夹（顶层时 nil）
+      # trail   —— 祖先链，**根 → 当前**（含当前），前端据此画面包屑
+      # upUrl   —— 「返回上一层」的落点；顶层为 nil ⇒ 前端不渲染该入口
+      #           （显式留白，不是渲染一个点了回原地的死按钮）
+      #
+      # ⚠ URL 一律由这里拼（`@folder_url_base` = 本页真实路径，由 controller 从
+      #   `request.path` 取）—— 前端不写死 '/eln_project_list'，路由改名两侧不会脱钩。
+      # ------------------------------------------------------------
+      def folder_nav_block
+        return { current: nil, trail: [], upUrl: nil } if @current_folder.blank? || @folder_url_base.blank?
+
+        trail = @folder_trail.filter_map { |f| folder_crumb(f) }
+        parent_id = @current_folder.respond_to?(:parent_folder_id) ? @current_folder.parent_folder_id : nil
+
+        {
+          current: folder_crumb(@current_folder),
+          trail: trail,
+          upUrl: parent_id.present? ? folder_url_for_id(parent_id) : @folder_url_base
+        }
+      end
+
+      def folder_crumb(folder)
+        return nil if folder.blank?
+
+        {
+          id: folder.id.to_s,
+          name: folder.name.to_s,
+          code: folder_code(folder),
+          url: folder_url_for(folder)
+        }
+      end
+
+      def folder_url_for_id(id)
+        "#{@folder_url_base}?project_folder_id=#{id}"
       end
 
       # ------------------------------------------------------------
@@ -309,6 +621,16 @@ module Scinote
 
       def move_to_project_folders_path_of
         routes.move_to_project_folders_path
+      end
+
+      # 文件夹 PATCH 落点（原生 project_folders#update，强参数 project_folder[name|parent_folder_id|archived]）。
+      def folder_path_of(folder)
+        routes.project_folder_path(folder)
+      end
+
+      # 文件夹删除是**批量** POST（原生 project_folders#destroy，收 project_folder_ids）。
+      def destroy_project_folders_path_of
+        routes.destroy_project_folders_path
       end
 
       # 「可指派成员」下拉的真源：原生 projects#users_filter（GET /projects/users_filter）。
@@ -478,17 +800,64 @@ module Scinote
       end
 
       # ------------------------------------------------------------
-      # 成员：项目上的 UserAssignment（不含负责人本身，负责人另有 owner 列）
+      # 成员：项目上的 UserAssignment（个人）+ UserGroupAssignment（用户组）。
+      #
+      # ⚠ V1.32 修：之前只读了 user_assignments，**漏读 user_group_assignments** ——
+      #   这正是 dy 经 epp小组 组授予合法看到 PR36、却在本列"解释不了"的根：列里只显示
+      #   个人 Owner，组授予不显。原生 prepare_assigned_users 同时拼两路，这里对齐
+      #   （闭合 SCN-PROJ-LIST-3：组员看所属项目，组授予必须可见）：
+      #     · 个人 → { kind: 'user', name, initial, color }（沿用 avatar_of）
+      #     · 组   → { kind: 'group', name: "组名 - 角色显示名", initial: '组', color }
+      #   组授予限定当前团队，与原生 `where(team: current_user.current_team)` 同口径。
+      #   形状统一为哈希（不再返回 [ua, user] 二元组），project_row 直接用、不再二次 map。
       # ------------------------------------------------------------
+      # ⚠ 次序照原生：返回 **组在前、人在后**（原生 prepare_assigned_users 就是
+      #   `user_groups + users`）。别改成「人先组后」—— 列里只渲染前 3 个 + 一个 "+N"，
+      #   成员一多，组排在后面就会被挤进 "+N" 里看不见，等于本次修复白做。
       def members_for(project)
         return [] unless project.respond_to?(:user_assignments)
 
+        # 用户组授予（当前团队下）—— 这就是 dy 经 epp小组 看到 PR36 的可见性来源
+        group_entries = []
+        team = current_team_of
+        if team && project.respond_to?(:user_group_assignments)
+          project.user_group_assignments
+                 .where(team: team)
+                 .to_a
+                 .each do |uga|
+                   next if uga.user_group.blank?
+                   group_entries << {
+                     kind: 'group',
+                     name: uga.respond_to?(:user_group_name_with_role) ? uga.user_group_name_with_role : uga.user_group.name.to_s,
+                     initial: '组',
+                     color: GROUP_AVATAR_COLOR
+                   }
+                 end
+        end
+
+        # 个人授予（Project 级 UserAssignment）
+        user_entries = []
         project.user_assignments
                .where(assignable_type: 'Project')
                .order(:created_at)
                .to_a
-               .map { |ua| [ua, ua.user] }
-               .reject { |_ua, user| user.blank? }
+               .each do |ua|
+                 user = ua.user
+                 next if user.blank?
+                 user_entries << avatar_of(user).merge(kind: 'user')
+               end
+
+        group_entries + user_entries
+      end
+
+      # 当前团队：payload 只收了 current_user，没有 current_team，按 controller 同款
+      # 推导（ApplicationController：current_user.teams.find_by(id: current_team_id)）。
+      # 取不到团队时返回 nil —— 组授予那段会整体跳过（个人授予不受影响）。
+      def current_team_of
+        return nil unless @current_user.respond_to?(:current_team_id) && @current_user.respond_to?(:teams)
+        return nil if @current_user.current_team_id.blank?
+
+        @current_user.teams.find_by(id: @current_user.current_team_id)
       end
 
       def avatar_of(user)

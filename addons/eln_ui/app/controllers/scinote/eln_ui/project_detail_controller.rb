@@ -25,6 +25,14 @@ module Scinote
         @payload = payload
       end
 
+      # 报告 §5 第 6 项 #10：项目归档导出（结构化数据 CSV 预览包）。
+      # 原生归档状态机由行菜单原生端点维护，本动作只聚合已有真相数据导出。
+      def export
+        csv = Scinote::ElnUi::ProjectArchiveExport.call(@project)
+        send_data csv, filename: "project-#{@project.id}-archive.csv",
+                  type: 'text/csv; charset=utf-8', disposition: 'attachment'
+      end
+
       private
 
       def set_project

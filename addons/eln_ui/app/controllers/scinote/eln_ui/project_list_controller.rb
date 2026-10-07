@@ -56,12 +56,100 @@ module Scinote
       #   比复制那份 30 个分支的 case 划算得多。
       # ------------------------------------------------------------
       def filtered_projects
-        scope = scoped_projects
-        service = Lists::ProjectsService.new(current_team, scope, nil, params, user: current_user)
-        records = service.send(:filter_project_records, scope)
-        service.instance_variable_set(:@records, records)
-        service.send(:sort_records)
-        service.instance_variable_get(:@records)
+        @filtered_projects ||= begin
+          scope = scoped_projects
+          service = Lists::ProjectsService.new(current_team, scope, nil, params, user: current_user)
+          records = service.send(:filter_project_records, scope)
+          service.instance_variable_set(:@records, records)
+          service.send(:sort_records)
+          service.instance_variable_get(:@records)
+        end
+      end
+
+      # ------------------------------------------------------------
+      # V1.32 行集合（票 #84）—— 项目行 ∪ 文件夹行
+      #
+      # 🔴 行集合的**唯一真源**是 `Scinote::ElnUi::ProjectListRows`（本 controller 只做
+      #   委托，不在这里写第二份「有筛选就只出项目」的判断）。它内部逐字复刻原生
+      #   `Lists::ProjectsService#call` L22-31 的三分支，并有对拍用例守着。
+      #
+      # ⚠ 与 `filtered_projects` 的关系：后者是**只管项目**的那一条路，仍被工作台
+      #   不变式的对拍用例（`SCN-DASH-8`：卡片数字 ≡ 列表条数）与其余老调用方使用。
+      #   两条都保留不是「两份定义」—— 行集合那条是它的**超集**，且项目行的过滤/排序
+      #   仍然全部走同一批原生私有方法（`filter_project_records` / `sort_records`）。
+      # ------------------------------------------------------------
+      def row_set
+        @row_set ||= Scinote::ElnUi::ProjectListRows.call(
+          team: current_team,
+          user: current_user,
+          view_mode: @view_mode,
+          params: params,
+          scope: scoped_projects,
+          current_folder: current_folder
+        )
+      end
+
+      # 当前所在文件夹（SCN-PROJ-LIST-7 第 4 条：进入文件夹层级 / 返回上一层）。
+      #
+      # 参数名与原生**逐字一致**（`project_folder_id`，原生 `projects#index` 同名同义）——
+      # 不自造 `folder` / `dir` 之类别名。
+      # ⚠ 查找**必须限定 current_team**：`ProjectFolder.find_by(id:)` 会跨团队拿到别人的
+      #   文件夹，等于用 URL 里的一个数字探测全库（本项目铁律：权限判定先问承载面）。
+      # ⚠ 传了不存在的 id → nil → 退回顶层，**不报 404、不 500**：与原生
+      #   `load_current_folder`（`find_by` 得 nil）同行为，且用户手改 URL 不会炸页面。
+      def current_folder
+        return @current_folder if defined?(@current_folder)
+
+        id = params[:project_folder_id]
+        @current_folder = id.present? ? current_team.project_folders.find_by(id: id) : nil
+      end
+
+      # ------------------------------------------------------------
+      # V1.31 分页 —— 参数名与原生**逐字一致**（`page` / `per_page`）
+      #
+      # 原生 Lists::BaseService#paginate_records 就是
+      #   `@records.page(@params[:page]).per(@params[:per_page])`（kaminari）。
+      # 这里不自造 `p` / `size` / `limit` 之类别名 —— 同一件事两套词汇表是本项目的老毛病。
+      #
+      # ⚠ 为什么不用 Kaminari：
+      #   原生的 @records 有两种形态 —— 无筛选时是 `projects + folders`（Array），
+      #   sort_records 里那批 `sort_by` 也会把 relation 变成 Array；我们的
+      #   row_set.rows 同样恒是 Array（并集已经 to_a 过）。
+      #   Kaminari 的 page/per 开箱只对 ActiveRecord::Relation 可用（Array 必须显式
+      #   `Kaminari.paginate_array` 包一层），走它就得先判形态，反而更脆。
+      #   这里统一按数组切片：**形态无关、total 恒准确**，且与原生
+      #   「先 filter → 再 sort → 最后 paginate」的三段次序完全一致。
+      # ⚠ 但**语义上有一处与原生不同**（有意）：原生 `paginate_records` 直接读
+      #   `@params[:per_page]` 原值，非法值会让 `.per(9999)` 返回全量；
+      #   我们按 spec SCN-PROJ-LIST-13 归一化档位（非法回落 20、0 = 全部）。
+      #   代价：每次请求把筛选后的全部行载进内存（当前量级：单团队 294 行，
+      #   可忽略）。**一旦单团队项目数上到万级**，这里要换回 SQL 分页 ——
+      #   届时 sort_records 那批 Ruby sort_by 也得一起下推，属独立议题。
+      #
+      # ⚠ `per_page` 的归一化（含「0 = 全部」「非法回落 20，绝不退化成全量」）在
+      #   ProjectListPayload.normalize_per_page —— 那是档位唯一真源，这里只做委托，
+      #   不在这再写一遍判定（否则档位改动会漏改一处）。
+      # ------------------------------------------------------------
+      def paged_rows
+        rows = row_set.rows.to_a
+        # ⚠ 两个 total 都是**筛选后**（= 分页前）的：totalEntries 是行集合条数（含文件夹行），
+        #   projectCount 是其中的项目行条数。页头「共 N 个项目」用后者，分页信息条用前者。
+        @total_entries = rows.size
+        @project_count = row_set.project_count
+        per = per_page_param
+        return rows if per.zero? # 0 = 全部（显式请求才生效，见 normalize_per_page）
+
+        # ⚠ 越界页码返回空数组而不是 nil：Array#slice 在 offset > size 时给 nil，
+        #   不兜住的话 projects_block 会在 nil 上炸 500（用户手改 URL 就能触发）。
+        rows.slice((page_param - 1) * per, per) || []
+      end
+
+      def per_page_param
+        Scinote::ElnUi::ProjectListPayload.normalize_per_page(params[:per_page])
+      end
+
+      def page_param
+        Scinote::ElnUi::ProjectListPayload.normalize_page(params[:page])
       end
 
       # ------------------------------------------------------------
@@ -196,6 +284,10 @@ module Scinote
       def scoped_projects
         ::Scinote::ElnUi::ProjectListScope
           .for_listing(team: current_team, user: current_user, view_mode: @view_mode)
+          # 列表页「访问权限」列要读两路授予（个人 UA + 用户组 UGA），预加载消 N+1。
+          # 仅列表页需要（工作台卡片不渲染成员列），所以加在这条列表专用链上，
+          # 不污染工作台共用的 ProjectListScope 单一真源。
+          .preload(user_assignments: :user, user_group_assignments: %i[user_group user_role])
           .order(name: :asc)
       end
 
@@ -206,8 +298,31 @@ module Scinote
       end
 
       def payload
+        # 🔴 V1.31：**必须先取数**，再进实参列表。
+        #   分页后 `@total_entries` / `@project_count` 是 `paged_rows` 的副作用，而 Ruby
+        #   的实参是自左向右求值 —— 如果照原样把 paged_rows 写在第一个位置、
+        #   `total_entries: @total_entries` 写在后面，看着能跑；但只要哪天有人
+        #   调整实参顺序（或把 total_entries 提到前面），拿到的就是上一轮的旧值
+        #   或 nil。本文件顶部 `set_view_mode` 那条注释记的就是同一个坑的第一次翻车
+        #   （@view_mode 在实参里赋值 + filtered_projects 是第一项 → 过滤成了摆设）。
+        #   所以在方法体里显式先算，不依赖实参顺序的副作用。
+        rows = paged_rows
+
         Scinote::ElnUi::ProjectListPayload.call(
-          filtered_projects,
+          rows,
+          # V1.31 分页三件套：页码 / 档位 / **筛选后**总条数（分页前）。
+          page: page_param,
+          per_page: per_page_param,
+          total_entries: @total_entries,
+          # V1.32：纯项目行数（页头「共 N 个项目」用它，不用 totalEntries ——
+          # 后者含文件夹行，用错会把文件夹算成项目，且会破坏 SCN-DASH-8 的不变式对拍）。
+          project_count: @project_count,
+          # V1.32 文件夹层级（当前文件夹 / 祖先链 / 下钻基址）。
+          # ⚠ `folder_url_base` 用 `request.path` 而不是字面量 '/eln_project_list'：
+          #   本页 html 出口的路径就是它自己，路由改名时两侧不会脱钩（与 json_self_path 同款理由）。
+          current_folder: current_folder,
+          folder_trail: row_set.trail,
+          folder_url_base: page_self_path,
           can_create_project: @can_create_project,
           can_create_folder: @can_create_folder,
           folders: @folders ||= team_folders,
@@ -251,8 +366,15 @@ module Scinote
 
       # json 出口：/eln_project_list → /eln_project_list.json（幂等，重复调用不会追加）
       def json_self_path
-        base = request.path.to_s.sub(/\.json\z/, '')
-        "#{base}.json"
+        "#{page_self_path}.json"
+      end
+
+      # 本页 html 出口的路径（去掉可能存在的 .json 后缀）。
+      # 用途：a) json 出口自拼；b) 文件夹下钻链接（`?project_folder_id=N`）的基址。
+      # ⚠ 与 json_self_path 同款理由：本 controller 里 `url_for` 会踩 _recall 抛
+      #   ActionController::UrlGenerationError，所以一律用 request.path 现取，不写死字面量。
+      def page_self_path
+        request.path.to_s.sub(/\.json\z/, '')
       end
 
       # 本次请求的筛选条件（普通 Hash）—— 用于随 payload 下发 initialFilters，

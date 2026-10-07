@@ -489,7 +489,7 @@ class ElnUiResCenterTest < AcTest::Base
     scene = build_scene!
     app = make_resource_application!(project: scene[:project], requestor: scene[:creator],
                                      no: 'SQ-2026-8802', status: 'submitted')
-    mate = make_workflow_user!
+    mate = make_workflow_user!(project: scene[:project])
 
     result = Scinote::ElnUi::ResourceApplicationWorkflow.call(
       user: mate, team: scene[:team], no: app.no, type: 'approve_group'
@@ -506,7 +506,7 @@ class ElnUiResCenterTest < AcTest::Base
     scene = build_scene!
     app = make_resource_application!(project: scene[:project], requestor: scene[:creator],
                                      no: 'SQ-2026-8803', status: 'group_approved')
-    mate = make_workflow_user!
+    mate = make_workflow_user!(project: scene[:project])
 
     result = Scinote::ElnUi::ResourceApplicationWorkflow.call(
       user: mate, team: scene[:team], no: app.no, type: 'approve_project'
@@ -522,7 +522,7 @@ class ElnUiResCenterTest < AcTest::Base
     scene = build_scene!
     app = make_resource_application!(project: scene[:project], requestor: scene[:creator],
                                      no: 'SQ-2026-8804', status: 'submitted')
-    mate = make_workflow_user!
+    mate = make_workflow_user!(project: scene[:project])
 
     result = Scinote::ElnUi::ResourceApplicationWorkflow.call(
       user: mate, team: scene[:team], no: app.no, type: 'reject', reason: '库存不足'
@@ -539,7 +539,9 @@ class ElnUiResCenterTest < AcTest::Base
     scene = build_scene!
     app = make_resource_application!(project: scene[:project], requestor: scene[:creator],
                                      no: 'SQ-2026-8805', status: 'project_approved')
-    mate = make_workflow_user!
+    mate = make_workflow_user!(project: scene[:project])   # 已含 receipt 阶段名单（configure_approver! 默认三阶段）
+    # ⚠ ADR-0032：材料类入库前必须有一张「待验」验收记录（照片 + 本批数量），否则闸门拒绝。
+    make_pending_receipt!(app: app, created_by: app.requestor)
 
     result = Scinote::ElnUi::ResourceApplicationWorkflow.call(
       user: mate, team: scene[:team], no: app.no, type: 'complete'
@@ -550,19 +552,19 @@ class ElnUiResCenterTest < AcTest::Base
     refute_nil app.reload.completed_at
   end
 
-  # 负例：申请人本人不能审自己的单
-  def test_requestor_cannot_approve_own_application
+  # 正例：申请人本人被配为审批人后**可以**审自己的单（自审允许，名单是唯一口径）
+  # ⚠ 配成审批人是前提 —— 否则挡住他的是「没名单」，测的就不是自审了。
+  def test_requestor_configured_as_approver_can_approve_own_application
     scene = build_scene!
     app = make_resource_application!(project: scene[:project], requestor: scene[:creator],
                                      no: 'SQ-2026-8806', status: 'submitted')
+    configure_approver!(user: scene[:creator], project: scene[:project])
 
-    e = assert_raises(Scinote::ElnUi::ResourceApplicationWorkflow::WorkflowError) do
-      Scinote::ElnUi::ResourceApplicationWorkflow.call(
-        user: scene[:creator], team: scene[:team], no: app.no, type: 'approve_group'
-      )
-    end
-    assert_match(/同团队/, e.message)
-    assert_equal 'submitted', app.reload.status, '被拒动作不得改变状态'
+    result = Scinote::ElnUi::ResourceApplicationWorkflow.call(
+      user: scene[:creator], team: scene[:team], no: app.no, type: 'approve_group'
+    )
+    assert result[:ok], "自审应通过：#{result[:error]}"
+    assert_equal 'group_approved', app.reload.status, '自审成功推进状态'
   end
 
   # 负例：状态错序一律拒绝（draft 直接终审 / 终态再驳回）
@@ -572,7 +574,7 @@ class ElnUiResCenterTest < AcTest::Base
                                        no: 'SQ-2026-8807', status: 'draft')
     done  = make_resource_application!(project: scene[:project], requestor: scene[:creator],
                                        no: 'SQ-2026-8808', status: 'completed')
-    mate = make_workflow_user!
+    mate = make_workflow_user!(project: scene[:project])
 
     assert_raises(Scinote::ElnUi::ResourceApplicationWorkflow::WorkflowError) do
       Scinote::ElnUi::ResourceApplicationWorkflow.call(
@@ -614,7 +616,8 @@ class ElnUiResCenterTest < AcTest::Base
     result = Scinote::ElnUi::ResourceApplicationWorkflow.create_draft(
       user: scene[:creator], team: scene[:team],
       project_id: scene[:project].id, kind: 'material', name: 'PP 基料 K8003',
-      qty: '20', unit: 'kg', unit_price: '350', purpose: '试制样品'
+      qty: '20', unit: 'kg', unit_price: '350', purpose: '试制样品',
+      repository_id: target_repository_id(team: scene[:team], creator: scene[:creator])
     )
 
     assert result[:ok], "create_draft 应成功：#{result[:error]}"
@@ -640,11 +643,16 @@ class ElnUiResCenterTest < AcTest::Base
     scene = build_scene!
     r1 = Scinote::ElnUi::ResourceApplicationWorkflow.create_draft(
       user: scene[:creator], team: scene[:team],
-      project_id: scene[:project].id, kind: 'material', name: 'A', qty: '1'
+      project_id: scene[:project].id, kind: 'material', name: 'A', qty: '1',
+      repository_id: target_repository_id(team: scene[:team], creator: scene[:creator])
     )
+    # ⚠ 服务类现在必须绑服务档案（单价唯一来源来自档案，见 REQ-RES-TEST），
+    #   这条用例照样要连建两单看编号递增，所以先备一条服务档案。
+    catalog = Scinote::ElnUi::ServiceCatalog.create!(name: 'B 服务', unit_price: 100)
     r2 = Scinote::ElnUi::ResourceApplicationWorkflow.create_draft(
       user: scene[:creator], team: scene[:team],
-      project_id: scene[:project].id, kind: 'service', name: 'B', qty: '2', unit: '次'
+      project_id: scene[:project].id, kind: 'service', name: 'B', qty: '2', unit: '次',
+      service_catalog_id: catalog.id
     )
     assert_equal r1[:no].succ, r2[:no], "连建两单编号必须严格 +1（#{r1[:no]} → #{r2[:no]}）"
   end
@@ -719,13 +727,18 @@ class ElnUiResCenterTest < AcTest::Base
 
   # ⚠ 原生 User 有三项presence 校验：full_name / initials / password(≥8)。
   #   早前这里只给 email+password:'x'，6 个用例全炸 RecordInvalid。
-  def make_workflow_user!
-    User.create!(
+  # ⚠ 2026-10-05 起审批要**显式名单**（REQ-RES-APPROVER）：传了 project 就把这个人
+  #   配成该项目两阶段审批人，否则造出来的只是「另一个存在的用户」，审批一律被挡。
+  #   不传 project 的场景（例如跨团队用例）保持原语义。
+  def make_workflow_user!(project: nil)
+    user = User.create!(
       email: "wf-#{SecureRandom.hex(4)}@x",
       password: 'password123',
       full_name: 'WF User',
       initials: 'WF'
     )
+    configure_approver!(user: user, project: project) if project
+    user
   end
 
   # ============================================================
@@ -748,13 +761,19 @@ class ElnUiResCenterTest < AcTest::Base
     Team.first || Team.create!(name: 't', created_by: scene_user)
   end
 
-  def make_resource_application!(project:, requestor:, no: nil, status: 'draft')
+  def make_resource_application!(project:, requestor:, no: nil, status: 'draft', items: nil)
     Scinote::ElnUi::ResourceApplication.create!(
       project: project,
       requestor: requestor,
       no: no || "SQ-2026-#{SecureRandom.hex(4).upcase}",
       status: status,
-      items: [{ kind: 'material', name: 'PP 基料 K8003', qty: 20, unit: 'kg', unit_price: 350.0 }]
+      # items 默认带**目标库**（ADR-0030 D7）：材料类单子在 complete 时会按它执行
+      # 「到货验收入库」，不带就必然失败（「申请单未指定目标库」）——那个失败本身是
+      # 正确的 fail-closed，但会让所有与入库无关的用例一起红，所以这里默认给上。
+      items: items || [{
+        kind: 'material', name: 'PP 基料 K8003', qty: 20, unit: 'kg', unit_price: 350.0,
+        repository_id: target_repository_id(team: project.team, creator: requestor)
+      }]
     )
   end
 

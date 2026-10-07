@@ -69,7 +69,15 @@ module Scinote
           projectMetrics: metrics_block,
           requiredDocs: docs_block('required'),
           otherDocs: docs_block('other'),
-          projectCost: cost_block
+          projectCost: cost_block,
+          # 报告 §5 第 6 项 #11：任务审核关闭驱动指标状态（spec REQ-PM-INDICATOR / SCN-PM-IND-3/4/5）。
+          # 真源 = 本项目所有任务的关闭审核单（eln_ui_task_close_requests）。前端据此把「指标达标」
+          # 与「任务关闭完成率」挂钩并提供看板下钻入口（detailUrl 已下发）。
+          taskCloseReview: task_close_review_block,
+          # 报告 §5 第 6 项 #10：归档包预览 / 一键导出 / 置已结题禁建任务。
+          # 原生 projects 已承载 archived 状态与归档动作（行菜单原生端点），本块只暴露
+          # 真实归档态 + 导出入口，不重复造归档状态机。
+          projectArchive: archive_block
         }
       end
 
@@ -129,7 +137,10 @@ module Scinote
         user = supervised_user || creator_user
         return nil if user.blank?
 
-        "#{user_full_name(user)}（#{role_name_for(user) || 'Owner'}）"
+        # ⚠ 兜底一律 fail-closed：查不到该成员在项目上的 user_assignment 行时，角色栏显示「—」。
+        #   早先这里兜的是 'Owner'，等于把任何一个没有指派行的普通成员渲染成「张三（项目负责人）」
+        #   —— 既违反「绝不回落演示文案」的项目铁律，回落方向还是权限最高的那一档。
+        "#{user_full_name(user)}（#{role_name_for(user) || '—'}）"
       end
 
       def supervised_user
@@ -378,6 +389,56 @@ module Scinote
           name: user.present? ? user_full_name(user) : '—',
           initial: user.present? ? (user.initials.presence || user_full_name(user).first).to_s : '·',
           color: AVATAR_COLORS[index % AVATAR_COLORS.length]
+        }
+      end
+
+      # ------------------------------------------------------------
+      # ⑦ 任务关闭审核汇总（报告 §5 第 6 项 #11 · spec REQ-PM-INDICATOR / SCN-PM-IND-3/4/5）
+      #
+      # 真源 = 本项目所有任务的关闭审核单（eln_ui_task_close_requests）。指标达标不能只
+      # 看用户手填的 ProjectMetric.ok —— 当存在关闭审核时，「指标状态由任务审核关闭驱动」：
+      # 任务全部关闭才视为可复核达标（spec #11）。这里只下发事实，判定交给前端。
+      # ------------------------------------------------------------
+      def task_close_review_block
+        mods = @project.experiments.flat_map { |e| e.respond_to?(:my_modules) ? e.my_modules.to_a : [] }
+        mod_ids = mods.map(&:id)
+        requests = Scinote::ElnUi::TaskCloseRequest.where(my_module_id: mod_ids).to_a
+        closed   = requests.count(&:approved?)
+        pending  = requests.count(&:pending?)
+        rejected = requests.count(&:rejected?)
+        total    = mods.size
+        {
+          total: total,
+          closed: closed,
+          pending: pending,
+          rejected: rejected,
+          # 全部任务关闭 → 指标达标可驱动（spec #11「由任务审核关闭驱动」）
+          indicatorDriven: total.positive? && closed == total,
+          tasks: mods.map do |m|
+            latest = Scinote::ElnUi::TaskCloseRequest.latest_for(m)
+            {
+              id: m.id,
+              name: m.name.to_s,
+              state: latest&.status || 'none',
+              stateLabel: latest ? latest.state_label : '未提交关闭申请',
+              detailUrl: "/experiments/#{m.experiment_id}/my_modules/#{m.id}/eln_task_detail"
+            }
+          end
+        }
+      end
+
+      # ------------------------------------------------------------
+      # ⑧ 归档块（报告 §5 第 6 项 #10 · spec SCN-PM-ARCH-1/2/3）
+      #
+      # 原生 projects 已承载 archived 状态与归档动作（行菜单原生端点），本块只暴露真实
+      # 归档态 + 导出入口，不重复造归档状态机。「置已结题禁建任务」由原生归档语义覆盖。
+      # ------------------------------------------------------------
+      def archive_block
+        {
+          archived: @project.archived?,
+          archivedAt: @project.respond_to?(:archived_on) ? date(@project.archived_on) : nil,
+          canExport: true,
+          exportUrl: "/projects/#{@project.id}/eln_project_detail/export"
         }
       end
 

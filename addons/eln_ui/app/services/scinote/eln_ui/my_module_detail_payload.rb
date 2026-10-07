@@ -102,7 +102,11 @@ module Scinote
           # 不编时间、不编状态 —— 页面据此渲染一条说明而不是伪造轨迹。
           flowNote: flow_note,
           profile: profile_block,
-          review: review_block
+          review: review_block,
+          # REQ-TASK-CLOSE 关闭审核（新增）：审核态 + 谁能提交/审核 + 端点地址。
+          # 页面上的「提交完成申请 / 审核关闭 / 驳回」三个动作全从这里取，
+          # 端点 URL 也由服务端下发（前端不写死宿主路由）。
+          closeReview: close_review_block
         }
       end
 
@@ -355,13 +359,79 @@ module Scinote
           source: prof&.source.presence }
       end
 
-      # 审核按钮显隐走原生权限位本体（不自己再判一遍，避免第二套口径）
+      # 审核按钮显隐按 **REQ-TASK-CLOSE 的真口径**（项目负责人），不再拿原生
+      # manage_my_module 近似 —— DEC-003 写死了「组员/小组组长不可审核关闭」，
+      # 近似口径会让小组组长看见能点的审核按钮（点下去 422）。
+      # 原生权限位仍原样下发（前端别处可能用），但不参与审核判定。
       def review_block
-        { canReview: @can_manage_task,
+        { canReview: close_reviewer?,
           canComplete: @can_complete_task,
           canComment: @can_create_comment,
-          hint: @can_manage_task ? nil : '仅项目负责人可审核关闭（DEC-003）；' \
-                                        '当前身份未持有 manage_my_module' }
+          canManageTask: @can_manage_task,
+          hint: close_reviewer? ? nil : '仅项目负责人可审核关闭（DEC-003 / SCN-TASK-CLOSE-2·3）' }
+      end
+
+      # ------------------------------------------------------------
+      # 任务关闭审核块（REQ-TASK-CLOSE）
+      #
+      # 审核态落在 addon 自有表 eln_ui_task_close_requests（原生 my_modules.state
+      # 装不下「待审核」这一档，且不许改原生表）—— 这里只读不算。
+      # ------------------------------------------------------------
+      def close_review_block
+        klass = task_close_request_class
+        unless klass
+          return { available: false,
+                   note: '关闭审核表未在本实例部署（eln_ui_task_close_requests 缺失），' \
+                         '任务关闭审核不可用；请在项目负责人/管理员处确认迁移已执行。' }
+        end
+
+        latest = klass.latest_for(@my_module)
+        pending = klass.pending_for(@my_module)
+        closed = klass.closed?(@my_module)
+        reviewer = close_reviewer?
+
+        { available: true,
+          state: latest&.status || 'none',
+          stateLabel: Scinote::ElnUi::TaskCloseRequest::STATE_LABELS[latest&.status] || '未提交关闭申请',
+          closed: closed,
+          # 同团队成员都能提交；已在审 / 已关闭则不再给入口
+          canSubmit: !closed && pending.nil?,
+          canReview: reviewer && !pending.nil?,
+          submittedAt: latest&.submitted_at&.strftime(DATE_FMT),
+          submittedBy: display_name(latest&.submitted_by),
+          reviewedAt: latest&.reviewed_at&.strftime(DATE_FMT),
+          reviewerName: display_name(latest&.reviewer),
+          reason: latest&.reason.presence,
+          actionsUrl: "/eln_task_close/#{@my_module.id}/actions",
+          note: close_review_note(closed, pending, reviewer) }
+      end
+
+      def close_review_note(closed, pending, reviewer)
+        return '本任务已由项目负责人审核关闭（SCN-TASK-CLOSE-1）' if closed
+        return '关闭申请待项目负责人审核' if pending && reviewer
+        return '关闭申请待项目负责人审核；当前身份不可审核' if pending
+        return '仅项目负责人可审核关闭（DEC-003）；组员与小组组长可提交完成申请' unless reviewer
+
+        nil
+      end
+
+      def close_reviewer?
+        return false unless task_close_request_class
+
+        Scinote::ElnUi::TaskCloseWorkflow.reviewer?(@user, @my_module)
+      end
+
+      # 二开表没部署的实例（老库）→ nil 走降级，别让整页 500
+      def task_close_request_class
+        return @task_close_request_class if defined?(@task_close_request_class)
+
+        @task_close_request_class =
+          if defined?(::Scinote::ElnUi::TaskCloseRequest) &&
+             ::Scinote::ElnUi::TaskCloseRequest.table_exists?
+            ::Scinote::ElnUi::TaskCloseRequest
+          end
+      rescue StandardError
+        @task_close_request_class = nil
       end
 
       def display_name(user)

@@ -22,6 +22,18 @@ module Scinote
         @payload_json = JSON.generate(payload).gsub('<', '\\u003c')
       end
 
+      # 报告 §5 第 6 项 #12：消耗/执行明细导出（与 consume 页签同源筛选）。
+      # 筛选条件走 query（type/project_id/user_id/range_from/range_to），导出 CSV。
+      def export
+        filters = params.permit(:type, :project_id, :user_id, :range_from, :range_to).to_h
+        records = Scinote::ElnUi::ResCenterPayload.filtered_consume_records(
+          user: current_user, team: current_team, filters: filters
+        )
+        csv = Scinote::ElnUi::ConsumeCsvExport.generate(records)
+        send_data csv, filename: "consume-export-#{Date.today}.csv",
+                  type: 'text/csv; charset=utf-8', disposition: 'attachment'
+      end
+
       private
 
       def require_login

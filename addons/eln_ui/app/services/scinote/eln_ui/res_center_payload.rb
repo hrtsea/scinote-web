@@ -31,26 +31,25 @@ module Scinote
       DATE_FMT = '%Y-%m-%d %H:%M'
       # ⚠ 金额不带空格（'¥12,400'）：原型与项目详情页 cost_block 都是紧贴的，
       #   这里原来是 '¥ 12,400'，同一套 UI 里两种写法、测试断言也跟着写歪。
-      MONEY_FMT = ->(v) {
-        v = v.to_d
-        int = v.round.to_i
-        # 整数 / 两位小数都可，整数不补 .00
-        formatted = int == v ? int.to_s : format('%.2f', v)
-        "¥#{formatted.reverse.gsub(/(\d{3})(?=\d)/, '\\1,').reverse}"
-      }
+      #
+      # 🔴 V1.25：实现搬到 Scinote::ElnUi::MoneyFormat（单一真源）——
+      #   工作台「项目总花费」卡下钻到本页「花费」页签（SCN-DASH-9 对账不变式：
+      #   **卡片 ≡ 下钻页**），两侧必须同一个 formatter，否则差一位小数就直接打脸。
+      MONEY_FMT = ->(v) { Scinote::ElnUi::MoneyFormat.call(v) }
 
       class << self
         # 入口：current_user + current_team 由 controller 注入；
         # 不在这里 @current_user = current_user 是因为 service 既可能在 controller 里被调，
         # 也可能在 minitest 里被直接 new(...).call，不挑场景。
-        def call(user:, team:)
-          new(user: user, team: team).call
+        def call(user:, team:, filters: {})
+          new(user: user, team: team, filters: filters).call
         end
       end
 
-      def initialize(user:, team:)
+      def initialize(user:, team:, filters: {})
         @user = user
         @team = team
+        @filters = (filters || {}).with_indifferent_access
       end
 
       def call
@@ -63,6 +62,16 @@ module Scinote
           # 共用元数据（顶部页头 / 调试用）
           meta: meta_block
         }
+      end
+
+      # 对外暴露「已按筛选条件过滤的明细行」，供导出端点复用（与 consume 页签同源同口径）。
+      # 报告 §5 第 6 项 #12：明细表「按类型 / 项目 / 用户 / 时间范围筛选 + 导出」。
+      def filtered_consume_records
+        filter_consume_records(team_consume_records_all, @filters)
+      end
+
+      def self.filtered_consume_records(user:, team:, filters: {})
+        new(user: user, team: team, filters: filters).filtered_consume_records
       end
 
       private
@@ -81,6 +90,7 @@ module Scinote
       def readable_projects
         @readable_projects ||= ::Project.where(team_id: @team.id, template: [false, nil])
                                          .distinct
+                                         .active
                                          .readable_by_user(@user)
                                          .to_a
       end
@@ -211,16 +221,47 @@ module Scinote
       #   不是「所有行金额裸加」—— 否则设备消耗会混进合计，与花费页签对不上。
       #   设备消耗行仍然展示在明细里（台账完整性），只是不计入合计。
       def consume_block
-        all = team_consume_records_all
+        all = filtered_consume_records
         rows = all.first(200).map { |cr| consume_record_row(cr) }
-        charged = all.reject { |cr| cr.material? && record_equipment_excluded?(cr) }
-                     .select { |cr| cr.material? || (cr.service? && cr.costable?) }
+        # 🔴 V1.25：合计走 `ProjectCosts`（与花费页签同一个 aggregation 实例），
+        #   不再在这里抄一份「剔设备 + 服务只计 settled」—— 抄两份必然漂。
+        #   谓词复用同一个实例（设备模板仓库 id 在实例里 memo 过），不会重复查。
+        charged = all.select { |cr| team_project_costs.chargeable?(cr) }
         {
           rows: rows,
           totalCount: all.size,
           serviceCount: rows.count { |r| r[:type] == '服务' },
-          totalAmount: MONEY_FMT.call(charged.sum { |cr| cr.amount.to_d }.round(2))
+          totalAmount: MONEY_FMT.call(charged.sum { |cr| cr.amount.to_d }.round(2)),
+          # 筛选下拉选项（报告 §5 第 6 项 #12）：明细全量范围内出现过的项目 / 操作人，
+          # 带 id 供前端导出时回传 project_id / user_id（与后端 filter_consume_records 同口径）。
+          # 取全量而非前 200，否则下拉漏选项、导出与展示口径不一致。
+          projects: consume_filter_projects,
+          users: consume_filter_users
         }
+      end
+
+      # 明细全量范围内出现过的项目（去重、带 id）
+      def consume_filter_projects
+        pids = team_consume_records_all.filter_map(&:project_id).uniq
+        return [] if pids.empty?
+
+        projs = ::Project.where(id: pids).index_by(&:id)
+        pids.map do |id|
+          p = projs[id]
+          { id: id, name: p ? p.name.to_s : "##{id}" }
+        end
+      end
+
+      # 明细全量范围内出现过的操作人（去重、带 id）
+      def consume_filter_users
+        uids = team_consume_records_all.filter_map(&:user_id).uniq
+        return [] if uids.empty?
+
+        users = ::User.where(id: uids).index_by(&:id)
+        uids.map do |id|
+          u = users[id]
+          { id: id, name: u ? (u.full_name.presence || u.email.to_s) : "##{id}" }
+        end
       end
 
       def consume_record_row(cr)
@@ -238,6 +279,47 @@ module Scinote
         }
       end
 
+      # SCN-RES-CONSUME 末段：明细表「按类型 / 项目 / 用户 / 时间范围筛选」。
+      # ⚠ 只作用于 consume 展示/导出侧；花费聚合（cost_block）始终走团队全量口径，
+      #   不受筛选影响 —— 否则「按项目筛」会把跨项目花费也砍掉，对账块数字对不上。
+      def filter_consume_records(records, filters)
+        return records if filters.blank?
+
+        result = records
+        if (t = filters[:type].presence)
+          result = if t.to_s == 'service'
+                     result.select(&:service?)
+                   else
+                     result.select(&:material?)
+                   end
+        end
+        if (pid = filters[:project_id].presence)
+          result = result.select { |cr| cr.project_id.to_s == pid.to_s }
+        end
+        if (uid = filters[:user_id].presence)
+          result = result.select { |cr| cr.user_id.to_s == uid.to_s }
+        end
+        from = parse_filter_date(filters[:range_from])
+        to   = parse_filter_date(filters[:range_to])
+        if from || to
+          result = result.select do |cr|
+            d = cr.occurred_at
+            next false if d.nil?
+            d = d.to_date
+            (from.nil? || d >= from) && (to.nil? || d <= to)
+          end
+        end
+        result
+      end
+
+      def parse_filter_date(value)
+        v = value.presence
+        return nil if v.nil?
+        Date.parse(v.to_s)
+      rescue ArgumentError, TypeError
+        nil
+      end
+
       # team 范围内所有项目 id（明细表侧的范围基准；与 Ledger 侧 team_stock_value_ids
       # 属同一「团队范围」但维度不同 —— 对账时两侧必须都收口到团队范围才可比）
       def team_project_ids
@@ -247,31 +329,153 @@ module Scinote
       # ------------------------------------------------------------
       # ③ 资源申请（原型 applyRows + 申请详情页）
       #
-      # 范围：当前团队下所有项目的申请单（不仅限 requestor = current_user）。
-      # 后续可加 :for_user 过滤，但默认视图沿用原型「全员可见 + 提交人列」语义。
+      # 范围：**按角色可见范围过滤**（SCN-RES-1 / SCN-RES-3，见 ResourceApprovalPolicy）
+      #   · 项目负责人     → 其负责项目的全部申请（含草稿）
+      #   · 被指名的审批人 → 其有资格审批的项目的全部申请（含草稿）
+      #   · 其余团队成员   → 仅本人提交的全部申请（含草稿）
+      # ⚠ 「谁看得见」只能在这里收口一次。前端再筛是**展示层**（Q4-2：四维筛选在客户端
+      #   做），服务端这一道是**安全边界** —— 两者不是一回事，别指望前端替服务端把关。
       # ------------------------------------------------------------
       def apply_block
-        apps = Scinote::ElnUi::ResourceApplication.for_team(@team).ordered.limit(200).to_a
+        visible = Scinote::ElnUi::ResourceApprovalPolicy.visible_applications(user: @user, team: @team)
+        apps = visible.ordered.limit(200).to_a
+        manageable = Scinote::ElnUi::ResourceApprovalPolicy.configurable_projects(@user, @team)
         {
           rows: apps.map { |a| apply_row(a) },
           totalCount: apps.size,
           # 新建申请表单（SCN-RES-APPLY-1）的项目下拉 —— 只列我 readable 的项目，
           # 与本 service 其余页签的 readable_projects 同源同口径
-          projects: readable_projects.map { |p| { id: p.id, name: p.name.to_s } }
+          projects: readable_projects.map { |p| { id: p.id, name: p.name.to_s } },
+          # 新建申请表单（SCN-RES-TEST-1）的服务档案下拉 —— 服务类**必须**选一条：
+          # 单价与「是否需验收」都从档案快照（spec L986 档案是服务目录的唯一载体）。
+          # ⚠ 本表没有 team_id 列：档案是全局的，不走 team 过滤（测试基础档案
+          #   本就由单位管理员跨团队维护，见 REQ-RES-ARCHIVE）。
+          serviceCatalogs: service_catalog_blocks,
+          # 材料类申请（ADR-0030 / SQ-2026-7783）必填「进入哪个库」——申请时选定，
+          # 货到了才入库到该库（请购语义）。数据源与「库存台账」页签同源同口径
+          # （readable_repositories），下拉里出现的都必须是用户本来就看得见的，
+          # 否则等于用表单泄露别组的库房清单。
+          repositories: apply_repositories,
+          myModules: apply_my_modules,
+          # 四维筛选的候选集合（Q4-2：筛选用它们在客户端做，服务端不下发过滤结果）。
+          # ⚠ 候选只从**可见范围**里抽：把看不见的项目/人列进下拉，等于用 UI 泄露名单。
+          filterOptions: apply_filter_options(apps),
+          permissions: {
+            scope: Scinote::ElnUi::ResourceApprovalPolicy.visible_scope(@user, @team),
+            canConfigureApprovers: manageable.any?,
+            manageableProjectIds: manageable.map(&:id)
+          }
         }
       end
 
+      # 材料类申请「进入哪个库」下拉：当前用户可读的**库**（Repository）列表。
+      # 🔴 与上一轮删掉的「绑定库存条目」下拉只差一个词，语义完全相反：
+      #   旧 = 绑 `RepositoryRow`（库里的**具体条目**）⇒ 料已在库里，去领 ⇒ 出库；
+      #   新 = 绑 `Repository`（**库**）⇒ 料还没进库，货到了才进 ⇒ 入库。
+      #   改这一块之前先读 docs/adr/0030-material-application-is-procurement.md。
+      def apply_repositories
+        readable_repositories.map { |repo| { id: repo.id, name: repo.name.to_s } }
+      end
+
+      # 材料类申请「关联任务」下拉：当前用户可读项目下的未归档任务。
+      # 用途 = 记录这批料**预计消耗在哪个任务**（SCN-RES-APPLY-1 要求申请单可填
+      # 「关联任务/实验记录本」），并作为详情页溯源时的**精确约束**：
+      # 同一物料可能被多个任务消耗，只按条目反查会把别人的消耗也带出来。
+      # ⚠ 出库动作本身**不在这里发生**——它由该任务的**原生消耗**触发
+      #   （任务 stock_consumption → 写 RepositoryLedgerRecord），见 ADR-0030 D4。
+      #
+      # 🔴 my_modules 表**没有 project_id 列** —— 任务是挂在 Experiment 下的
+      #   （MyModule belongs_to :experiment；Experiment belongs_to :project）。
+      #   直接 where(project_id:) 会 PG::UndefinedColumn：生产端静默退化，
+      #   测试端（transactional fixtures）把后续用例全炸成 InFailedSqlTransaction。
+      #   一律走原生同款 joins(:experiment)（同 project_list_payload#build_stats_index）。
+      def apply_my_modules
+        pids = project_ids
+        return [] if pids.empty?
+
+        mods = ::MyModule.where(archived: false)
+                         .joins(:experiment)
+                         .where(experiments: { project_id: pids, archived: false })
+                         .order(:id)
+                         .limit(500)
+                         .to_a
+        return [] if mods.empty?
+
+        exp_project = ::Experiment.where(id: mods.map(&:experiment_id).uniq).pluck(:id, :project_id).to_h
+        projs = ::Project.where(id: exp_project.values.uniq).index_by(&:id)
+        mods.filter_map do |mod|
+          pid = exp_project[mod.experiment_id]
+          proj = pid && projs[pid]
+          next nil if proj.nil?
+          {
+            id: mod.id,
+            name: mod.name.to_s,
+            projectId: pid,
+            projectName: proj.name.to_s
+          }
+        end
+      end
+
+      # 状态/类型枚举固定（spec 定死），项目与人从可见范围里抽
+      def apply_filter_options(apps)
+        {
+          statuses: STATUS_LABELS.map { |value, label| { value: value, label: label } },
+          types: [{ value: 'material', label: '材料' }, { value: 'service', label: '测试表征' }],
+          projects: apply_option_projects(apps),
+          submitters: apply_option_submitters(apps)
+        }
+      end
+
+      def apply_option_projects(apps)
+        pids = apps.filter_map(&:project_id).uniq
+        return [] if pids.empty?
+
+        projs = ::Project.where(id: pids).index_by(&:id)
+        pids.map { |id| { id: id, name: projs[id] ? projs[id].name.to_s : "##{id}" } }
+      end
+
+      def apply_option_submitters(apps)
+        uids = apps.filter_map(&:requestor_id).uniq
+        return [] if uids.empty?
+
+        users = ::User.where(id: uids).index_by(&:id)
+        uids.map { |id| { id: id, name: users[id] ? display_name(users[id]) : "##{id}" } }
+      end
+
+      def display_name(user)
+        user.full_name.presence || user.email.to_s
+      end
+
+      # SCN-RES-TEST-4：「列表必须呈现每个条目的『是否需验收』配置，使『为何尚未计入
+      #   花费』可被解释」—— 所以 requiresAcceptance 一起下发，不只给 id 和名字。
+      def service_catalog_blocks
+        ::Scinote::ElnUi::ServiceCatalog.order(:name).map do |c|
+          {
+            id: c.id,
+            name: c.name.to_s,
+            unitPrice: c.unit_price.to_f,
+            requiresAcceptance: c.acceptance_required?
+          }
+        end
+      end
+
+      # ⚠ projectId / submitterId / kind 是给前端「客户端四维筛选」用的**判定键**
+      #   （Q4-2）：不能拿展示文案比字符串 —— 项目改名前后对不上、同名项目会串。
       def apply_row(a)
+        first = a.item_list.first
         {
           id: a.id,
           no: a.no,
-          type: a.item_list.first ? "#{item_kind_text(a.item_list.first)} · #{a.item_list.first['name']}" : '—',
+          type: first ? "#{item_kind_text(first)} · #{first['name']}" : '—',
           project: a.project ? a.project.name.to_s : '—',
           qty: total_qty_text(a),
           status: status_text(a.status),
           statusRaw: a.status,
-          user: a.requestor ? (a.requestor.full_name.presence || a.requestor.email.to_s) : '—',
-          time: a.submitted_at ? date(a.submitted_at) : date(a.created_at)
+          user: a.requestor ? display_name(a.requestor) : '—',
+          time: a.submitted_at ? date(a.submitted_at) : date(a.created_at),
+          projectId: a.project_id,
+          submitterId: a.requestor_id,
+          kind: first ? (first['kind'] || first[:kind] || 'material').to_s : 'material'
         }
       end
 
@@ -329,45 +533,63 @@ module Scinote
       end
 
       # SCN-RES-COST-6：设备模板库存不计入项目花费 —— 规格强制要求「排除判定须基于
-      # 库存↔模板归属关系、不得依赖 Stock 缺失」。equipment 模板 = 内置 i18n 键名模板。
+      # 库存↔模板归属关系、不得依赖 Stock 缺失」。
+      # 🔴 判定本体已抽到 Scinote::ElnUi::EquipmentTemplateFilter（写侧登记也要判，
+      #   两边各写一份必然漂）；这里只做**本类内缓存**。
+      # ⚠ RepositoryTemplate.equipment 返回的是**未落库的实例**（RepositoryTemplate.new(...)），
+      #   不是 relation —— 要的是它的 name（i18n key），再按 name 回库里找真正 bootstrap 过的模板行。
+      def equipment_template_probe
+        return @equipment_template_probe if defined?(@equipment_template_probe)
+
+        @equipment_template_probe = Scinote::ElnUi::EquipmentTemplateFilter.probe
+      end
+
       def equipment_template_repo_ids
-        @equipment_template_repo_ids ||= ::Repository
-                                          .where(repository_template_id: ::RepositoryTemplate
-                                            .where(name: ::RepositoryTemplate.equipment.name))
-                                          .pluck(:id)
+        @equipment_template_repo_ids ||= Scinote::ElnUi::EquipmentTemplateFilter
+                                           .equipment_repository_ids
+      end
+
+      # ⚠ 这里判的是「**设备规则能不能查**」，**不是**「团队有没有设备模板」。
+      #
+      # 两种「空」曾被我混成一个（2026-10-06 修）：
+      #   · **确实没有设备模板**（团队没 bootstrap 过 / 库存里没这类条目）
+      #     → 没有哪条物资属于设备 → 全部物资都是普通消耗，正常计入花费；
+      #       此时 `!include?` 恒真恰恰是**对**的，不是 fail-open。
+      #   · **查不出设备模板**（RepositoryTemplate.equipment 拿不到）
+      #     → 规则不可判 → fail-closed：一律不计，并让对账块把规则失效报出来。
+      #
+      # 前一版把两者都压成 `equipment_template_repo_ids.present? == false`，
+      # 结果「团队没配设备模板」直接把**全部**物资判成不合格、花费恒 ¥0 ——
+      # 比原来的 fail-open 还糟（开发生的是对的，只是设备消耗没被剔掉）。
+      def equipment_rule_active?
+        !equipment_template_probe.nil?
       end
 
       def cost_eligible?(r)
+        return false unless equipment_rule_active?
+
         row = r.repository_stock_value&.repository_cell&.repository_row
-        row.nil? || !equipment_template_repo_ids.include?(row.repository_id)
+        return false if row.nil?
+
+        !equipment_template_repo_ids.include?(row.repository_id)
       end
 
-      # SCN-RES-COST-6 在**明细表侧**的对应剔除：
-      #   明细行是消耗链路里无条件登记的（decorator 不认识「设备模板不算花费」），
-      #   所以花费归集必须自己再剔一遍 —— 否则设备消耗会混进花费。
-      #   判定沿明细行的源流水反查库存行归属（与 Ledger 侧 cost_eligible? 同口径）。
-      def record_equipment_excluded?(cr)
-        return false unless cr.source_type == 'RepositoryLedgerRecord'
+      # 🔴 V1.25：`record_equipment_excluded?` 已从本类删除 —— 设备模板剔除搬去了
+      #   `Scinote::ElnUi::ProjectCosts#equipment_row?`（单一真源）。这里再留一份副本，
+      #   看到的就是「工作台一张数字、资源中心另一张数字」这种对不上账的温床。
+      #   口径本体见 ProjectCosts 的同名方法（含三个 return false 的语义说明）。
 
-        ledger = ::RepositoryLedgerRecord.find_by(id: cr.source_id)
-        return false if ledger.nil?
-
-        row = ledger.repository_stock_value&.repository_cell&.repository_row
-        row.present? && equipment_template_repo_ids.include?(row.repository_id)
-      end
-
+      # 🔴 V1.25：计费判定（哪些行计入花费）已搬到 `ProjectCosts`（单一真源），
+      #   本方法只剩「取数 + 排版」，**一行 filter 逻辑都不留在这儿** —— 工作台
+      #   花的是同一个服务。不变式：本页「累计花费」≡ 工作台「项目总花费」卡
+      #   （spec V1.25 · SCN-DASH-9）。
       def cost_block
-        all = team_consume_records_all
-        # 花费口径：物资 + 服务，且物资要先剔掉设备模板库存（SCN-RES-COST-6）；
-        # 服务行按 spec L109 只计已结算
-        material_rows = all.select { |cr| cr.material? && !record_equipment_excluded?(cr) }
-        # 服务行：只计「已结算」—— spec L109「验收通过才计入项目花费」，
-        # pending_acceptance 的明细行已在登记时写下状态，这里按状态过滤（不再靠 ¥0 占位）
-        service_rows = all.select { |cr| cr.service? && cr.costable? }
-
-        material_total = material_rows.sum { |cr| cr.amount.to_d }.round(2)
-        service_total = service_rows.sum { |cr| cr.amount.to_d }.round(2)
-        total = (material_total + service_total).round(2)
+        costs = team_project_costs
+        material_num = costs.call.material
+        service_num = costs.call.service
+        total_num = costs.call.total
+        material_rows = costs.chargeable_rows.select(&:material?)
+        service_rows = costs.chargeable_rows.select(&:service?)
 
         cost_rows = material_rows + service_rows
         by_project = by_project_block(cost_rows)
@@ -376,13 +598,13 @@ module Scinote
         # 对账闸门（spec L106「明细表与 Ledger 一一对应、同快照单价」）：
         # 明细表物资行 ↔ Ledger 计费口径任务消耗行 —— 行数 + 金额双双核对。
         ledger_rows = ledger_consume_rows_eligible
-        ledger_total = ledger_consume_material_total.round(2)
+        ledger_num = ledger_consume_material_total.round(2)
 
         {
           stats: [
-            { label: '累计花费',    value: MONEY_FMT.call(total) },
-            { label: '物资消耗',    value: MONEY_FMT.call(material_total) },
-            { label: '服务执行',    value: MONEY_FMT.call(service_total) },
+            { label: '累计花费',    value: MONEY_FMT.call(total_num) },
+            { label: '物资消耗',    value: MONEY_FMT.call(material_num) },
+            { label: '服务执行',    value: MONEY_FMT.call(service_num) },
             { label: '涉及项目数',  value: "#{by_project.size} 个" }
           ],
           byProject: by_project,
@@ -392,13 +614,22 @@ module Scinote
           # 而是**明细行与流水行的一一对应**：行数差 1、金额差一分钱都立刻报不一致。
           # 历史行未登记明细（回填缺失）会在这里暴露，正是本闸门的价值。
           reconciliation: {
+            # 设备模板剔除规则是否真的生效（false = 查不到 equipment 模板，两侧花费均不可信）
+            equipmentRuleActive: equipment_rule_active?,
             detailMaterialRows: material_rows.size,
             ledgerMaterialRows: ledger_rows.size,
-            detailMaterialTotal: MONEY_FMT.call(material_total),
-            ledgerMaterialTotal: MONEY_FMT.call(ledger_total),
-            consistent: material_rows.size == ledger_rows.size && (material_total - ledger_total).abs < 0.01
+            detailMaterialTotal: MONEY_FMT.call(material_num),
+            ledgerMaterialTotal: MONEY_FMT.call(ledger_num),
+            consistent: material_rows.size == ledger_rows.size && (material_num - ledger_num).abs < 0.01
           }
         }
+      end
+
+      # 本 team 的花费聚合器（把明细行喂给 `ProjectCosts` 单一真源后的实例）。
+      # ⚠ 必须 memo：设备模板剔除要沿明细行反查 Ledger → 库存行 → Repository，
+      #   cost_block 与 consume_block 各自建一个实例 = 全量再反查一遍。
+      def team_project_costs
+        @team_project_costs ||= ::Scinote::ElnUi::ProjectCosts.for_rows(team_consume_records_all)
       end
 
       # Ledger 侧计费口径（剔除设备模板库存，SCN-RES-COST-6）：对账的「流水」那一头

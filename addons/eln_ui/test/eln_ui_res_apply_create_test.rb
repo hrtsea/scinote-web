@@ -30,6 +30,8 @@ class ElnUiResApplyCreateTest < AcTest::Base
     # check_team_membership 走 ApplicationController#current_team
     # （current_user.current_team_id → teams.find_by）—— 集成路径必须自己指过去，否则 403。
     @user.update!(current_team_id: @team.id)
+    # 材料类申请的目标库（ADR-0030 D7 起必填：申请时就要选定料进哪个库）
+    @repository = target_repository(team: @team, creator: @user)
     @session = ActionDispatch::Integration::Session.new(Rails.application)
   end
 
@@ -43,7 +45,10 @@ class ElnUiResApplyCreateTest < AcTest::Base
 
   def valid_attrs(overrides = {})
     { project_id: @project.id, kind: 'material', name: '_test_ 基料',
-      qty: '8', unit: 'kg', unit_price: '320', purpose: '测试用' }.merge(overrides)
+      qty: '8', unit: 'kg', unit_price: '320', purpose: '测试用',
+      # 材料类必填（ADR-0030 D7）。**必须走白名单传参** —— 漏进 permit 名单就是
+      # 「字段静默丢失」，而这类丢失在单测里最难发现（请求 200、单据却在没有目标库的状态）。
+      repository_id: @repository.id }.merge(overrides)
   end
 
   # ① 正常：建草稿 → 200 + 编号合法 + 库里真有一行
@@ -74,6 +79,16 @@ class ElnUiResApplyCreateTest < AcTest::Base
     assert_includes body['error'].to_s, '请选择申请项目'
   end
 
+  # ⑤ 归档项目 → 422（fail-closed：下拉已排除归档，后端再次兜底；SCN-RES-APPLY-5）
+  def test_archived_project_rejected
+    @project.update!(archived: true)
+    status, body = post_apply(valid_attrs(project_id: @project.id))
+
+    assert_equal 422, status, "body=#{body}"
+    assert_equal false, body['ok']
+    assert_includes body['error'].to_s, '项目已归档'
+  end
+
   # ③ 数量填了非法值 → 仍是 422（类型不硬转，交给 service 判），不是 500
   def test_invalid_qty_returns_422_not_500
     status, body = post_apply(valid_attrs(qty: 'abc'))
@@ -96,5 +111,47 @@ class ElnUiResApplyCreateTest < AcTest::Base
 
     assert_equal 422, status, "body=#{body}"
     assert_equal false, body['ok']
+  end
+
+  # ⑥ 🔴 绑定参数必须能穿过 controller 的 permit 名单落到库里（SCN-RES-APPROVE-3 / SQ-2026-7783）
+  #   本文件开头那条教训的翻版：**permit 名单里少写一个键，整个绑定就静默丢失**，
+  #   而 service 层单测（直接传 kwarg）永远发现不了 —— 因为它在 controller 之后。
+  #   这条用例是唯一能钉死「HTTP 参数名 ↔ permit 白名单 ↔ service 形参」三者对齐的用例。
+  #   ⚠ 请购语义（ADR-0030）：材料类绑的是「目标库」(repository_id)，不是已存在的条目。
+  def test_create_draft_persists_repository_and_module_binding
+    repo = make_active_repository!(team: @team, creator: @user)
+    task = build_task_for(@scene)
+
+    status, body = post_apply(valid_attrs(repository_id: repo.id, my_module_id: task.id))
+    assert_equal 200, status, "body=#{body}"
+
+    app = Scinote::ElnUi::ResourceApplication.find_by(no: body['no'])
+    refute_nil app
+    assert_equal repo.id, app.repository_id, 'permit 名单漏了 repository_id → 目标库静默丢失'
+    assert_equal task.id, app.my_module_id, 'permit 名单漏了 my_module_id → 关联任务静默丢失'
+  end
+
+  # ⑦ 绑到别团队的库 → 422 业务提示（不是 500，也不是静默接受）
+  def test_binding_repository_from_other_team_returns_422
+    other_team = ::Team.create!(name: "other-#{SecureRandom.hex(3)}", created_by: @user)
+    other_repo = make_active_repository!(team: other_team, creator: @user)
+
+    status, body = post_apply(valid_attrs(repository_id: other_repo.id))
+    assert_equal 422, status, "body=#{body}"
+    assert_includes body['error'].to_s, '不属于当前团队'
+  end
+
+  # ⑧ 关联任务不在所选项目下 → 422（前端已按项目过滤，但接口不能只靠前端把关）
+  def test_binding_task_outside_project_returns_422
+    other_project = ::Project.create!(
+      team: @team, name: "other-proj-#{SecureRandom.hex(3)}", created_by: @user,
+      last_modified_by: @user, visibility: :hidden, template: false
+    )
+    other_exp = make_experiment!(project: other_project, creator: @user)
+    other_task = make_task!(experiment: other_exp, creator: @user)
+
+    status, body = post_apply(valid_attrs(my_module_id: other_task.id))
+    assert_equal 422, status, "body=#{body}"
+    assert_includes body['error'].to_s, '任务不属于该项目'
   end
 end

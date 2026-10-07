@@ -20,4 +20,52 @@
   );
 </script>
 <div id="eln-res-center"></div>
+
+<%# ------------------------------------------------------------------
+    资源台账页签 = **原生 Inventories 列表内嵌**（DEC-012「不新造外壳」）。
+    原页签自绘仓库卡片 + 「打开原生库存 →」跳 /repositories/:id，等于把原生列表
+    又抄了一份还抄不全（无排序/筛选/列自定义/归档/导出）—— 已按用户要求删掉。
+
+    ⚠⚠ 四条硬约束，改这块之前先读完（每条都踩过或已排除）：
+    1. **必须渲染在 #eln-res-center 外面**。原生 pack 的挂载方式是
+       `mountWithTurbolinks(app, '#repositoriesTable')` → `app.mount(el)`，
+       而 Vue3 的 mount 语义是「root 组件没有 render/template 时，拿 container.innerHTML
+       当模板」。所以 #repositoriesTable 必须在**该脚本执行的那一刻**已在 DOM 里；
+       若交给 Vue3 用 v-if 异步渲染，脚本跑到时 querySelector 返回 null → 整包崩。
+    2. **两个 script 标签都必须排在这个 div 之后**，且 eln_res_center.js 在前：
+       浏览器按解析顺序同步执行脚本 —— eln bundle 一跑，Vue3 setup 里
+       syncNativeRepoHost 的 immediate 回调就 getElementById('#eln-repositories-native')，
+       那一刻这个 div 必须**已经解析完**，否则首次进页面（默认/深链 ?tab=inventory）
+       台账是空的（切一次页签才恢复 —— 那种 bug 最难查）。
+    3. **显隐不能交给 Vue3**：这块 DOM 归原生 Vue3 app 所有，Vue3 只切外层容器的
+       style.display（见 ELN系统-Vue3/src/views/ResCenter.vue#syncNativeRepoHost）。
+       默认 display:none —— 页签真值只在 Vue3 一处（utils + activeTab），
+       视图里**不**重算一遍 ?tab=，否则两处真源。
+    4. DOM 顺序 = 「页头/页签（eln） → 原生列表」，正好是台账页签该有的位置。
+    四个 URL 逐字照抄 app/views/repositories/index.html.erb（同一个组件、同一批接口）；
+    active/archived 切换由 DataTable 用这两个 URL 整页跳回原生页 —— 归档视图
+    在 eln_ui 路由下没有实现，与其画一个假的归档筛选，不如让它走原生那条真路。
+%>
+<% if current_team %>
+  <div id="eln-repositories-native" style="display: none;">
+    <div class="content-pane flexible repositories-index">
+      <div class="content-body">
+        <div id="repositoriesTable" class="fixed-content-body">
+          <repositories-table
+            actions-url="<%= actions_toolbar_team_repositories_path(current_team) %>"
+            data-source="<%= repositories_path(format: :json) %>"
+            create-url="<%= repositories_path if can_create_repositories?(current_team) %>"
+            active-page-url="<%= repositories_path %>"
+            archived-page-url="<%= repositories_path(view_mode: :archived) %>"
+            current-view-mode="<%= params[:view_mode] || :active %>"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
 <%= javascript_include_tag 'eln_vue3/eln_res_center.js', nonce: content_security_policy_nonce %>
+<% if current_team %>
+  <%= javascript_include_tag 'vue_repositories_table', nonce: content_security_policy_nonce %>
+<% end %>

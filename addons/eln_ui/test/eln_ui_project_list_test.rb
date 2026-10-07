@@ -49,6 +49,42 @@ class ElnUiProjectListTest < AcTest::Base
     assert_equal 1, rows[:projects].size, 'template = NULL 的项目仍必须出现在列表里'
   end
 
+  # V1.32 修：访问权限列必须纳入「用户组授予」（闭合 SCN-PROJ-LIST-3）。
+  # 之前只读了个人 UA，组授予不显，导致「组员经组看到项目」在列里解释不了
+  # （正是 dy 经 epp小组 看到 PR36、却只显示 Owner 的一类对不齐）。
+  # 原生 prepare_assigned_users 同时拼个人 + 组，这里对齐。
+  def test_members_column_includes_user_group_assignments
+    scene   = build_scene!
+    team    = scene[:team]
+    project = scene[:project]
+    role    = UserRole.find_predefined_normal_user_role
+
+    group = UserGroup.create!(name: '访问权限列测试组', team: team,
+                               created_by: scene[:creator], last_modified_by: scene[:creator])
+    UserGroupAssignment.create!(
+      assignable: project,
+      team: team,
+      user_group: group,
+      user_role: role,
+      assigned: :manually
+    )
+
+    # 直接调 payload（与 test_template_projects_are_kept_when_column_is_null 同手法），
+    # 传 current_user 让 current_team_of 能取到当前团队、命中组的 team 过滤。
+    rows = Scinote::ElnUi::ProjectListPayload.call(
+      Project.where(id: project.id),
+      current_user: scene[:creator]
+    )
+    row = rows[:projects].find { |r| r[:id] == project.id.to_s }
+
+    group_entries = row[:members].select { |m| m[:kind] == 'group' }
+    refute_empty group_entries, '访问权限列必须出现用户组授予头像'
+    assert_equal "#{group.name} - #{role.display_name}", group_entries.first[:name],
+                 '组授予文案 = "组名 - 角色显示名"，与原生 user_group_name_with_role 同形'
+    # 个人 Owner 仍在（kind: 'user'），组授予是新增而非替换
+    assert(row[:members].any? { |m| m[:kind] == 'user' }, '个人成员未被组授予挤掉')
+  end
+
   def test_status_derives_from_started_and_done
     scene = build_scene!
     project = scene[:project]
@@ -482,6 +518,134 @@ class ElnUiProjectListTest < AcTest::Base
     end
   end
 
+  # ==================================================================
+  # V1.31 分页（spec SCN-PROJ-LIST-13）
+  #
+  # 分页是**服务端**行为（spec 明令：不得由前端对全量数据切片来假装分页），
+  # 所以两层都钉：
+  #   · 归一化层 —— 档位 / 页码这两个纯函数；
+  #   · 真 HTTP 层 —— controller 是不是真的切了片、totalEntries 是不是分页前的总数。
+  # ==================================================================
+
+  # 档位归一化：合法档位原样通过、非法一律回落 20。
+  #
+  # 🔴 为什么这条要钉死：spec 要求非法 per_page「不得报错、**不得退化为全量返回**」。
+  #   退化成全量是二次伤害 —— 前端页码控件会失真（明明 8 页，控件只认 1 页），
+  #   而且几百行一次塞进 DOM。回落 20 才是「安全的那一侧」。
+  #
+  # ⚠ `'0'` 与「空」必须分开处理：`0` 是**合法**档位（= 全部），空才是「没传、用默认」。
+  #   两者混淆就是「用户选了全部却只看到 20 条，页面毫无提示」这种静默失效。
+  #   （前端 buildListQuery 里那条「不能写 if (ui.perPage)」的注释是同一条约束的另一面。）
+  def test_per_page_normalization_keeps_zero_but_rejects_garbage
+    normalize = ->(raw) { Scinote::ElnUi::ProjectListPayload.normalize_per_page(raw) }
+
+    assert_equal 0, normalize.call('0'), '0 是合法档位 = 全部（不得被当成"空值"回落）'
+    assert_equal 20, normalize.call('20')
+    assert_equal 50, normalize.call(50), '整数入参也要认（内部调用不走 query string）'
+    assert_equal 100, normalize.call('100')
+
+    [nil, '', ' ', 'abc', '999', '-5', '20.5', '1e3'].each do |bad|
+      assert_equal 20, normalize.call(bad),
+                   "非法 per_page #{bad.inspect} 必须回落 20（不报错、更不得退化成全量）"
+    end
+  end
+
+  # 页码归一化：非整数 / 小于 1 / 空 → 第 1 页。
+  # ⚠ 越界页码（第 9999 页）**不在这里夹** —— 夹到最后一页会让「手改 URL」变成
+  #   「静默跳到最后一页」，反而误导；由 controller 返回空页（见下条 HTTP 用例）。
+  def test_page_normalization_falls_back_to_first_page
+    normalize = ->(raw) { Scinote::ElnUi::ProjectListPayload.normalize_page(raw) }
+
+    [nil, '', 'abc', '0', '-3', '1.5'].each do |bad|
+      assert_equal 1, normalize.call(bad), "非法 page #{bad.inspect} 一律当第 1 页"
+    end
+    assert_equal 3, normalize.call('3')
+    assert_equal 12, normalize.call(12)
+  end
+
+  # 分页块形状 —— 前端信息条与页码控件全靠它渲染
+  def test_pagination_block_reports_total_pages_and_options
+    pg = Scinote::ElnUi::ProjectListPayload.call(
+      Project.none, page: 2, per_page: 50, total_entries: 120
+    )[:pagination]
+
+    assert_equal 2, pg[:page]
+    assert_equal 50, pg[:perPage]
+    assert_equal [0, 20, 50, 100], pg[:perPageOptions],
+                 '档位集合必须由服务端下发 —— 前端不得写死第二份（同一事实只许一个真源）'
+    assert_equal 120, pg[:totalEntries], 'totalEntries = 筛选后总条数，不是当前页行数'
+    assert_equal 3, pg[:totalPages], '120 / 50 = 3 页'
+
+    assert_equal 1, Scinote::ElnUi::ProjectListPayload.call(
+      Project.none, per_page: 0, total_entries: 120
+    )[:pagination][:totalPages], '档位 0（全部）只有一页 → 前端不渲染页码控件'
+
+    assert_equal 20, Scinote::ElnUi::ProjectListPayload.call(Project.none)[:pagination][:perPage],
+                 '默认档位是 20 而不是 0 —— 默认全量会把几百行一次塞进 DOM'
+  end
+
+  # 真 HTTP：分页真的切片、totalEntries 是**分页前**的筛选后总数，
+  # 且「第 1 页 + 第 2 页」拼起来必须等同于全量（不重、不漏、顺序不变）。
+  # ⚠ 最后那条拼接断言是本用例的核心：只断「第 1 页有 20 行」的话，
+  #   一个「永远返回前 20 行」的实现也能过 —— 那是假绿。
+  def test_http_pagination_slices_and_preserves_order
+    scene = build_scene!
+    # 显式命名 → 排序稳定（scope 默认 order(name: :asc)），断言可复现。
+    # build_scene! 已建 1 个 → 共 24 个，稳稳多于一页。
+    23.times do |i|
+      make_project!(team: scene[:team], creator: scene[:creator])
+        .update!(name: format('PG%03d', i))
+    end
+
+    all = json_list(scene[:creator], per_page: '0')['projects']
+    assert_operator all.size, :>, 20,
+                    "本用例前提：可视项目要多于一页（当前 #{all.size} 个）—— 前提不成立时下面全是假绿"
+
+    page1 = json_list(scene[:creator], page: '1', per_page: '20')
+    assert_equal 20, page1['projects'].size, '第 1 页给满 20 行 —— 分页真的生效了'
+    assert_equal all.size, page1['pagination']['totalEntries'],
+                 'totalEntries 是分页**前**的筛选后总数（不是当前页行数）'
+    assert_equal (all.size.to_f / 20).ceil, page1['pagination']['totalPages']
+
+    page2 = json_list(scene[:creator], page: '2', per_page: '20')
+    assert_equal all.size - 20, page2['projects'].size, '第 2 页给剩下的'
+
+    assert_equal all.map { |r| r['id'] },
+                 page1['projects'].map { |r| r['id'] } + page2['projects'].map { |r| r['id'] },
+                 '分页不得漏行 / 重复行 / 改变顺序'
+  end
+
+  # 越界页码返回空页而不是 500。
+  # 🔴 这是 `Array#slice(offset, per)` 的经典坑：offset 超过数组长度时返回 **nil**，
+  #   不兜住的话 projects_block 会在 nil 上炸 —— 而**用户手改一下 URL 就能触发**，
+  #   属于最容易漏测的崩溃路径。
+  def test_http_out_of_range_page_returns_empty_not_500
+    scene = build_scene!
+
+    s = ActionDispatch::Integration::Session.new(Rails.application)
+    Warden.on_next_request { |proxy| proxy.set_user(scene[:creator], scope: :user) }
+    s.get('/eln_project_list', params: { page: '9999', per_page: '20', format: :json })
+
+    assert_equal 200, s.response.status, '越界页码必须 200 + 空列表（不是 500）'
+    assert_empty JSON.parse(s.response.body)['projects']
+  end
+
+  # 非法 per_page 走真 HTTP：必须 200、且**不得**返回全量。
+  # ⚠ 与上面那条纯函数用例的区别：这条证明「回落在 controller 到 payload 的整条链上都生效」，
+  #   纯函数对而链路断（比如 controller 忘了把归一化后的值传下去）在这里会红。
+  def test_http_illegal_per_page_falls_back_without_full_scan
+    scene = build_scene!
+    23.times do |i|
+      make_project!(team: scene[:team], creator: scene[:creator])
+        .update!(name: format('PT%03d', i))
+    end
+
+    res = json_list(scene[:creator], per_page: '9999')
+    assert_equal 20, res['projects'].size, '非法档位回落 20 —— 不是全量、也不是报错'
+    assert_equal 20, res['pagination']['perPage'], '回落后前端要看到 20（否则下拉与真实取数对不上）'
+    assert_operator res['pagination']['totalEntries'], :>, 20, 'totalEntries 仍是筛选后总数'
+  end
+
   private
 
   # 与 ProjectListController#filtered_projects 完全同款的调用方式。
@@ -507,6 +671,18 @@ class ElnUiProjectListTest < AcTest::Base
       can_create_project: true,
       current_user: scene[:creator]
     )[:projects]
+  end
+
+  # json 出口（/eln_project_list.json）—— 分页 / 筛选 / 排序的用例都走它。
+  # ⚠ 这里**必须自带 200 断言**：不加的话，一旦端点 500 或 302 到首页，
+  #   JSON.parse 会抛一个与真实问题无关的解析错（或者更糟：把登录页 HTML 解析成
+  #   空对象、用例"过"了）——两种都会把「端点挂了」伪装成别的问题。
+  def json_list(user, params = {})
+    s = ActionDispatch::Integration::Session.new(Rails.application)
+    Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+    s.get('/eln_project_list', params: params.merge(format: :json))
+    assert_equal 200, s.response.status, "json 出口必须 200（params=#{params.inspect}）"
+    JSON.parse(s.response.body)
   end
 
   def open_list(user)
