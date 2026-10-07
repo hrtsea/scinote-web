@@ -71,22 +71,48 @@ module AcTest
   class << self
     # 一次性准备环境（事务外，幂等）
     def prepare!
-      ensure_strategy_column!
+      ensure_strategy_table!
+      ensure_grant_table!
       ensure_predefined_roles!
       seed_admin!
       ensure_custom_roles!
     end
 
-    # 本实例的 addon 迁移跑不通（db:migrate 被 2 个 down 的 ai_eln 迁移卡住），
-    # 生产库当年是裸 SQL 加的列 —— test 库同样处理。
-    def ensure_strategy_column!
-      return if ActiveRecord::Base.connection.columns(:projects).map(&:name)
-                                  .include?('experiment_visibility_strategy')
+    # 同上：grant 表是 addon 自有表，test 库也跑不了 db:migrate，裸 SQL 建一个。
+    # 结构必须与 db/migrate/20261005203000_create_access_control_manual_grants.rb 一致
+    # —— 两处对不上时，测试绿而生产红，是最难查的那种假绿。
+    def ensure_grant_table!
+      conn = ActiveRecord::Base.connection
+      return if conn.table_exists?('access_control_manual_grants')
 
-      ActiveRecord::Base.connection.add_column(
-        :projects, :experiment_visibility_strategy, :integer, default: 0, null: false
-      )
-      Project.reset_column_information
+      conn.create_table :access_control_manual_grants do |t|
+        t.bigint :experiment_id, null: false
+        t.bigint :user_id,       null: false
+        t.integer :scope,        null: false, default: 0
+        t.bigint :granted_by_id
+        t.boolean :was_manual,   null: false, default: false
+        t.timestamps
+      end
+      conn.add_index :access_control_manual_grants, %i[experiment_id user_id scope],
+                     unique: true, name: 'idx_ac_manual_grants_on_exp_user_scope'
+      conn.add_index :access_control_manual_grants, :user_id,
+                     name: 'idx_ac_manual_grants_on_user'
+    end
+
+    # OPEN-11：策略真源已从原生列搬到 addon 自有表，所以这里建的是**表**不是列。
+    # 同样是裸 SQL —— 本实例的 addon 迁移跑不通（db:migrate 被 2 个 ai_eln 的
+    # down 迁移卡住），结构与 migration 必须手工保持一致。
+    def ensure_strategy_table!
+      conn = ActiveRecord::Base.connection
+      return if conn.table_exists?('access_control_project_strategies')
+
+      conn.create_table :access_control_project_strategies do |t|
+        t.bigint  :project_id, null: false
+        t.integer :strategy,   null: false, default: 0
+        t.timestamps
+      end
+      conn.add_index :access_control_project_strategies, :project_id,
+                     unique: true, name: 'idx_ac_project_strategies_on_project'
     end
 
     def ensure_predefined_roles!
@@ -221,7 +247,7 @@ module AcTest
                       created_by: creator,
                       last_modified_by: creator,
                       visibility: visibility)
-      p.experiment_visibility_strategy = strategy if strategy
+      p.ac_visibility_strategy = strategy if strategy
       p.save!
       p
     end
@@ -263,7 +289,7 @@ module AcTest
     end
 
     def matrix(project)
-      Scinote::AccessControl::VisibilityMatrixService.call(project)
+      Scinote::AccessControl::VisibilityMatrixService.new(project).call
     end
 
     def cell(project, user, experiment)
@@ -271,11 +297,11 @@ module AcTest
     end
 
     def grant!(experiment, user, scope: :experiment)
-      experiment.send(:grant_member_visibility!, user, scope: scope)
+      experiment.grant_member_visibility(user, scope: scope)
     end
 
     def revoke!(experiment, user, scope: :experiment)
-      experiment.send(:revoke_member_visibility!, user, scope: scope)
+      experiment.revoke_member_visibility(user, scope: scope)
     end
   end
 end

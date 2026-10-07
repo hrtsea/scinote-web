@@ -13,16 +13,12 @@
 require_relative 'test_helper'
 
 class D5BackfillTest < AcTest::Base
-  def backfill!(project, assigner)
-    Scinote::AccessControl::VisibilityMatrixService.backfill!(project, assigner: assigner)
-  end
-
   def test_backfill_refuses_while_isolated
     scene = build_scene!(strategy: :isolated)
 
-    result = backfill!(scene[:project], scene[:creator])
+    result = scene[:project].backfill_inherited_assignments!(by: scene[:creator])
 
-    assert_equal 'not_inherit', result[:skipped],
+    assert_equal :not_inherit, result[:skipped],
                  'isolated 下不该提供「一键补继承」——那等于给个自相矛盾的按钮'
   end
 
@@ -35,8 +31,8 @@ class D5BackfillTest < AcTest::Base
     refute can_read?(exp, member),  '前置：isolated 下成员看不到'
     refute can_read?(task, member), '前置：任务也看不到'
 
-    scene[:project].update!(experiment_visibility_strategy: :inherit)
-    result = backfill!(scene[:project], scene[:creator])
+    scene[:project].ac_visibility_strategy = :inherit
+    result = scene[:project].backfill_inherited_assignments!(by: scene[:creator])
 
     assert result[:backfilled], "补回应成功，实际：#{result.inspect}"
     assert_equal 1, result[:experiments]
@@ -55,8 +51,8 @@ class D5BackfillTest < AcTest::Base
     manual_role = ua_for(exp, member).user_role.name
     assert_equal 'manually', ua_for(exp, member).assigned
 
-    scene[:project].update!(experiment_visibility_strategy: :inherit)
-    backfill!(scene[:project], scene[:creator])
+    scene[:project].ac_visibility_strategy = :inherit
+    scene[:project].backfill_inherited_assignments!(by: scene[:creator])
 
     row = ua_for(exp, member)
     assert_equal manual_role, row.user_role.name, '手动放行过的格子不该被补回覆盖'
@@ -66,8 +62,8 @@ class D5BackfillTest < AcTest::Base
   def test_backfill_needs_an_assigner
     scene = build_scene!(strategy: :inherit)
 
-    result = backfill!(scene[:project], nil)
+    result = scene[:project].backfill_inherited_assignments!(by: nil)
 
-    assert_equal 'no_assigner', result[:skipped]
+    assert_equal :no_assigner, result[:skipped]
   end
 end

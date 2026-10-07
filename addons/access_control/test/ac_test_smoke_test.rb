@@ -1,15 +1,17 @@
 # frozen_string_literal: true
 #
 # 基础设施自检 —— 先于所有业务测试跑通。
-# 验的是「环境搭起来了没有」：策略列、角色 seed、以及能否凭空搭出一个场景。
+# 验的是「环境搭起来了没有」：策略表、角色 seed、以及能否凭空搭出一个场景。
 # 它挂了说明是测试环境问题，不是 addon 回归。
 
 require_relative 'test_helper'
 
 class AcTestSmokeTest < AcTest::Base
-  def test_strategy_column_exists
-    cols = ActiveRecord::Base.connection.columns(:projects).map(&:name)
-    assert_includes cols, 'experiment_visibility_strategy'
+  # OPEN-11：策略真源已从原生 projects 列搬进 addon 自有表，
+  # 所以这里验的是**表在不在**，不再是列在不在。
+  def test_strategy_table_exists
+    assert ActiveRecord::Base.connection.table_exists?('access_control_project_strategies'),
+           'access_control_project_strategies 表缺失 —— 策略真源（OPEN-11）'
   end
 
   def test_predefined_roles_exist

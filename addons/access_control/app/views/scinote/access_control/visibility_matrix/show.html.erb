@@ -13,7 +13,10 @@
       <%= t('scinote_access_control.visibility_matrix.hint') %>
     </p>
 
-    <% if @project.respond_to?(:experiment_visibility_strategy) %>
+    <%# 策略开关。原先套了一层 respond_to?(:experiment_visibility_strategy) 守卫
+        （列不存在就整块不渲染）；OPEN-11 把真源搬到 addon 自有表后，
+        表的存在由启动时的 Scinote::AccessControl.verify! 兜住 ——
+        运行时再探一次只会把「表没建好」变成静默少一块界面。 %>
       <div class="card mb-3" id="acStrategyCard">
         <div class="card-body py-2">
           <div class="d-flex align-items-center flex-wrap gap-3">
@@ -45,7 +48,6 @@
           <div class="form-text small mt-1" id="acStrategyHint"></div>
         </div>
       </div>
-    <% end %>
 
     <% unless @enabled %>
       <div class="alert alert-warning">

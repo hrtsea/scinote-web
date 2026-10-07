@@ -19,59 +19,41 @@
 module Scinote
   module AccessControl
     module MyModuleVisibility
+      def self.prepended(base)
+        base.include Scinote::AccessControl::AnchorAssignment
+
+        # :save, :after 而不是 :create, :after —— save 在 create 之后，保证
+        # native create_user_assignments! (assignable.rb:150-152) 先于本钩子跑完。
+        base.after_save :add_creator_task_owner_assignment!
+      end
+
       private
 
-      def add_creator_task_owner_assignment!
-        return if skip_access_control_visibility
-        return unless Scinote::AccessControl.enabled?
+        def add_creator_task_owner_assignment!
+          return unless Scinote::AccessControl.enabled?
 
-        creator_id = created_by_id
-        return if creator_id.blank?
+          creator_id = created_by_id
+          return if creator_id.blank?
 
-        task_role = UserRole.find_by(name: 'task_owner', predefined: false)
-        return if task_role.nil?
+          task_role = ac_role('task_owner')
+          return if task_role.nil?
 
-        team_id_value = experiment&.project&.team_id
-        return if team_id_value.blank?
+          team_id_value = ac_team_id_of(experiment&.project&.team_id)
+          return if team_id_value.blank?
 
-        existing = user_assignments.find_by(user_id: creator_id, team_id: team_id_value)
+          # native 已建行就先看看够不够（含 task_read → 不动）；缺 task_* 就升级成 task_owner
+          # （覆盖 experiment_owner 这类不带 task_* 的角色）。没有行才新建。
+          existing = user_assignments.find_by(user_id: creator_id, team_id: team_id_value)
+          return if (existing&.user_role&.permissions || []).include?('task_read')
 
-        if existing
-          # native 已创建 UA；检查是否含 task_read
-          perms = existing.user_role&.permissions || []
-          if perms.include?('task_read')
-            # 已有足够权限，不动
-            return
-          end
-          # 升级 role 为 task_owner（覆盖 experiment_owner 等不带 task_* 的角色）
-          existing.update!(user_role: task_role, assigned: :manually, assigned_by_id: creator_id)
-        else
-          # native 没创建直接 UA（走了 group/team 分支）——补一个 task_owner manual UA
-          user_assignments.create!(
-            user_id: creator_id,
-            user_role: task_role,
-            assigned: :manually,
-            assigned_by_id: creator_id,
-            team_id: team_id_value
-          )
+          ac_anchor_row!(task_role, creator_id, team_id_value, assigned: :manually, assigned_by_id: creator_id)
         end
-      end
     end
   end
 end
 
+# 一行守卫就够：开发模式 to_prepare 走 load 会重跑本文件，不 return 就重复注册回调。
 unless MyModule.instance_variable_get(:@access_control_loaded)
   MyModule.instance_variable_set(:@access_control_loaded, true)
-
-  MyModule.class_eval do
-    attr_accessor :skip_access_control_visibility
-  end
-
-  # set_callback(:save, :after) 而非 :create, :after ——save 在 create 之后，保证
-  # native create_user_assignments! (assignable.rb:150-152) 先于本钩子跑完。
-  MyModule.set_callback(:save, :after, :add_creator_task_owner_assignment!)
-
-  unless MyModule.method_defined?(:add_creator_task_owner_assignment!)
-    MyModule.prepend(Scinote::AccessControl::MyModuleVisibility)
-  end
+  MyModule.prepend(Scinote::AccessControl::MyModuleVisibility)
 end

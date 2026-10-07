@@ -46,8 +46,9 @@ module Scinote
 
         project = experiment.project
         return super if project.nil?
-        return super unless project.respond_to?(:isolated?)
-        return super unless project.isolated?
+        # ac_isolated? 的真源是 addon 自有表（OPEN-11），表的存在由
+        # Scinote::AccessControl.verify! 在启动时兜住，这里不用再探一次。
+        return super unless project.ac_isolated?
 
         allowed = ac_isolation_allowed_user_ids(project, experiment)
 
@@ -58,8 +59,11 @@ module Scinote
         end
 
         # 组 / 团队指派：隔离模式下不放行（见文件头说明）
-        Rails.logger.info "[access_control] isolated project ##{project.id}: " \
-                          "skipped group/team inheritance for experiment ##{experiment.id}"
+        #
+        # 特意是 debug：这行每建一个实验就写一条，info 级会淹没 production.log ——
+        # 「按实验逐条打日志」的噪音比它携带的信息值钱得多，真排查时开 debug 就有。
+        Rails.logger.debug { "[access_control] isolated project ##{project.id}: " \
+                              "skipped group/team inheritance for experiment ##{experiment.id}" }
       end
     end
   end
@@ -68,12 +72,11 @@ end
 unless Project.instance_variable_get(:@access_control_strategy_loaded)
   Project.instance_variable_set(:@access_control_strategy_loaded, true)
 
-  # 不加 prefix：想用的是 Project#isolated? / Project#inherit? 这种短名。
-  # （若以后撞了宿主方法再加 prefix，目前 Project 上无同名方法。）
-  Project.class_eval do
-    enum :experiment_visibility_strategy, { inherit: 0, isolated: 1 }
-  end
-
+  # ⚠ OPEN-11：策略值不再从原生列读（原先这里有一句
+  #   `Project.class_eval { enum :experiment_visibility_strategy, ... }`）。
+  #   真源已搬到 addon 自有表，读写面在 project_strategy_access_decorator.rb
+  #   （`Project#ac_visibility_strategy` / `#ac_isolated?` / `#ac_inherit?`）。
+  #   本文件现在只管「在 job 里拦截继承」这一件事。
   unless UserAssignments::InheritUserAssignmentsJob
                                           .ancestors
                                           .include?(Scinote::AccessControl::VisibilityStrategy)
