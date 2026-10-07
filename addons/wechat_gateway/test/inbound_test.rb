@@ -29,8 +29,11 @@ end
 # 加密 inner XML -> 外层 <xml><Encrypt> + 计算 msg_signature
 def wrap_wecom(corpid, aeskey, token, inner_xml)
   enc = Scinote::WechatGateway::WecomCrypto.encrypt(inner_xml, corpid, aeskey)
+  # ⚠ CDATA 闭合必须是 `]]>`（两重方括号）不是 `]>`：WecomCrypto.extract_encrypt 是
+  #   字符串索引找 `]]>`（企微协议即如此），写成 `]>` 时 s.index(']]>', ...) 恒 nil，
+  #   抛 'missing <Encrypt>' —— 3 个 Inbound 用例全红，看着像加解密链路炸了，其实只因少一个方括号。
   outer = "<xml><ToUserName><![CDATA[#{corpid}]]></ToUserName>" \
-          "<Encrypt><![CDATA[#{enc}]></Encrypt></xml>"
+          "<Encrypt><![CDATA[#{enc}]]></Encrypt></xml>"
   sig = Digest::SHA1.hexdigest([token, '1700000000', 'n0nce', enc].sort.join)
   [outer, { timestamp: '1700000000', nonce: 'n0nce', msg_signature: sig }]
 end
