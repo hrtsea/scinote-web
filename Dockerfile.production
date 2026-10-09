@@ -115,25 +115,26 @@ RUN grep -q '^httpTimeout:' .yarnrc.yml || printf 'httpTimeout: 15000\nhttpRetry
 # tailwindcss:build 依赖 Rails environment，缺 SECRET_KEY_BASE 会报
 # "ArgumentError: Missing `secret_key_base` for 'production'"，故每步显式注入 dummy
 #
-# ⚠ NODE_OPTIONS 内存上限：本机 Docker 只有 3.8GB，而全量 `yarn build`（~110 entry）
-# 的 webpack 峰值常在 2~4GB，撑满后 buildkit 守护进程会被 OOM 杀掉，表现为
-# `failed to solve: Unavailable: error reading from server: EOF` —— **不是 Dockerfile 错误**，
-# 是资源天花板。用 --max-old-space-size 把堆限制在容器内可控范围，超出即 GC 而非被 kill。
-# 同时降并行度（webpack 的 terser 是主要的内存放大器）。
+# ⚠ NODE_OPTIONS 内存上限：全量 `yarn build`（106 个 entry，pdfjs-dist 35MB /
+#   tinymce 8.3MB 是大头）的 webpack 峰值常在 2~4GB，堆给小了会退化�� GC 抖动
+#   （实测在 4GB Docker 上跑 5h51m 未编译完）。
+#   **前提是 Docker 本身要给够**：WSL2 后端下上限来自 `~/.wslconfig` 的 `memory=`
+#   （不是 Settings → Resources 面板！），且改完必须 `wsl --shutdown` 才生效。
+#   这里给 6GB 堆：容器内 12GB 里留一半给系统/其他进程，webpack 不因 GC 被拖慢。
 RUN \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn install && \
-  NODE_OPTIONS="--max-old-space-size=2400 --dns-result-order=ipv4first" \
+  NODE_OPTIONS="--max-old-space-size=6144 --dns-result-order=ipv4first" \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn build && \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn build:css && \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy rails tailwindcss:build && \
   rm -rf vendor/git-mirror
 
-# i18n:js:export + assets:precompile（同一约束：Sprockets 聚合 ~110 entry 的 manifest 同样吃内存）
+# i18n:js:export + assets:precompile（Sprockets 聚合 106 entry 的 manifest 同样吃内存）
 RUN \
   DATABASE_URL=postgresql://postgres@db/scinote_production \
   SECRET_KEY_BASE=dummy \
   DEFACE_ENABLED=true \
-  NODE_OPTIONS="--max-old-space-size=2400" \
+  NODE_OPTIONS="--max-old-space-size=6144" \
   bash -c "rails i18n:js:export && rails assets:precompile && rails deface:precompile && rm -rf ./tmp/cache"
 
 # Final stage
