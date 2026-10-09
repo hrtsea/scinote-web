@@ -161,7 +161,7 @@ gem 'tzinfo-data', platforms: %i(mingw mswin x64_mingw jruby)
 #     ⇒ 停用 i18n 不会让宿主报 NameError，仅失去语言切换入口。
 #
 # gem 'scinote_i18n',           path: 'addons/i18n'              # 语言切换
-# gem 'scinote_ai_protocols',   path: 'addons/ai_protocols'      # AI Protocol
+gem 'scinote_ai_protocols',   path: 'addons/ai_protocols'      # AI Protocol
 # gem 'scinote_esignatures',    path: 'addons/esignatures'       # 电子签名
 # gem 'scinote_project_insights', path: 'addons/project_insights' # 项目洞察
 # gem 'scinote_ai_eln',         path: 'addons/ai_eln'            # AI ELN（本就暗挂载：AI_ELN_ENABLED=false）
