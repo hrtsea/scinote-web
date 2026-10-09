@@ -470,14 +470,17 @@ module Scinote
       end
 
       def folder_info(folder)
-        projects_count = folder.respond_to?(:projects_count) ? folder.projects_count : nil
-        folders_count = folder.respond_to?(:folders_count) ? folder.folders_count : nil
+        # ⚠ ProjectFolder 模型没有 projects_count / folders_count 列或方法
+        # （只有 has_many :projects / :project_folders，见 app/models/project_folder.rb），
+        # 故用关联 count 实时算。folder 行数量通常个位数，N+1 可接受；
+        # 后续若文件夹量级变大再在 payload 装配处预加载 counts。
+        # 文案直接拼中文：宿主 en.yml 有 projects.index.folder.description 且开启 i18n
+        # fallback，中文界面会优先吃英文键；eln 以中文部署为主，直接拼中文最稳。
+        projects_count = folder.projects.count
+        folders_count = folder.project_folders.count
         return nil if projects_count.nil? || folders_count.nil?
 
-        ::I18n.t('projects.index.folder.description',
-                 projects_count: projects_count.to_i,
-                 folders_count: folders_count.to_i,
-                 default: '%{projects_count} 个项目 | %{folders_count} 个文件夹')
+        "#{projects_count.to_i} 个项目 | #{folders_count.to_i} 个文件夹"
       rescue StandardError => e
         Rails.logger.warn("[eln_ui] folder info failed: #{e.class}: #{e.message}")
         nil
