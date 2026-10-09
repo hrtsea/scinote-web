@@ -313,16 +313,35 @@ module Scinote
         record.instance_of?(::Project)
       end
 
-      # 当前用户是否收藏了该项目（per-user，见 ProjectStar 模型 / 迁移）。
-      # ⚠ 一次性 pluck 出当前用户全部收藏 project_id 并 memoize，避免每行一次 EXISTS 查询。
-      #   无 current_user（原型独立跑 / 无请求上下文）一律 false。
-      def starred_by_user?(project)
-        return false unless current_user
+      # 当前用户是否收藏了该项目 —— 复用宿主原生 favorites 机制（public.favorites 多态表 +
+      #   Favorite 模型 + POST /projects/:id/favorite|unfavorite 端点，与 /projects 页同源）。
+      # ⚠ 不再自建 eln_ui_project_stars 表：否则 /projects 与 /eln_project_list 两套收藏
+      #   数据分裂（在 A 列表收藏的不在 B 列表显示，违反「原生已有收藏」预期）。
+      # ⚠ 一次性 pluck 出当前用户全部收藏的 Project id 并 memoize，避免每行一次 EXISTS 查询。
+      #   无 current_user（原型独立跑 / 无请求上下文）一律空数组 → false。
+      def favorite_project_ids
+        return @favorite_project_ids if defined?(@favorite_project_ids)
 
-        @starred_project_ids ||= ::Scinote::ElnUi::ProjectStar
-                                 .where(user_id: current_user.id)
-                                 .pluck(:project_id)
-        @starred_project_ids.include?(project.id)
+        @favorite_project_ids = if current_user
+                                  ::Favorite
+                                    .where(user: current_user, item_type: 'Project')
+                                    .pluck(:item_id)
+                                else
+                                  []
+                                end
+      end
+
+      def starred_by_user?(project)
+        favorite_project_ids.include?(project.id)
+      end
+
+      # 宿主原生收藏端点（相对路径，前端 axios.post 同源即可；无需 absolute url 规避 host 配置）。
+      def favorite_url_for(project)
+        Rails.application.routes.url_helpers.favorite_project_path(project)
+      end
+
+      def unfavorite_url_for(project)
+        Rails.application.routes.url_helpers.unfavorite_project_path(project)
       end
 
       def project_row(project, index)
@@ -343,8 +362,11 @@ module Scinote
           # 行类型判别字段（原生 `Lists::ProjectAndFolderSerializer#folder` 同名字段）。
           folder: false,
           name: project.name.to_s,
-          # 收藏星标（ADR-0038-A）：per-user 真实值，由 starred_by_user? 判定（非恒 false）。
-          starred: starred_by_user?(project),
+          # 收藏星标（ADR-0038-A 修订：复用宿主 favorites）：per-user 真实值，
+          # 与 /projects 页同源（同一份 public.favorites 数据），前端复用宿主 FavoriteRenderer。
+          favorite: starred_by_user?(project),
+          # 切换端点（宿主原生）：前端复用宿主 FavoriteRenderer，由其父组件 POST 此 url。
+          urls: { favorite: favorite_url_for(project), unfavorite: unfavorite_url_for(project) },
           status: status_of(project),
           startDate: date(project.respond_to?(:start_date) ? project.start_date : nil),
           due: date(project.respond_to?(:due_date) ? project.due_date : nil),
@@ -416,7 +438,7 @@ module Scinote
           # 「打开」项在文件夹行里的落点就是 drillUrl（见前端 menuItemsFor）。
           detailUrl: folder_url_for(folder),
           archived: folder.respond_to?(:archived) ? !!folder.archived : false,
-          starred: false,
+          favorite: false,
           status: nil,
           startDate: nil,
           due: nil,

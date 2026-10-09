@@ -57,24 +57,6 @@ module Scinote
         render json: { data: rows, meta: meta }
       end
 
-      # ADR-0038-A 收藏星标切换（per-user）：PATCH /eln_project_list/:id/star
-      # ⚠ 必须限定 current_team：直接 Project.find 会跨团队拿到别人的项目（本项目铁律：权限先问承载面）。
-      #   端点返回最新 starred 布尔，前端渲染器据此最终落态（乐观更新 + 失败回滚）。
-      def toggle_star
-        project = current_team.projects.find(params[:id])
-        star = ::Scinote::ElnUi::ProjectStar.find_by(user: current_user, project: project)
-        starred = if star
-                    star.destroy
-                    false
-                  else
-                    ::Scinote::ElnUi::ProjectStar.create!(user: current_user, project: project)
-                    true
-                  end
-        render json: { starred: starred }
-      rescue ActiveRecord::RecordNotFound
-        head :not_found
-      end
-
       private
 
       # ------------------------------------------------------------

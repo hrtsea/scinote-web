@@ -32,6 +32,7 @@
     :skip-save-table-state="false"
     @create="onToolbarAction"
     @create_folder="onToolbarAction"
+    @updateFavorite="updateFavorite"
   >
     <!-- 卡片视图：去掉 table-only 后启用。宿主表格的卡片区是具名插槽 #card，
          不传就是一片空白 —— 必须自带卡面（且必须是 ELN 行形状的卡面）。 -->
@@ -77,14 +78,16 @@ import ElnStatusRenderer from './renderers/status_renderer.vue';
 import ElnProgressRenderer from './renderers/progress_renderer.vue';
 import ElnMembersRenderer from './renderers/members_renderer.vue';
 import ElnRowMenuRenderer from './renderers/row_menu_renderer.vue';
-// ADR-0038-A 收藏星标列渲染器（自带 params.api 乐观刷新，不依赖父组件 gridApi）
-import ElnFavoriteRenderer from './renderers/favorite_renderer.vue';
+// 收藏星标列：直接复用宿主原生 FavoriteRenderer（shared/datatable/renderers/favorite.vue），
+// 与 /projects 页同一份数据（public.favorites）+ 同一外观。渲染器点击后通过
+// params.dtComponent.$emit('updateFavorite') 抛给本组件，由本组件 POST 宿主端点并刷新。
+import HostFavoriteRenderer from 'shared/datatable/renderers/favorite.vue';
 // 拉取 UI 标志用的 axios（宿主 custom_axios，自动注入 CSRF）
 import axios from 'custom_axios';
 
 export default {
   name: 'ElnProjectList',
-  components: { DataTable, ProjectFormModal, NewFolderModal, ProjectCard, ElnFavoriteRenderer },
+  components: { DataTable, ProjectFormModal, NewFolderModal, ProjectCard, HostFavoriteRenderer },
   data() {
     return {
       // 注意：tableId 会拼成 user_settings 的 key（stateKey = `${tableId}_${viewMode}_table_state`），
@@ -104,10 +107,10 @@ export default {
       newFolder: false,
       columnDefs: [
         {
-          // 收藏星标列（ADR-0038-A）：点击切换，per-user 持久化。
-          // field 命中 payload 下发的 starred（项目行真实值；文件夹行恒 false 由渲染器隐藏）。
+          // 收藏星标列（ADR-0038-A 修订：复用宿主 favorites）：field 命中 payload 下发的
+          // favorite（项目行真实值；文件夹行 favorite:false 且无 urls.favorite ⇒ 宿主渲染器隐藏按钮）。
           headerName: '',
-          field: 'starred',
+          field: 'favorite',
           colId: 'favorite',
           width: 46,
           minWidth: 46,
@@ -115,7 +118,7 @@ export default {
           sortable: false,
           resizable: false,
           suppressMovable: true,
-          cellRenderer: ElnFavoriteRenderer,
+          cellRenderer: HostFavoriteRenderer,
           cellStyle: { padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }
         },
         {
@@ -264,6 +267,20 @@ export default {
       if (this.$refs.dt && typeof this.$refs.dt.reloadTable === 'function') {
         this.$refs.dt.reloadTable();
       }
+    },
+    // 复用宿主收藏端点（与 /projects 页同源 public.favorites）：宿主 FavoriteRenderer 点击后
+    // 通过 dtComponent.$emit('updateFavorite', value, params) 抛到此处，POST 对应 url 后刷新网格。
+    updateFavorite(value, params) {
+      const url = value ? params.data.urls.favorite : params.data.urls.unfavorite;
+      if (!url) return;
+      axios
+        .post(url)
+        .then(() => {
+          if (this.$refs.dt && typeof this.$refs.dt.reloadTable === 'function') {
+            this.$refs.dt.reloadTable();
+          }
+        })
+        .catch(() => {});
     }
   }
 };
