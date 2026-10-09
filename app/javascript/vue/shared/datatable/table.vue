@@ -540,12 +540,20 @@ export default {
       axios.get(user_setting_path(this.stateKey))
         .then((response) => {
           if (response.data.value) {
-            this.tableState = response.data.value;
-            this.currentViewRender = this.tableOnly ? 'table' : this.tableState.currentViewRender;
-            this.perPage = this.tableState.perPage;
-            this.order = this.tableState.order;
-            if (this.currentViewRender === 'cards') {
-              this.initializing = false;
+            // 列状态迁移（ADR-0040）：已存状态的「列身份集合」与当前 columnDefs 不符
+            // （增/删/改名了一列）即作废旧状态，改由 columnDefs 驱动默认布局——
+            // 否则旧状态会抑制新增列、或把已删列当成隐藏列残留。
+            // 比较时排除运行时列（checkbox 由表格运行时追加，不在 columnDefs 内）。
+            if (this.staleState(response.data.value)) {
+              this.tableState = null;
+            } else {
+              this.tableState = response.data.value;
+              this.currentViewRender = this.tableOnly ? 'table' : this.tableState.currentViewRender;
+              this.perPage = this.tableState.perPage;
+              this.order = this.tableState.order;
+              if (this.currentViewRender === 'cards') {
+                this.initializing = false;
+              }
             }
           }
           this.stateLoading = false;
@@ -586,6 +594,32 @@ export default {
         }
       }, 200);
     },
+    // 列状态迁移（ADR-0040）—— 列身份签名与陈旧判定。
+    // 以 columnDefs 的 colId 集合为「列结构指纹」与已存状态的列集合比对：
+    // 不一致即说明增/删/改名过列，旧状态应作废。
+    colSignature() {
+      return this.columnDefs
+        .map((c) => c.colId || c.field)
+        .filter(Boolean)
+        .sort()
+        .join('|');
+    },
+    storedSignature(state) {
+      // 去掉**运行时追加、不在 columnDefs 内**的辅助列，否则每次都判 stale：
+      //   - `ag-Grid-ControlsColumn`：AG Grid v32 行选择/控件列（旧版此处叫 `checkbox`）；
+      //   - `checkbox`：兼容早期版本的命名。
+      const RUNTIME_COL_IDS = ['checkbox', 'ag-Grid-ControlsColumn'];
+      return (state.columnsState || [])
+        .map((c) => c.colId)
+        .filter((id) => id && !RUNTIME_COL_IDS.includes(id))
+        .sort()
+        .join('|');
+    },
+    staleState(state) {
+      if (!state || !state.columnsState) return false;
+      // 老状态无 colSig：用「列集合是否一致」判定，避免旧 stale 状态永远不被作废。
+      return this.storedSignature(state) !== this.colSignature();
+    },
     saveTableState() {
       if (this.initializing || this.skipSaveTableState) {
         return;
@@ -602,7 +636,10 @@ export default {
         columnsState,
         order: this.order,
         currentViewRender: this.currentViewRender,
-        perPage: this.perPage
+        perPage: this.perPage,
+        // 列身份签名：当前 columnDefs 的 colId 集合（排序后）。供下次 fetch 比对，
+        // 发现列结构变化即作废旧状态（见 staleState）。老用户无此字段的状态向后兼容——照常保留。
+        colSig: this.colSignature()
       };
 
       let checkboxColumn = columnsState.find((column) => column.colId === 'checkbox');
