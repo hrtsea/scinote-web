@@ -14,7 +14,9 @@
 %>
 <% provide(:head_title, '工作台') %>
 
-<link rel="stylesheet" href="<%= asset_path 'workbench_vue3/eln_workbench.css' %>">
+<%# CSS / JS 改为宿主 webpack 构建产物（entry: eln_workbench，真源在 eln_ui addon 的 app/javascript/vue/eln/）。
+    产物在 app/assets/builds/eln_workbench.{js,css}，workbench addon 视图直接引用 eln_ui 构建出的资产。 %>
+<%= stylesheet_link_tag 'eln_workbench', media: 'all' %>
 <script type="application/json" id="eln-workbench-data" nonce="<%= content_security_policy_nonce %>">
   <%= raw json_escape(@payload.to_json) %>
 </script>
@@ -24,4 +26,4 @@
   );
 </script>
 <div id="eln-workbench"></div>
-<%= javascript_include_tag 'workbench_vue3/eln_workbench.js', nonce: content_security_policy_nonce %>
+<%= javascript_include_tag 'eln_workbench', nonce: content_security_policy_nonce %>
