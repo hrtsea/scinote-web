@@ -274,10 +274,18 @@ export default {
       this.loading = true;
       try {
         const base = this.action.url;
-        const [membersRes, rolesRes] = await Promise.all([
+        const reqs = [
           axios.get(base, { headers: { Accept: 'application/json' } }),
           axios.get(`${base}/user_roles`, { headers: { Accept: 'application/json' } })
-        ]);
+        ];
+        // 「可指派成员」端点（原生 projects#users_filter，行级下发；缺失则留空 = 显式留白）
+        if (this.action.assignable_users_url) {
+          reqs.push(axios.get(this.action.assignable_users_url, { headers: { Accept: 'application/json' } }));
+        }
+        const [membersRes, rolesRes, usersRes] = await Promise.all(reqs);
+
+        // 成员列表：AMS 渲染集合会套 JSON:API 形状 { data:[{ id, attributes:{ user, user_role } }] }，
+        // user / user_role 埋在 attributes 里 —— 不能直接按顶层 .user 读。
         const mData = (membersRes.data && (membersRes.data.data || membersRes.data)) || [];
         this.members = mData.map((m) => {
           const attrs = m.attributes || m;
@@ -288,10 +296,31 @@ export default {
             roleId: attrs.user_role && attrs.user_role.id
           };
         }).filter((m) => m.id);
+
+        // 🔴 角色列表：`{ data: [[id, display_name], ...], default_role_id }` —— **二维元组**，
+        //   不是对象数组（照 [name, id] 解会整个反：option 变空值、下拉只剩空窄框）。
+        //   成因：UserRolesHelper#user_roles_collection 生成 [display_name, id]，
+        //   而 AccessPermissions::BaseController#user_roles 又 `.map(&:reverse)` 了一遍
+        //   ⇒ 流到前端是 [id, display_name]。原生 shared/access_modal/edit.vue 也是
+        //   用 role[0]/role[1] 下标取值。这里按「谁在前像 id 谁就是 id」防御两种方向。
         const rData = (rolesRes.data && (rolesRes.data.data || rolesRes.data)) || [];
-        this.userRoles = rData.map((r) => (r.attributes ? { id: r.id, name: r.attributes.name } : { id: r.id, name: r.name }));
+        this.userRoles = rData.map((r) => {
+          if (!Array.isArray(r)) {
+            return r.attributes ? { id: r.id, name: r.attributes.name } : { id: r.id, name: r.name };
+          }
+          const first = r[0];
+          const idFirst = first !== '' && first !== null && first !== undefined && !Number.isNaN(Number(first));
+          return idFirst ? { id: first, name: r[1] } : { id: r[1], name: first };
+        });
         if (this.userRoles.length && !this.newRoleId) this.newRoleId = String(this.userRoles[0].id);
-        // 可指派用户 = 全部用户 - 已指派（由 assignableUsersUrl 提供；缺失则留空）
+
+        // 可指派用户 = 全队用户 - 已指派（原生在服务端算，这里拿本弹窗成员列表 diff，等价）。
+        // users_filter 回 { data:[[id, name, { avatar_url }], ...] }。
+        const assignedIds = new Set(this.members.map((m) => String(m.id)));
+        const uData = (usersRes && usersRes.data && (usersRes.data.data || usersRes.data)) || [];
+        this.assignableUsers = (Array.isArray(uData) ? uData : [])
+          .map((u) => (Array.isArray(u) ? { id: u[0], name: u[1] } : { id: u.id, name: u.name }))
+          .filter((u) => u.id && !assignedIds.has(String(u.id)));
       } catch (e) {
         this.error = (e && e.message) || '成员列表加载失败';
       } finally {
@@ -331,11 +360,16 @@ export default {
       this.busy = true;
       this.error = '';
       try {
-        await axios.post(this.action.url, {
+        // 🔴 新增成员是 **collection** POST /access_permissions/projects?id=:id
+        //   （原生 assign_flyout.urls.create_access 同款）。
+        //   打到 member 路径 /access_permissions/projects/:id 会 404 —— 那儿没有 POST。
+        const url = this.action.create_access_url || this.action.url;
+        await axios.post(url, {
           user_assignment: { user_id: Number(this.newUserId), user_role_id: Number(this.newRoleId) }
         });
         const u = this.assignableUsers.find((x) => String(x.id) === this.newUserId);
         this.members.push({ id: Number(this.newUserId), name: u ? u.name : '', roleId: Number(this.newRoleId) });
+        this.assignableUsers = this.assignableUsers.filter((x) => String(x.id) !== this.newUserId);
         this.newUserId = '';
       } catch (e) {
         this.error = (e && e.message) || '添加成员失败';

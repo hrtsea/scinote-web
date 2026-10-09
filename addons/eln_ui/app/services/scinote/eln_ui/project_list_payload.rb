@@ -593,7 +593,15 @@ module Scinote
           # permit: name/archived/due_date/start_date/description/status/supervised_by_id
           # (+ project_folder_id，见 move)。写端点就复用同一个 projects#update。
           edit: action(:edit, 'PATCH', project_path_of(project), project),
-          access: action(:access, 'GET', access_permissions_project_path_of(project), project),
+          # access 除成员端点外，再带两个原生写/读端点：
+          #   · assignable_users_url = 原生 projects#users_filter（「添加成员」候选池）
+          #   · create_access_url    = 原生 collection POST（新增成员）
+          # 与 move 带 folders_tree_url 同款：行级弹窗在**打开时**才知道要拉什么，
+          # 而它拿不到页面级 UI payload（行作用域只有 params）⇒ 端点必须随行下发。
+          # 「排除已指派」由前端拿本弹窗的成员列表 diff（原生在服务端算，等价）。
+          access: action(:access, 'GET', access_permissions_project_path_of(project), project,
+                         assignable_users_url: assignable_users_path_of,
+                         create_access_url: access_permissions_projects_path_of(project)),
           # 原生 move_action 的 path 是 /project_folders/move_to_modal（原生自己的弹窗），
           # 我们这里不套原生 bootstrap modal，改走**同一批原生数据端点**：
           #   目标树 = GET  /project_folders/tree        （folders_tree → [{folder, children}]）
@@ -655,6 +663,15 @@ module Scinote
 
       def access_permissions_project_path_of(project)
         routes.access_permissions_project_path(project.id)
+      end
+
+      # 「新增成员」的真落点：**collection** POST /access_permissions/projects?id=:id
+      # （原生 shared/access_modal/assign_flyout.vue 的 urls.create_access 同款）。
+      # 🔴 不是 member 路径：路由表里 /access_permissions/projects/:id 只有
+      #   GET/PATCH/PUT/DELETE，**没有 POST** —— 打到那儿是 RoutingError 404。
+      #   #create 靠 params[:id]（查询串）反查 @model（set_model）。
+      def access_permissions_projects_path_of(project)
+        routes.access_permissions_projects_path(id: project.id)
       end
 
       def archive_group_projects_path_of
