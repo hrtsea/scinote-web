@@ -5,7 +5,7 @@
 
 ## Status
 
-Accepted（A/B 已实现并验证；C/D 待做）
+Accepted（A/B/C 已实现并验证；D 待做）
 
 ## Context
 
@@ -88,19 +88,45 @@ folder 行无视觉区分，`Lists::ProjectAndFolderSerializer#folder_info` 已�
 
 ---
 
-### 0038-C 批量选择 + 批量操作（batch）
+### 0038-C 批量选择 + 批量操作（batch）— ✅ 已实现（复用宿主内建批量条）
 
-**上下文**：旧栈支持多选 + 批量（移动/归档/删除等）；新栈未开启 `rowSelection`，无批量条。
+**上下文**：旧栈支持多选 + 批量（移动/归档/删除等）；新栈 `list.vue` 未传 `actionsUrl`，无批量条。
 
-**决策**：
-1. `list.vue` 的 `<DataTable>` 加 `:with-checkboxes="true"`（宿主已支持，见 `table.vue:160`）。
-2. 监听 `@selectionChanged`，维护 `selectedRows`；选中数 > 0 时顶部浮现**批量操作条**（ batch toolbar）。
-3. 批量动作复用现有行级能力端点：移动至文件夹 / 归档 / 删除，入参由 `selectedRows` 的 id 集合批量提交。
-4. 批量条 UI 遵循宿主 `shared` 既有批量模式（参考 `app/javascript/vue/*` 中 `withCheckboxes` 使用方）。
+**关键发现**：宿主 DataTable **内建批量操作条**——`table.vue` 在 `selectedRows.length > 0 && actionsUrl` 时
+渲染 `<ActionToolbar :actionsUrl :actionsMethod :params @toolbar:action="emitAction">`（`table.vue:100-105`）；
+选中集合以 `items=JSON.stringify([{id,type}])` POST 到 `actionsUrl` 拿「公共可用动作」，点击再
+`$emit(action.name, action, selectedRows)`（`table.vue:785-786`）。即**无需自建批量条**（原计划「自建批量
+toolbar」属再次重复造轮子）。另 `res_center_controller.rb:112` 已有同款先例（复用宿主 `actions_toolbar_*`）。
+
+**决策（修订后）**：
+1. **动作端点**：新增 `POST /eln_project_list/actions`（`ProjectListController#actions`），**复用宿主
+   `Toolbars::ProjectsService`** 生成「选中集合上可用的公共动作」+ 逐项权限判定（`can_archive_project?` /
+   `can_delete_project_folder?` / `can_manage_team?` …），与原生 `/projects` 批量条**同一真源**。
+   项目集合走 `scoped_projects`（含 team + `readable_by_user`），文件夹走 `current_team.project_folders`。
+   ⚠ 原生 `projects#actions_toolbar` 按 `type=='projects'/'project_folders'`（**复数**）分流，而 ELN 行
+   type 是单数 ⇒ 端点内做映射（前端不必改 type 契约）。
+2. **只暴露已接线动作**：`allowed = %w[archive restore delete_folders move]` 白名单过滤。宿主 Service 还会
+   返回 `edit/access/comments/activities/export`，其中单读类动作由行 kebab 菜单承担，这里不重复暴露，
+   以免 ActionToolbar 渲染出「点了没反应」的死按钮。
+3. **前端**：`list.vue` 传 `:with-checkboxes="true"` + `:actions-url="/eln_project_list/actions"`，监听
+   `@archive/@restore/@delete_folders/@move`（`emitAction` 按 name 重发，签名 `(action, rows)`）：
+   - `archive`/`restore` → `POST action.path { project_ids: rows.map(id) }`
+   - `delete_folders` → `POST action.path { project_folder_ids: rows.map(id) }`
+   - `move` → 复用**宿主 MoveModal**（`host/projects/modals/move.vue`）；⚠ `selectedObjects.type` 映射成端点
+     认的**复数**（`project_folders`/`projects`），因为 ELN 行 type 是单数（见 `project_folders#move_to`）。
+4. 操作完成后 `reloadTable()`（默认清空选择）。
 
 **取舍**：
-- 得：复用宿主 DataTable 多选，零自研选择框架；与全局交互一致。
-- 舍：需自建批量操作条（宿主 DataTable 不内置批量动作 UI）——属必要薄封装。
+- 得：批量条 UI **零自研**（宿主 `ActionToolbar`）；动作与权限判定复用宿主 `Toolbars::ProjectsService`
+  （单一真源，谁改原生批量动作语义这边自动跟随）。
+- 舍：需新增一个薄端点（做单/复数 type 映射 + `allowed` 过滤）；`move` 需从选中行的单行 `actions.move`
+  取 `url`/`folders_tree_url`（批量 action 只给模态内容 path）。
+- **未做**：批量 `export`（ADR-C 未点名，且需 limit modal，另立）；单读动作（access/comments/activities）
+  仍走行 kebab 菜单。
+
+**端到端验证（真实 HTTP POST /eln_project_list/actions）**：单选项目 → `["move"]`（该用户对项目无
+archive/delete 权限）；单选文件夹 → `["move","delete_folders"]`；混选 → 交集 `["move"]`；空 items → `[]`。
+权限过滤与类型交集均正确。
 
 ---
 
@@ -126,9 +152,11 @@ folder 行无视觉区分，`Lists::ProjectAndFolderSerializer#folder_info` 已�
 
 - **恢复**：V1 四项功能（收藏 / 文件夹视觉 / 批量 / 美化）补齐，项目列表体验回到 V1 水准且架构更一致。
 - **后端最小切口（修订）**：0038-A payload 一处改用宿主 `Favorite` 查询（替换硬编码 `starred`）+ 行内下发
-  `urls.favorite/unfavorite`；**零新增表 / 迁移 / 端点**（复用宿主）。0038-B 修 `folder_info` 计数来源。
-  行装配与分页逻辑零改动（已复用）。
-- **前端复用宿主能力**：收藏走宿主 `FavoriteRenderer`、批量走 `withCheckboxes`、列管理走原生 DataTable，不重造轮子。
+  `urls.favorite/unfavorite`（**零新增表 / 迁移 / 端点**）；0038-B 修 `folder_info` 计数来源；0038-C 新增一个
+  薄端点 `POST /eln_project_list/actions`（复用宿主 `Toolbars::ProjectsService`，做单/复数 type 映射 +
+  `allowed` 过滤）。行装配与分页逻辑零改动（已复用）。
+- **前端复用宿主能力**：收藏走宿主 `FavoriteRenderer`、批量条走宿主内建 `ActionToolbar`、批量移动走宿主
+  `MoveModal`、列管理走原生 DataTable —— 不重造轮子（C 项原计划的「自建批量 toolbar」已被否决）。
 - **风险**：0038-D 的 CSS override 需真机核验（AG Grid 节点类名随版本变）。
 - **不在本 ADR**：页面级「权限设置」入口（属 access_control addon，单独推进）；行菜单 7 项已在 07e0fc1d4 保留。
 
