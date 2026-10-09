@@ -114,20 +114,17 @@ Rails.application.config.assets.precompile += %w(i18n_bundle.js)
 
 # ELN UI（addons/eln_ui）—— 前端迁移到宿主 webpack 构建后的资产登记说明。
 #
-# 除项目列表页外，其余 5 页（res_center / workbench / project_detail / exp_detail /
-# task_detail / apply_detail）的 JS+CSS 已全部改为**宿主 webpack 构建**：
-#   · 真源在 addons/eln_ui/app/javascript/vue/eln/（与 Vue3 原型 ELN系统-Vue3 同一份组件）；
+# 6 个 ELN 页（project_list / res_center / workbench / project_detail / exp_detail /
+# task_detail / apply_detail）的 JS+CSS 现已**全部**改为**宿主 webpack 构建**：
+#   · 真源在 addons/eln_ui/app/javascript/vue/{eln,eln_project_list}/；
 #   · 各 entry 在 config/webpack/webpack.config.js 注册为 eln_*；
 #   · 产物输出到 app/assets/builds/eln_*.js + eln_*.css，视图用
 #     javascript_include_tag 'eln_*' / stylesheet_link_tag 'eln_*' 引用。
-#   webpack 产物不走 Sprockets 预编译（与 eln_project_list 同机制），故此处无需登记。
+#   ⚠ webpack 产物必须登记进 `assets.precompile`（见 addons/eln_ui/lib/scinote/eln_ui/engine.rb
+#     initializer 'scinote_eln_ui.assets'），否则生产 assets.compile=false 下 AssetNotFound 整页 500。
 #
-# ⚠ 仅剩项目列表页的 CSS 仍沿用原型 vite 单独打包的 blob：列表页 SFC 自身无 <style>，
-#   样式完全由该 blob（eln_vue3/eln_project_list.css）承载，且列表页 JS 已走宿主 webpack
-#   的 eln_project_list entry。故此处只保留这一条 CSS 登记，删 blob 时切勿一并删掉。
-Rails.application.config.assets.precompile += %w(
-  eln_vue3/eln_project_list.css
-)
+# ✅ ADR-0038-D 起项目列表页 CSS 也并入 webpack（真源 …/eln_project_list/styles/
+#    eln_project_list.scss），不再有「原型 blob 例外」，故此处无需再单独登记任何 ELN CSS。
 
 # Add stuff installed by yarn
 Rails.application.config.assets.paths << Rails.root.join('node_modules')
