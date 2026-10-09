@@ -32,3 +32,72 @@
     }
   }
 }
+
+// -----------------------------------------------------------------------------
+// 文件夹层级面包屑（spec SCN-PROJ-LIST-7 第 4 条）+ 高度链
+//
+// 挂载点 #eln-project-list 带宿主 .fixed-content-body（定高 = 100vh − header − navbar）。
+// Vue 根部再包一层 .eln-project-list-root（flex column 撑满该定高）——
+//   面包屑占自然高度、表格体 .eln-project-list-body 吃剩余高度，
+//   DataTable 根的 h-full 才有**确定的父高度**可依赖（否则 AG Grid 以 0 高度渲染）。
+// 面包屑不渲染时（顶层 / folderNav 为空）body 独自撑满，行为与改造前逐像素一致。
+// -----------------------------------------------------------------------------
+#eln-project-list {
+  .eln-project-list-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .eln-project-list-body {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .eln-folder-crumbs {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #475467;
+    background: var(--sn-white, #fff);
+    border-bottom: 1px solid var(--sn-light-grey, #eaecf0);
+
+    .efc-link {
+      color: var(--sn-science-blue, #3b99fd);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+
+      // 末级 = 当前文件夹：加粗、中性色、不可点击（spec「末级不可点击」）
+      &.efc-current {
+        color: #101828;
+        font-weight: 600;
+        pointer-events: none;
+        text-decoration: none;
+      }
+    }
+
+    .efc-sep {
+      color: #98a2b3;
+    }
+
+    .efc-spacer {
+      flex: 1 1 auto;
+    }
+
+    .efc-up {
+      color: var(--sn-science-blue, #3b99fd);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}

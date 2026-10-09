@@ -20,34 +20,62 @@
         本组件监听这两个事件名（不是 @toolbar:action），分别打开宿主模态框。
       - current_folder_id / view_mode 从 URL 解析（与 controller 同款参数名），不另走 payload。
   -->
-  <DataTable
-    ref="dt"
-    :table-id="tableId"
-    :data-url="dataUrl"
-    :column-defs="columnDefs"
-    :toolbar-actions="toolbarActions"
-    :view-renders="viewRenders"
-    :per-page-options-override="perPageOptions"
-    :with-pinned-columns="true"
-    :with-checkboxes="true"
-    :actions-url="actionsUrl"
-    :skip-save-table-state="false"
-    @create="onToolbarAction"
-    @create_folder="onToolbarAction"
-    @updateFavorite="updateFavorite"
-    @archive="onBulkArchive"
-    @restore="onBulkRestore"
-    @delete_folders="onBulkDeleteFolders"
-    @move="onBulkMove"
-  >
-    <!-- 卡片视图：去掉 table-only 后启用。宿主表格的卡片区是具名插槽 #card，
-         不传就是一片空白 —— 必须自带卡面（且必须是 ELN 行形状的卡面）。 -->
-    <template #card="data">
-      <!-- ⚠ 不要传 dtComponent：卡片没声明这个 prop，会被当成透传属性写到根 DOM 上，
-           而它是个 Vue 实例对象 ⇒ setAttribute 报 "Cannot convert object to primitive value"。 -->
-      <ProjectCard :params="data.params" />
-    </template>
-  </DataTable>
+  <div class="eln-project-list-root">
+    <!--
+      文件夹层级面包屑（spec SCN-PROJ-LIST-7 第 4 条：「进入文件夹层级 + 提供返回上一层的入口」）。
+      ⚠ 顶层不渲染：trail 为空 ⇒ v-if 为假，显式留白 —— 不渲染一个「点了回原地」的死入口。
+      ⚠ 所有 href 一律来自 payload 的 folderNav（rootUrl / trail[].url / upUrl），
+        前端**不拼任何路由**（铁律：路径词汇表只一套，路由改名只改后端）。
+      ⚠ 数据源 = /eln_project_list.json（index 的 folderNav 块）。该请求必须带上当前 query
+        （project_folder_id），否则后端 current_folder 为 nil ⇒ folderNav 恒空（见 created()）。
+    -->
+    <nav v-if="folderCrumbs.length" class="eln-folder-crumbs" data-e2e="folder-crumbs">
+      <a v-if="folderRootUrl" class="efc-link" :href="folderRootUrl" data-e2e="efc-root">全部项目</a>
+      <template v-for="(c, i) in folderCrumbs" :key="'efc-' + c.id">
+        <span class="efc-sep">/</span>
+        <a
+          class="efc-link"
+          :class="{ 'efc-current': i === folderCrumbs.length - 1 }"
+          :href="c.url"
+          :data-e2e="'efc-' + c.code"
+        >{{ c.name }}</a>
+      </template>
+      <span class="efc-spacer"></span>
+      <a v-if="folderUpUrl" class="efc-up" :href="folderUpUrl" data-e2e="efc-up">返回上一层</a>
+    </nav>
+    <!-- 高度链：面包屑出现时把表格挤到剩余高度（root 为 flex column，body flex:1）。
+         .eln-project-list-body 让 DataTable 的 h-full 有确定的父高度可依赖。 -->
+    <div class="eln-project-list-body">
+      <DataTable
+        ref="dt"
+        :table-id="tableId"
+        :data-url="dataUrl"
+        :column-defs="columnDefs"
+        :toolbar-actions="toolbarActions"
+        :view-renders="viewRenders"
+        :per-page-options-override="perPageOptions"
+        :with-pinned-columns="true"
+        :with-checkboxes="true"
+        :actions-url="actionsUrl"
+        :skip-save-table-state="false"
+        @create="onToolbarAction"
+        @create_folder="onToolbarAction"
+        @updateFavorite="updateFavorite"
+        @archive="onBulkArchive"
+        @restore="onBulkRestore"
+        @delete_folders="onBulkDeleteFolders"
+        @move="onBulkMove"
+      >
+        <!-- 卡片视图：去掉 table-only 后启用。宿主表格的卡片区是具名插槽 #card，
+             不传就是一片空白 —— 必须自带卡面（且必须是 ELN 行形状的卡面）。 -->
+        <template #card="data">
+          <!-- ⚠ 不要传 dtComponent：卡片没声明这个 prop，会被当成透传属性写到根 DOM 上，
+               而它是个 Vue 实例对象 ⇒ setAttribute 报 "Cannot convert object to primitive value"。 -->
+          <ProjectCard :params="data.params" />
+        </template>
+      </DataTable>
+    </div>
+  </div>
   <!-- 新建 / 编辑项目 —— 复用宿主模态框（host 别名，单一真源） -->
   <ProjectFormModal
     v-if="newProject"
@@ -268,13 +296,40 @@ export default {
       return raw.map((v) => (
         Number(v) === 0 ? [v, '全部'] : [v, `${v} 条`]
       ));
+    },
+    // ------------------------------------------------------------
+    // 文件夹层级面包屑（spec SCN-PROJ-LIST-7 第 4 条）—— 单读，无副作用。
+    // 数据来自 /eln_project_list.json 的 folderNav 块，形状：
+    //   { current, trail:[{id,name,code,url}], upUrl, rootUrl }（顶层全空 / rootUrl 恒有）。
+    // 全部 href 原样取自 payload，前端**不拼路由**。
+    // ------------------------------------------------------------
+    folderNav() {
+      return (this.ui && this.ui.folderNav) || null;
+    },
+    // trail = 祖先链「根 → 当前」（含当前），末级为当前文件夹。顶层为空数组 ⇒ 面包屑不渲染。
+    folderCrumbs() {
+      const nav = this.folderNav;
+      return nav && Array.isArray(nav.trail) ? nav.trail : [];
+    },
+    folderRootUrl() {
+      return this.folderNav ? this.folderNav.rootUrl : null;
+    },
+    // 顶层文件夹时 = 根（本页无 query）；嵌套时 = 父文件夹。为 null 时不渲染该入口。
+    folderUpUrl() {
+      return this.folderNav ? this.folderNav.upUrl : null;
     }
   },
   created() {
-    // 拉取 UI 标志（controller index#format.json 现成下发；含 can_create_* / create_urls / 筛选选项）。
-    // 仅取 UI 用到的字段，grid 行数据仍由 DataTable 异步走 /eln_project_list/grid。
+    // 拉取 UI 标志（controller index#format.json 现成下发；含 can_create_* / create_urls /
+    // 筛选选项 / folderNav 面包屑块）。仅取 UI 用到的字段，grid 行数据仍由 DataTable
+    // 异步走 /eln_project_list/grid。
+    //
+    // 🔴 必须带上当前 query（project_folder_id / view_mode / filters…）：controller 的 index
+    //   正是按 params[:project_folder_id] 定位 current_folder 的。丢掉 query ⇒ current_folder
+    //   恒 nil ⇒ folderNav 恒空 ⇒ 面包屑**永远不出现且无任何报错**（静默失败，最难查）。
+    const qs = typeof window !== 'undefined' && window.location ? window.location.search : '';
     axios
-      .get('/eln_project_list.json')
+      .get(`/eln_project_list.json${qs}`)
       .then((response) => {
         this.ui = response.data;
       })

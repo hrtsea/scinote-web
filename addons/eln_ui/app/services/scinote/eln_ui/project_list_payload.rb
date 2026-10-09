@@ -531,12 +531,16 @@ module Scinote
       # trail   —— 祖先链，**根 → 当前**（含当前），前端据此画面包屑
       # upUrl   —— 「返回上一层」的落点；顶层为 nil ⇒ 前端不渲染该入口
       #           （显式留白，不是渲染一个点了回原地的死按钮）
+      # rootUrl —— 顶层的落点（`全部项目` 根链接）。**只有它能让前端在任意深度
+      #           都回到顶层**：upUrl 在嵌套时指向父级、在顶层时才是根，单靠 upUrl
+      #           拼不出「全部项目」。补这个字段是为了让前端**永远不必自拼路由**
+      #           （铁律：路径词汇表只一套；路由改名只改这里）。
       #
       # ⚠ URL 一律由这里拼（`@folder_url_base` = 本页真实路径，由 controller 从
       #   `request.path` 取）—— 前端不写死 '/eln_project_list'，路由改名两侧不会脱钩。
       # ------------------------------------------------------------
       def folder_nav_block
-        return { current: nil, trail: [], upUrl: nil } if @current_folder.blank? || @folder_url_base.blank?
+        return { current: nil, trail: [], upUrl: nil, rootUrl: @folder_url_base } if @current_folder.blank? || @folder_url_base.blank?
 
         trail = @folder_trail.filter_map { |f| folder_crumb(f) }
         parent_id = @current_folder.respond_to?(:parent_folder_id) ? @current_folder.parent_folder_id : nil
@@ -544,7 +548,8 @@ module Scinote
         {
           current: folder_crumb(@current_folder),
           trail: trail,
-          upUrl: parent_id.present? ? folder_url_for_id(parent_id) : @folder_url_base
+          upUrl: parent_id.present? ? folder_url_for_id(parent_id) : @folder_url_base,
+          rootUrl: @folder_url_base
         }
       end
 
