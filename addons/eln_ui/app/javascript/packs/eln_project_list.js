@@ -1,5 +1,10 @@
 import { createApp } from 'vue/dist/vue.esm-bundler.js';
 import ElnProjectList from '../vue/eln_project_list/list.vue';
+// 全局样式（ADR-0038-D）：AG Grid 主题覆盖，scoped 到本页 #eln-project-list。
+// 无 <style scoped>（要覆盖 AG Grid 自带 .ag-* DOM，scoped 的 data 属性会选不中），
+// 由 webpack（MiniCssExtractPlugin）抽取为 app/assets/builds/eln_project_list.css，
+// 视图用 stylesheet_link_tag 'eln_project_list' 加载。
+import '../vue/eln_project_list/styles/eln_project_list.scss';
 
 // Mirrors app/javascript/packs/vue/helpers/turbolinks.js (inlined to keep the
 // eln_ui pack build-isolated from the host packs tree).

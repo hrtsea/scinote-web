@@ -129,7 +129,9 @@ export default {
       newFolder: false,
       // 批量移动模态框的参数（null = 关闭）；见 onBulkMove
       bulkMove: null,
-      columnDefs: [
+      // ⚠ 列定义放在 data（不直接被 AG Grid 消费）；对外经 computed columnDefs 注入
+      //   suppressSizeToFit:true —— 见该 computed 的说明。
+      baseColumns: [
         {
           // 收藏星标列（ADR-0038-A 修订：复用宿主 favorites）：field 命中 payload 下发的
           // favorite（项目行真实值；文件夹行 favorite:false 且无 urls.favorite ⇒ 宿主渲染器隐藏按钮）。
@@ -216,6 +218,17 @@ export default {
     };
   },
   computed: {
+    // 列定义：给 baseColumns 逐列加 suppressSizeToFit:true。
+    //
+    // 为什么：宿主 shared/datatable 在**无持久化列状态**时（首次访问 / 清缓存后）会调
+    //   gridApi.sizeColumnsToFit()（table.vue#onGridReady）。本页有 16 列，各列 minWidth
+    //   之和已超视口宽，size-to-fit 会把所有列压到 minWidth（宿主默认 110）⇒ 表头被截断成
+    //   「开始日…」「已完成…」，观感明显恶化。给列打上 suppressSizeToFit:true 后，size-to-fit
+    //   不再动这些列，列宽按定义值渲染、超出视口走横向滚动（宽表的正常行为）。
+    //   计算属性随依赖 baseColumns（不变）缓存，不会每次渲染新数组去重设列。
+    columnDefs() {
+      return this.baseColumns.map((column) => ({ suppressSizeToFit: true, ...column }));
+    },
     // 工具栏按钮：受 can_create_* 权限门控；非空即触发原生 Toolbar 渲染。
     toolbarActions() {
       const left = [];

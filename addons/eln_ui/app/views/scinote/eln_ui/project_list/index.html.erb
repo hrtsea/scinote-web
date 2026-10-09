@@ -7,14 +7,20 @@
       3. 多列钉住 / 列重排 / 显隐 / 状态记忆 全部由 shared/datatable 原生支持，
          并自动持久化到 user_settings（stateKey = `eln_project_list_active_table_state`）。
       4. 生产 CSP 的 script-src 为 'self' + nonce：挂载脚本必须带 nonce，否则点击无反应。
-      5. 旧 eln_vue3/eln_project_list.css 仅作兼容保留；实际样式由宿主 Tailwind + AG Grid 主题承担。
+      5. 样式（ADR-0038-D）：由 webpack entry 抽取的 eln_project_list.css 承载
+         —— 真源 addons/eln_ui/.../eln_project_list/styles/eln_project_list.scss
+         （AG Grid 主题覆盖，scoped 到 #eln-project-list）。旧原型 blob
+         eln_vue3/eln_project_list.css 已退休，不再加载。
 %>
 <% provide(:head_title, '项目') %>
 
 <%# addon 视图默认不输出 CSRF meta；新建/新建文件夹等 POST 端点需要它，
    原生 custom_axios 会读取页面 csrf-token meta 注入请求头。 %>
 <%= tag.meta name: 'csrf-token', content: form_authenticity_token %>
-<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_project_list.css' %>">
+<%# AG Grid 主题覆盖（webpack 产物，见 pack 里 import 的 scss）。
+    ⚠ 扩展名可省（Sprockets 解析 eln_project_list.css），但必须已登记进 manifest，
+      否则生产 assets.compile=false 下 AssetNotFound → 整页 500。 %>
+<%= stylesheet_link_tag 'eln_project_list', media: 'all' %>
 <%# 高度链：shared/datatable 根元素为 h-full，宿主必须提供高度
     （对齐原生 /projects 的 content-pane.flexible > .fixed-content-body 结构），
     否则 AG Grid 以 0 高度渲染 —— 表格在 DOM 里存在但视觉上整片空白。 %>

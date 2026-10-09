@@ -32,19 +32,20 @@ module Scinote
       #     （`The asset "eln_res_center.css" is not present in the asset pipeline`）。
       #   已运行的容器补做手工预编译即可（见 F:/eln开发/patches/*/tools/precompile_entry.rb）。
       #
-      # ⚠ 项目列表页的 CSS 仍沿用原型 vite 单独打包的 blob：列表页 SFC 自身无 <style>，
-      #   样式完全由该 blob（eln_vue3/eln_project_list.css）承载（列表页 JS 已走宿主 webpack
-      #   的 eln_project_list entry）。删 blob 时切勿一并删掉。
+      # ⚠ 项目列表页的 CSS 自 ADR-0038-D 起**也走宿主 webpack**：真源
+      #   addons/eln_ui/app/javascript/vue/eln_project_list/styles/eln_project_list.scss
+      #   （AG Grid 主题覆盖，scoped 到 #eln-project-list），产物 app/assets/builds/eln_project_list.css。
+      #   旧原型 blob eln_vue3/eln_project_list.css 已退休、不再加载（下方登记随之换成 eln_project_list.css）。
       #
       # 另补登记两个**宿主页面**用的 webpack entry（历史遗留缺口：原先只靠手工预编译进
       # manifest，未登记 ⇒ 一旦重新出镜像就 AssetNotFound 整页 500）：
-      #   · eln_project_list.js —— 项目列表页（/projects）
-      #   · vue_teams_table.js  —— 工作区列表页（/users/settings/teams）
+      #   · eln_project_list.js  —— 项目列表页（/projects）
+      #   · vue_teams_table.js   —— 工作区列表页（/users/settings/teams）
       initializer 'scinote_eln_ui.assets' do |app|
         next unless app.config.respond_to?(:assets)
 
         app.config.assets.precompile += %w[
-          eln_vue3/eln_project_list.css
+          eln_project_list.css
           eln_res_center.js eln_res_center.css
           eln_project_detail.js eln_project_detail.css
           eln_exp_detail.js eln_exp_detail.css

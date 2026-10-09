@@ -1,0 +1,34 @@
+// =============================================================================
+// ELN 项目列表 —— AG Grid 微调（ADR-0038-D）
+//
+// 背景：项目列表 V2.1 接入宿主原生 AG Grid 栈（shared/datatable，ag-theme-alpine）。
+//   宿主**已有**全局网格主题 app/assets/stylesheets/shared/ag_table.scss，用 SciNote
+//   设计 token（--sn-*）统管表头底色、行悬浮、选中底色、单元格内边距、网格边框等，
+//   挂在 .ag-root-wrapper 上（比本页的 .ag-theme-alpine 更靠近单元格 ⇒ 那些变量以宿主为准）。
+//
+// 因此本文件**只补宿主未覆盖的点**，其余一律交给宿主统一主题 —— 避免 eln 表与全站
+//   其它表格外观分叉（ADR-0038-D 的目标是「与宿主 Tailwind 协调」，不是另起一套皮肤）。
+//
+// scope：#eln-project-list 是本页挂载点（见 project_list/index.html.erb），
+//   AG Grid 根 .ag-theme-alpine 在其内 ⇒ 精确命中本页、且比宿主裸选择器高一级特异性。
+//
+// 注：曾有一版把 V1 原型 token（--color-primary #2563EB 等）整套搬来做「V1 皮肤」，
+//   已废弃 —— 生产品牌色是 --sn-science-blue #3B99FD（与 ELN 状态色、卡片色一致），
+//   且整套变量覆盖会与宿主 ag_table.scss 打架。此处只保留协调性微调。
+// =============================================================================
+
+#eln-project-list {
+  .ag-theme-alpine {
+    // 交互主色对齐 SciNote 品牌 token。宿主未设 --ag-alpine-active-color，
+    // 否则会落 AG Grid 默认 #2196f3（与全站 #3B99FD 不一致，复选框/选区等会偏色）。
+    --ag-alpine-active-color: var(--sn-science-blue, #3b99fd);
+    --ag-checkbox-checked-color: var(--sn-science-blue, #3b99fd);
+
+    // 空数据 / 加载遮罩文案（宿主 ag_table.scss 未定义，AG Grid 默认偏细偏灰）
+    .ag-overlay-no-rows-center,
+    .ag-overlay-loading-center {
+      font-size: 14px;
+      color: #71717a;
+    }
+  }
+}
