@@ -25,6 +25,16 @@ GIT
       mini_magick (~> 4.9)
 
 GIT
+  remote: https://github.com/scinote-eln/odf-report
+  revision: e1abe7b90e07f32d4e32901055e4c13a2dd43562
+  branch: rich-text-improvements
+  specs:
+    odf-report (0.9.0)
+      mime-types
+      nokogiri (>= 1.12.0)
+      rubyzip (>= 1.3.0)
+
+GIT
   remote: https://github.com/scinote-eln/omniauth-okta
   revision: fc4d833532dec050a3c6296691d631b64de1ee19
   branch: org_auth_server_support
@@ -935,6 +945,7 @@ DEPENDENCIES
   newrelic_rpm
   nokogiri (~> 1.19.4)
   noticed
+  odf-report!
   oj
   omniauth (~> 2.1)
   omniauth-azure-activedirectory-v2
