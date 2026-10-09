@@ -10,22 +10,17 @@
 %>
 <% provide(:head_title, @project.name) %>
 
-<%# ⚠ 必须带扩展名！这个 SciNote 的 sprockets 走的是「precompile 名单精确匹配 + digest manifest」，
-    asset_path 'eln_vue3/eln-system-vue3'（不带 .css）会直接抛
-    Sprockets::Rails::Helper::AssetNotFound → 整页 500（实测，同目录下的原生
-    sn_icon_font 不带 .css 也一样抛）。所以这里老老实实写全 .css / .js。 %>
-<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln-system-vue3.css' %>">
+<%# CSS / JS 改为宿主 webpack 构建产物（entry: eln_project_detail，见 config/webpack/webpack.config.js）。
+    产物在 app/assets/builds/eln_project_detail.{js,css}，分别由 stylesheet_link_tag / javascript_include_tag
+    引用（webpack 产物不带扩展名、不走 Sprockets 预编译，与 eln_project_list 同机制）。 %>
+<%= stylesheet_link_tag 'eln_project_detail', media: 'all' %>
 <script type="application/json" id="eln-project-detail-data" nonce="<%= content_security_policy_nonce %>">
   <%= raw @payload_json %>
 </script>
-<%# 数据只有一个来源：上面那块 JSON。这里只是把它搬到 window 上给 bundle 读（bundle 认的是
-    window.__ELN_PROJECT_DETAIL__）。写成两处注入是第二个数据源，不一致时没人看得出来。
-    CSP 只放 self + nonce，所以这行必须带 nonce，否则 window 上永远是空的、Vue 静默用回 mock。 %>
 <script nonce="<%= content_security_policy_nonce %>">
   window.__ELN_PROJECT_DETAIL__ = JSON.parse(
     document.getElementById('eln-project-detail-data').textContent
   );
 </script>
 <div id="eln-project-detail"></div>
-<%# 同上：'.js' 扩展名不能省，见上面那条坑说明 %>
-<%= javascript_include_tag 'eln_vue3/eln_project_detail.js', nonce: content_security_policy_nonce %>
+<%= javascript_include_tag 'eln_project_detail', nonce: content_security_policy_nonce %>

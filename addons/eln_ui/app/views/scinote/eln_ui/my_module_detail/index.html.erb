@@ -11,7 +11,8 @@
 %>
 <% provide(:head_title, @my_module ? @my_module.name : '任务') %>
 
-<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_task_detail.css' %>">
+<%# CSS / JS 改为宿主 webpack 构建产物（entry: eln_task_detail）。产物在 app/assets/builds/eln_task_detail.{js,css}。 %>
+<%= stylesheet_link_tag 'eln_task_detail', media: 'all' %>
 <script type="application/json" id="eln-task-detail-data" nonce="<%= content_security_policy_nonce %>">
   <%= raw @payload_json %>
 </script>
@@ -21,6 +22,4 @@
   );
 </script>
 <div id="eln-task-detail"></div>
-<%# 扩展名不能省：这个 SciNote 的 sprockets 走 precompile 名单精确匹配，
-    不带 .js 会直接 AssetNotFound → 整页 500（列表页那条坑的同一套原因）。 %>
-<%= javascript_include_tag 'eln_vue3/eln_task_detail.js', nonce: content_security_policy_nonce %>
+<%= javascript_include_tag 'eln_task_detail', nonce: content_security_policy_nonce %>

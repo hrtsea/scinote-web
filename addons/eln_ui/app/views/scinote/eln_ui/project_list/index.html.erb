@@ -1,31 +1,26 @@
-<%# ELN UI —— 项目列表页（按 Vue3 原型 ELN系统-Vue3 重建）
-    § 挂载契约（改动前先读这段，与详情页 show.html.erb 是同一套）：
-      1. #eln-project-list 是**唯一**挂载点，对应 ELN系统-Vue3/src/entries/project_list.js。
-         名字改了两边都要改，改完必须真机复测（bundle 找不到节点会静默不渲染）。
-      2. 数据只能来自 #eln-project-list-data（JSON 块）；bundle 里的 mock 会被它覆盖。
-      3. 生产 CSP 的 script-src 是 'self' + nonce：注入块与挂载脚本一律带 nonce，
-         否则点了没反应（access_control D10 踩过）。
-      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle。
-      5. ⚠ 这里的 CSS 是**列表页自己那一份**（eln_project_list.css），不是详情页的
-         eln-system-vue3.css —— 两页 vite 各打各的 bundle，组件样式只在自己那份里，
-         引错会整页裸奔（实测提醒：别图省事共用一份）。
+<%# ELN UI —— 项目列表页（V2.0，接入原生 AG Grid 栈 shared/datatable）
+    § 挂载契约：
+      1. #eln-project-list 是唯一挂载点，对应
+         eln_ui/app/javascript/vue/eln_project_list/list.vue。
+      2. 数据由 list.vue 经 DataTable 异步拉取 /eln_project_list/grid（JSON:API 形状），
+         不再依赖页面内联 JSON 数据块（旧 V1 的 #eln-project-list-data / window.__ELN_PROJECT_LIST__ 已废弃）。
+      3. 多列钉住 / 列重排 / 显隐 / 状态记忆 全部由 shared/datatable 原生支持，
+         并自动持久化到 user_settings（stateKey = `eln_project_list_active_table_state`）。
+      4. 生产 CSP 的 script-src 为 'self' + nonce：挂载脚本必须带 nonce，否则点击无反应。
+      5. 旧 eln_vue3/eln_project_list.css 仅作兼容保留；实际样式由宿主 Tailwind + AG Grid 主题承担。
 %>
 <% provide(:head_title, '项目') %>
 
-<%# 「新建项目 / 新建文件夹」是 POST 原生端点，必须带 CSRF，否则原生 422 InvalidAuthenticityToken。
-    ⚠ 不能靠 csrf_meta_tags 之外的隐式行为：addon 视图默认不输出 CSRF，前端 bundle 手里没 token。
-    这里单独吐一个 meta，与原生 projects/index.html.erb 的做法一致（原生也是 meta + fetch 取用）。 %>
+<%# addon 视图默认不输出 CSRF meta；新建/新建文件夹等 POST 端点需要它，
+   原生 custom_axios 会读取页面 csrf-token meta 注入请求头。 %>
 <%= tag.meta name: 'csrf-token', content: form_authenticity_token %>
 <link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_project_list.css' %>">
-<script type="application/json" id="eln-project-list-data" nonce="<%= content_security_policy_nonce %>">
-  <%= raw @payload_json %>
-</script>
-<script nonce="<%= content_security_policy_nonce %>">
-  window.__ELN_PROJECT_LIST__ = JSON.parse(
-    document.getElementById('eln-project-list-data').textContent
-  );
-</script>
-<div id="eln-project-list"></div>
-<%# 扩展名不能省：这个 SciNote 的 sprockets 走 precompile 名单精确匹配，
-    不带 .js 会直接 AssetNotFound → 整页 500（详情页那条坑的同一套原因）。 %>
-<%= javascript_include_tag 'eln_vue3/eln_project_list.js', nonce: content_security_policy_nonce %>
+<%# 高度链：shared/datatable 根元素为 h-full，宿主必须提供高度
+    （对齐原生 /projects 的 content-pane.flexible > .fixed-content-body 结构），
+    否则 AG Grid 以 0 高度渲染 —— 表格在 DOM 里存在但视觉上整片空白。 %>
+<div class="content-pane flexible">
+  <div id="eln-project-list" class="fixed-content-body"></div>
+</div>
+<%# 扩展名不能省：SciNote 的 sprockets 走 precompile 名单精确匹配，
+    不带 .js 会直接 AssetNotFound → 整页 500。 %>
+<%= javascript_include_tag 'eln_project_list', nonce: content_security_policy_nonce %>

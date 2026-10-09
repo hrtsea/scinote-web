@@ -1,0 +1,328 @@
+/* ============================================================
+   ELN 系统 Web App — 设计 Token（对齐 Ardot 画布 V1.8）
+   所有页面的配色 / 圆角 / 间距 / 字号 / 阴影 均取自此处，
+   严禁在组件里写死散落颜色值。
+   ============================================================ */
+
+:root {
+  /* ---------- 主色 / 中性色 ---------- */
+  --color-primary: #2563EB;          /* 主色：按钮、链接、激活文字、进度填充 */
+  --color-primary-hover: #1D4ED8;
+  --color-primary-press: #1746C7;
+  --color-page-bg: #FAFAFA;          /* 页面底色 */
+  --color-card: #FFFFFF;             /* 卡片 / 侧栏底 */
+  --color-table-header: #F5F5F7;     /* 表头底 */
+  --color-border: #E4E4E7;           /* 描边 / 分隔线（表、卡片外框） */
+  --color-border-strong: #D4D4D8;    /* 勾选框描边等 */
+  --color-text: #0A0A0B;             /* 正文 / 标题 */
+  --color-text-secondary: #71717A;   /* 次要文字 */
+  --color-text-menu: #3F3F46;        /* 浮层菜单项文字（画布 40:185 行操作菜单） */
+  --color-text-nav: #52525B;         /* 侧栏导航项文字（画布 4:171 等，r0.32） */
+  --color-text-nav: #52525B;         /* 侧栏菜单项文字（画布 4:385;4:171；比浮层菜单浅一档） */
+  --color-placeholder: #A1A1AA;      /* 占位 / 说明 */
+  --color-subtle-text: #52525B;      /* 登录副题等稍重次要色 */
+  --color-divider: #F4F4F5;          /* 侧栏内细分隔线 */
+  --color-fill-soft: #F4F4F5;        /* 用户卡片底 / 部署切换底 */
+
+  /* ---------- 语义背景 ---------- */
+  --color-active-bg: #EFF6FF;        /* 侧栏 / 页签 激活态浅蓝底 */
+  --color-avatar-bg: #DBEAFE;        /* 头像底 */
+  --color-avatar-text: #2563EB;      /* 头像首字 */
+  --color-bulk-bg: #EBEDF0;          /* 批量操作栏底 */
+  --color-notice-bg: #FFF7ED;        /* 通知栏底 */
+  --color-notice-text: #92400E;      /* 通知栏文字 */
+  --color-role-bg: #F5F0FF;          /* 角色说明卡底 */
+  --color-role-text: #5B21B6;        /* 角色说明卡文字 */
+  --color-danger: #CE0C24;           /* 危险红（错误态、删除） */
+  --color-danger-bg: #FEF2F2;
+
+  /* ---------- 状态三态（原生 SciNote 口径） ---------- */
+  --status-active: #3B99FD;          /* 进行中 science-blue */
+  --status-notstarted: #98A2B3;      /* 未开始 grey-500 */
+  --status-done: #5EC66F;            /* 已完成 alert-green */
+
+  /* ---------- 圆角 ---------- */
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-menu: 10px;
+  --radius-avatar: 16px;
+  --radius-chip: 17px;
+  --radius-table-header: 6px;
+  --radius-small: 6px;
+  --radius-icon-btn: 8px;
+
+  /* ---------- 阴影 ---------- */
+  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-modal: 0 12px 32px rgba(16, 24, 40, 0.12), 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow-pop: 0 8px 24px rgba(16, 24, 40, 0.12), 0 2px 6px rgba(16, 24, 40, 0.06);
+
+  /* ---------- 字体 ---------- */
+  --font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui,
+    -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-en: 'Inter', var(--font-sans);
+
+  /* ---------- 侧栏尺寸 ---------- */
+  --sidebar-width: 232px;
+
+  /* ---------- 间距基准（4 的倍数） ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+}
+
+/* ---------- 全局基础样式 ---------- */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-page-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#app {
+  height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* ---------- 通用工具类（组件内复用，保证一致性） ---------- */
+.eln-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.eln-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px; /* 画布按钮水平内边距统一 14（实测 4:535 / 4:633 / 4:728 / 4:730） */
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-button);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+.eln-btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+.eln-btn-primary:active {
+  background: var(--color-primary-press);
+}
+
+.eln-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px; /* 画布按钮水平内边距统一 14（实测 4:535 / 4:633 / 4:728 / 4:730） */
+  background: var(--color-card);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-button);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  /* 这个 class 也给 <a> 用（页头「工作台」入口是真实跳转不是弹窗）。
+     <button> 本来就没有下划线，加这一行对既有用法零影响。 */
+  text-decoration: none;
+  white-space: nowrap;
+}
+.eln-btn-ghost:hover {
+  background: #F9FAFB;
+  border-color: var(--color-border-strong);
+}
+
+.eln-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-icon-btn);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.eln-icon-btn:hover {
+  background: #F9FAFB;
+  color: var(--color-text);
+}
+
+/* 表格通用（表头 40 / 数据行 48）—— 画布栅格
+   画布真值（4:330 / 4:341 项目列表；79:1275 / 79:1282 报表）：行 padding:0 20 + gap:12，
+   模板 = 20 + Σ列宽 + 12×(n-1) + 20。HTML 表格的等价实现：
+     单元格 box-sizing:content-box（声明的列宽 ≡ 画布列宽）
+     ＋ padding-left:12px（首列 20）／末列 padding-right:20px
+   → 单元格外宽 = 画布列宽 + 12、首列 +20、末列 +20，总内缩与画布行同值，各列内容框逐像素重合。
+   ⚠ 承载卡片的水平内边距必须为 0（画布卡片 79:1264 padding=0，内缩由行/单元格自带）。 */
+.eln-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.eln-th,
+.eln-td {
+  box-sizing: content-box;
+  padding: 0 0 0 12px;
+}
+.eln-th:first-child,
+.eln-td:first-child {
+  padding-left: 20px;
+}
+.eln-th:last-child,
+.eln-td:last-child {
+  padding-right: 20px;
+}
+.eln-th {
+  height: 40px;
+  background: var(--color-table-header);
+  border-radius: var(--radius-table-header);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-align: left;
+  white-space: nowrap;
+}
+.eln-td {
+  height: 47px; /* content-box：47 + 1px 分隔线 = 48 行高（画布 4:341 行 h48） */
+  font-size: 13px;
+  color: var(--color-text);
+  /* 行分隔线（画布 79:1281 / 79:1288 分隔线 #E4E4E7；原误用「侧栏内细分隔线」token #F4F4F5） */
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.eln-td:last-child,
+.eln-th:last-child {
+  border-bottom: none;
+}
+
+/* 状态点 */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* 勾选框：16×16 圆角3 白底 #D4D4D8 1.5px 边框（画布 项目列表/实验列表 通用） */
+.checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-card);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.12s ease;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.checkbox:hover {
+  border-color: var(--color-primary);
+}
+.checkbox.checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.checkbox.checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* 星标：已收藏 #F59E0B / 未收藏 #D4D4D8 */
+.star {
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--color-border-strong);
+  transition: color 0.12s ease;
+}
+.star.on {
+  color: #F59E0B;
+}
+.star:hover {
+  color: #F59E0B;
+}
+
+/* ---------- 徽标 / 标签（画布统一 pad5 / r6 / 11 Medium） ---------- */
+.eln-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px;
+  border-radius: var(--radius-small);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+/* 进行中 / 执行中（4:394 / 4:532） */
+.eln-badge-green {
+  background: #ECFDF5;
+  color: #059669;
+}
+/* 待审核（4:725）/ 云版形态标签（4:599） */
+.eln-badge-orange {
+  background: #FFF7ED;
+  color: #B45309;
+}
+/* 角色标签（4:122）/ 挂任务层（4:752） */
+.eln-badge-blue {
+  background: var(--color-active-bg);
+  color: var(--color-primary);
+}
+/* 指标进度标签（63:3） */
+.eln-badge-grey {
+  background: #F5F5F7;
+  color: var(--color-subtle-text);
+}
+/* 待终审（4:234） */
+.eln-badge-purple {
+  background: var(--color-role-bg);
+  color: #7C3AED;
+}
+/* 未达标（4:1054 文字色） */
+.eln-badge-red {
+  background: #FEF2F2;
+  color: #B91C1C;
+}

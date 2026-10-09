@@ -127,7 +127,7 @@ module Scinote
                  option_errors: [], initial_filters: {},
                  page: 1, per_page: DEFAULT_PER_PAGE, total_entries: nil,
                  project_count: nil, current_folder: nil, folder_trail: [],
-                 folder_url_base: nil)
+                 folder_url_base: nil, user_settings_url: nil)
           new(projects,
               can_create_project: can_create_project,
               can_create_folder: can_create_folder,
@@ -150,7 +150,8 @@ module Scinote
               project_count: project_count,
               current_folder: current_folder,
               folder_trail: folder_trail,
-              folder_url_base: folder_url_base).call
+              folder_url_base: folder_url_base,
+              user_settings_url: user_settings_url).call
         end
       end
 
@@ -161,7 +162,7 @@ module Scinote
                      option_errors: [], initial_filters: {},
                      page: 1, per_page: DEFAULT_PER_PAGE, total_entries: nil,
                      project_count: nil, current_folder: nil, folder_trail: [],
-                     folder_url_base: nil)
+                     folder_url_base: nil, user_settings_url: nil)
         # ⚠ V1.32 起第一个位置参数是**行集合**（项目行 ∪ 文件夹行），不是纯项目数组 ——
         #   名字沿用 `projects` 只为不惊动既有调用方，语义见 `rows_block`。
         @projects = projects.to_a
@@ -183,6 +184,9 @@ module Scinote
         # ActionController::UrlGenerationError，所以用字面基址，路由段与
         # config/routes.rb 的 'eln_workbench' 对齐。
         @workbench_url = workbench_url
+        # V1.33 列状态持久化端点基址（/user_settings）：与 workbenchUrl 同款铁律 ——
+        # URL 由服务端下发，前端不写死宿主路由。前端拼 /:key 使用。
+        @user_settings_url = user_settings_url.presence && user_settings_url.to_s.chomp('/')
         @option_errors = Array(option_errors)
         # V1.27（OPEN-WB-DRILL-8）：本次请求的筛选条件（controller 已转成普通 Hash）。
         @initial_filters = initial_filters.is_a?(Hash) ? initial_filters : {}
@@ -230,6 +234,10 @@ module Scinote
           # 工作台入口（OPEN-WB-7）：工作列表页头那颗「工作台」按钮的真落点。
           # 空 = 不渲染按钮（不是渲染出来再置灰），与行菜单同口径。
           workbenchUrl: @workbench_url,
+          # V1.33 列状态持久化端点基址：前端往 `${userSettingsUrl}/eln_project_list_table_state`
+          # GET/PUT 列显隐 + 钉列（对齐原生 shared/datatable/table.vue 的 user_settings 机制）。
+          # 空 = 前端不持久化（原型独立跑 / 老调用方）。
+          userSettingsUrl: @user_settings_url,
           # V1.31：分页状态（页码 / 档位 / 档位可选集 / 筛选后总条数 / 总页数）。
           # 前端渲染信息条与页码控件全靠它 —— 前端**不得**用 projects.length
           # 当「共 N 条」（分页后那只是当前页行数）。

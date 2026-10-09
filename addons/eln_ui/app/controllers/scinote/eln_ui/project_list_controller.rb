@@ -38,6 +38,25 @@ module Scinote
         end
       end
 
+      # V2.0 —— AG Grid 契约 JSON（供原生 shared/datatable 消费）。
+      # 复用现有 ProjectListPayload 的行装配（项目∪文件夹、17 列 ELN 形状、stats/members/
+      # owner/status/actions 全算好），仅把 :projects 数组包成 JSON:API 形状
+      # { data:[{ id, type, attributes }], meta:{total_pages,total_count,filtered_count} }。
+      # table.vue 的 formatData 会把 attributes + id + type 展开成 AG Grid 行，列定义用
+      # field 命中 attributes 里的字段。后端零新增序列化逻辑，ELN 行集合仍是唯一真源。
+      def grid
+        full = payload
+        rows = full[:projects].map do |h|
+          { id: h[:id], type: h[:folder] ? 'project_folder' : 'project', attributes: h }
+        end
+        meta = {
+          total_pages: full[:pagination][:totalPages],
+          total_count: full[:pagination][:totalEntries],
+          filtered_count: full[:totalEntries] || full[:pagination][:totalEntries]
+        }
+        render json: { data: rows, meta: meta }
+      end
+
       private
 
       # ------------------------------------------------------------
@@ -323,6 +342,15 @@ module Scinote
           current_folder: current_folder,
           folder_trail: row_set.trail,
           folder_url_base: page_self_path,
+          # V1.33 列状态持久化端点基址（GET/PUT /user_settings/:key，通用 per-user KV）。
+          # 与 workbench_url 同款铁律：URL 由服务端下发，前端不写死宿主路由。
+          # ⚠ 两个坑（2026-10-07 实测）：
+          #   ① addon 是 engine，宿主 helper 必须 url_helpers 全限定，裸调 NameError → 整页 500；
+          #   ② 该 resource 只开了 show/update（member），**没有 collection 路由**
+          #      ⇒ user_settings_path 这个 helper 压根不存在，只有 user_setting_path(key)。
+          #      用占位 key 生成再剥掉尾巴，得到基址 '/user_settings'。
+          user_settings_url: Rails.application.routes.url_helpers
+                               .user_setting_path('--KEY--').chomp('/--KEY--'),
           can_create_project: @can_create_project,
           can_create_folder: @can_create_folder,
           folders: @folders ||= team_folders,
@@ -373,8 +401,18 @@ module Scinote
       # 用途：a) json 出口自拼；b) 文件夹下钻链接（`?project_folder_id=N`）的基址。
       # ⚠ 与 json_self_path 同款理由：本 controller 里 `url_for` 会踩 _recall 抛
       #   ActionController::UrlGenerationError，所以一律用 request.path 现取，不写死字面量。
+      #
+      # ⚠🔴 `/grid` 必须一并剥掉（2026-10-08 实测 bug）：
+      #   `grid` 动作是本页的**数据端点**而非页面本身，它的 request.path 是
+      #   `/eln_project_list/grid`。不剥的话 `folder_url_base` 会变成
+      #   `/eln_project_list/grid`，`folder_url_for` 拼出的下钻链接就是
+      #   `/eln_project_list/grid?project_folder_id=4` ——
+      #   点文件夹名称会跳到**裸 JSON 端点**（页面渲染一屏 JSON），而不是下钻进文件夹。
+      #   该 bug 在「名称列不可点」时无人可见；名称列接了链接之后立即暴露。
+      #   两个调用方现在都拿到正确的列表页路径：index → /eln_project_list、
+      #   grid  → /eln_project_list。
       def page_self_path
-        request.path.to_s.sub(/\.json\z/, '')
+        request.path.to_s.sub(/\.json\z/, '').sub(%r{/grid\z}, '')
       end
 
       # 本次请求的筛选条件（普通 Hash）—— 用于随 payload 下发 initialFilters，

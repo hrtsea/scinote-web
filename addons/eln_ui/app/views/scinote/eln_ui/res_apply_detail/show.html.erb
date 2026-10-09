@@ -8,7 +8,8 @@
 %>
 <% provide(:head_title, "资源申请 #{params[:no]}") %>
 
-<link rel="stylesheet" href="<%= asset_path 'eln_vue3/eln_apply_detail.css' %>">
+<%# CSS / JS 改为宿主 webpack 构建产物（entry: eln_apply_detail）。产物在 app/assets/builds/eln_apply_detail.{js,css}。 %>
+<%= stylesheet_link_tag 'eln_apply_detail', media: 'all' %>
 <script type="application/json" id="eln-apply-detail-data" nonce="<%= content_security_policy_nonce %>">
   <%= raw @payload_json %>
 </script>
@@ -18,4 +19,4 @@
   );
 </script>
 <div id="eln-apply-detail"></div>
-<%= javascript_include_tag 'eln_vue3/eln_apply_detail.js', nonce: content_security_policy_nonce %>
+<%= javascript_include_tag 'eln_apply_detail', nonce: content_security_policy_nonce %>

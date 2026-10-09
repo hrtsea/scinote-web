@@ -74,7 +74,189 @@ module Scinote
         new(user: user, team: team, filters: filters).filtered_consume_records
       end
 
+      # ------------------------------------------------------------
+      # 资源中心 4 张表的服务端网格契约（复用本 service 同一套取数/聚合，守单真源）
+      #
+      # 返回 JSON:API 形状 { data: [{id,type,attributes}], meta: {total_pages,total_count,filtered_count} }，
+      # 与宿主 shared/datatable/table.vue 的 formatData 对齐（attributes 展开为行属性，
+      # 所以 columnDefs.field 必须 == attributes 的键）。
+      #
+      # ⚠ 不在本方法里做第二套聚合：consume/ledger 走 filter_* + *_record_row（与展示/导出同源），
+      #   byProject/byMember 直接取 cost_block 算好的数组（同一份 team_project_costs）。
+      #   因此「页面底部 stats/recon」与「网格行」永远来自同一计算，不会漂。
+      # ------------------------------------------------------------
+      def grid_rows(dataset:, filters: {}, order: nil, page: 1, per_page: 20)
+        page = [[page.to_i, 1].max, 1000].min
+        per_page = [[per_page.to_i, 1].max, 100].min
+        case dataset.to_s
+        when 'consume'     then grid_consume(filters, order, page, per_page)
+        when 'ledger'      then grid_ledger(filters, order, page, per_page)
+        when 'by_project'  then grid_by_project(order, page, per_page)
+        when 'by_member'   then grid_by_member(order, page, per_page)
+        when 'apply'       then grid_apply(filters, order, page, per_page)
+        else empty_grid
+        end
+      end
+
       private
+
+      # ---- 服务端网格：消耗 / 执行明细（与 consume_block / 导出端点同源）----
+      def grid_consume(filters, order, page, per_page)
+        records = filter_consume_records(team_consume_records_all, (filters || {}).with_indifferent_access)
+        rows = records.map { |cr| consume_record_row(cr) }
+        rows = sort_rows(rows, order)
+        paginate(rows, page, per_page)
+      end
+
+      # ---- 服务端网格：出入库记录（ledger_records 已按团队范围取齐，这里只筛/排/分页）----
+      def grid_ledger(filters, order, page, per_page)
+        f = (filters || {}).with_indifferent_access
+        rows = ledger_records.select do |r|
+          next false if f[:type].present? && r[:type] != f[:type]
+          next false if f[:project].present? && r[:project] != f[:project]
+          next false if f[:user].present? && r[:user] != f[:user]
+          next false unless in_date_range?(r[:time], f[:range_from], f[:range_to])
+          true
+        end
+        rows = sort_rows(rows, order)
+        paginate(rows, page, per_page)
+      end
+
+      # ---- 服务端网格：按项目 / 按成员汇总（直接取 cost_block 算好的数组）----
+      def grid_by_project(order, page, per_page)
+        sort_rows(cost_block[:byProject], order).then { |rows| paginate(rows, page, per_page) }
+      end
+
+      def grid_by_member(order, page, per_page)
+        sort_rows(cost_block[:byMember], order).then { |rows| paginate(rows, page, per_page) }
+      end
+
+      # ---- 服务端网格：资源申请单（可见范围沿用 apply_block 的 ResourceApprovalPolicy，
+      #   服务端这道是安全边界，前端四维筛选只是展示层，两者不可混淆）----
+      def grid_apply(filters, order, page, per_page)
+        f = (filters || {}).with_indifferent_access
+        rows = apply_rows.select do |r|
+          next false if f[:status].present? && r[:statusRaw] != f[:status]
+          next false if f[:kind].present? && r[:kind] != f[:kind]
+          next false if f[:project_id].present? && r[:projectId].to_s != f[:project_id].to_s
+          next false if f[:submitter_id].present? && r[:submitterId].to_s != f[:submitter_id].to_s
+          true
+        end
+        rows = sort_rows(rows, order)
+        paginate(rows, page, per_page)
+      end
+
+      # 与 apply_block 同源：同一道可见范围收口，避免「谁看得见」出现两条路径
+      def apply_rows
+        visible = Scinote::ElnUi::ResourceApprovalPolicy.visible_applications(user: @user, team: @team)
+        visible.ordered.to_a.map { |a| apply_row(a) }
+      end
+
+      def empty_grid
+        { data: [], meta: { total_pages: 1, total_count: 0, filtered_count: 0 } }
+      end
+
+      # 数值感知排序：某列「非空值全部可解析为数字」时按数字排（金额/数量/时间），否则整列按字典序。
+      # 时间列是 'YYYY-MM-DD HH:MM'（零填充）⇒ 数字化后序 == 时间序，走数字分支即可。
+      # 关掉客户端排序（宿主组件 comparator:()=>null），排序全部由这里收口。
+      def sort_rows(rows, order)
+        return rows if order.blank?
+
+        o = order.is_a?(Array) ? order.first : order
+        return rows if o.blank?
+
+        col = (o.respond_to?(:dig) ? (o.dig(:column) || o.dig('column')) : nil).to_s
+        return rows if col.blank?
+
+        dir = (o.respond_to?(:dig) ? (o.dig(:dir) || o.dig('dir')) : nil).to_s == 'desc' ? :desc : :asc
+        sym = col.to_sym
+
+        # 整列判定（忽略空单元格，如入库行的「—」）：全可数字化 ⇒ 数字序，否则整列字典序。
+        # ⚠ 必须整列判定，不能逐值判定 —— 否则「名称」这类列里带数字的行会被拆进数字桶，
+        #   与其余行互相穿插，看起来像乱序。
+        filled = rows.map { |r| row_value(r, sym, col) }.reject { |v| blank_cell?(v) }
+        numeric = filled.any? && filled.all? { |v| money_to_d(v).is_a?(Numeric) }
+
+        sorted =
+          if numeric
+            # 空单元格（无数量/无单价）排在末位
+            rows.sort_by { |r| money_to_d(row_value(r, sym, col)) || Float::INFINITY }
+          else
+            rows.sort_by { |r| row_value(r, sym, col).to_s }
+          end
+
+        dir == :desc ? sorted.reverse : sorted
+      end
+
+      # ⚠ 行哈希是**符号键**（ledger_records / consume_record_row / apply_row / cost_block 全是
+      #   `{ time:, qty:, ... }`），而 order 里的 column 是字符串 ⇒ 取值必须符号化。
+      #   否则 r[col] 恒为 nil、整列静默不排序，只剩 dir 在反转默认顺序 ——
+      #   症状极具误导性：「点表头方向反了，且点哪一列都一样」。
+      def row_value(row, sym, str_key)
+        return nil unless row.respond_to?(:[])
+
+        if row.respond_to?(:key?)
+          return row[sym] if row.key?(sym)
+          return row[str_key] if row.key?(str_key)
+        end
+        row[sym]
+      end
+
+      def blank_cell?(v)
+        s = v.to_s.strip
+        s.empty? || ['—', '-', '–'].include?(s)
+      end
+
+      def money_to_d(v)
+        return nil if v.nil?
+
+        s = v.to_s.gsub(/[^\d.]/, '')
+        return nil if s.blank?
+
+        s.to_d
+      rescue StandardError
+        nil
+      end
+
+      def in_date_range?(time_str, from, to)
+        return true if from.blank? && to.blank?
+
+        d = parse_filter_date(time_str)
+        return false if d.nil?
+        return false if from.present? && d < parse_filter_date(from)
+        return false if to.present? && d > parse_filter_date(to)
+
+        true
+      end
+
+      def paginate(rows, page, per_page)
+        total = rows.size
+        offset = (page - 1) * per_page
+        slice = rows.slice(offset, per_page) || []
+        {
+          data: slice.map.with_index do |r, i|
+            { id: (r[:id].presence || "row-#{i}").to_s, type: (r[:type].presence || 'rc_row').to_s, attributes: r }
+          end,
+          meta: {
+            total_pages: total.zero? ? 1 : (total.to_f / per_page).ceil,
+            total_count: total,
+            filtered_count: total
+          }
+        }
+      end
+
+      # ledger 筛选用候选（与展示同一份 ledger_records 抽，避免下拉漏项 / 双口径）
+      def ledger_filter_options
+        recs = ledger_records
+        {
+          projects: recs.reject { |r| ledger_placeholder?(r[:project]) }.map { |r| r[:project] }.uniq.sort,
+          users: recs.reject { |r| ledger_placeholder?(r[:user]) }.map { |r| r[:user] }.uniq.sort
+        }
+      end
+
+      def ledger_placeholder?(v)
+        !v || v.to_s.starts_with?('—')
+      end
 
       # ------------------------------------------------------------
       # 共用：当前 team 下「我能读」的库存模板 + 项目
@@ -144,7 +326,12 @@ module Scinote
       # 消耗口径（只任务级出库）归 consume 页签，不在这里混。
       # ------------------------------------------------------------
       def ledger_block
-        { records: ledger_records }
+        {
+          records: ledger_records,
+          # 出入库筛选用候选（与展示同一份 ledger_records 抽，避免下拉漏项 / 双口径）。
+          # 占位串（'—（入库不写项目）' / '—'）不是真值，不能混入候选。
+          filterOptions: ledger_filter_options
+        }
       end
 
       # ①.2 ledgerRecords：所有 RepositoryLedgerRecord（按团队范围内 active repo）
@@ -475,8 +662,32 @@ module Scinote
           time: a.submitted_at ? date(a.submitted_at) : date(a.created_at),
           projectId: a.project_id,
           submitterId: a.requestor_id,
-          kind: first ? (first['kind'] || first[:kind] || 'material').to_s : 'material'
+          kind: first ? (first['kind'] || first[:kind] || 'material').to_s : 'material',
+          # 🔴 「申请编号」列的下钻地址（原型 ELN系统-Vue3/src/views/ResCenter.vue L325
+          #   `<router-link :to="`/eln_res_apply/${a.no}`">`）。
+          #   目标由**后端**按宿主真实路由算好放进行里，前端只取用不拼串
+          #   （铁律：路径词汇表只一套，见 entries/modifiers/router_link_host.js 头注）。
+          #   取不到就 nil ⇒ 前端回落纯文本，不做「看着能点、点了 404」的假链接。
+          detailUrl: apply_detail_url(a.no)
         }
+      end
+
+      # 宿主资源申请详情页 URL（/eln_res_apply/:no，routes.rb 的 eln_res_apply_detail）。
+      # ⚠ addon 是 `isolate_namespace` 引擎：controller 的 `_routes` 指向**引擎自己的空
+      #   route set**，裸调宿主路由助手必炸 UrlGenerationError（2026-10-09 实锤）。
+      #   一律走全限定 `Rails.application.routes.url_helpers` —— 与
+      #   project_list_payload#routes / notifications_payload#host_routes 同款既定通道。
+      def apply_detail_url(no)
+        return nil if no.blank?
+
+        host_routes.eln_res_apply_detail_path(no)
+      rescue StandardError => e
+        Rails.logger.warn("[eln_ui] apply detail url failed: #{e.class}: #{e.message}")
+        nil
+      end
+
+      def host_routes
+        ::Rails.application.routes.url_helpers
       end
 
       def item_kind_text(item)
