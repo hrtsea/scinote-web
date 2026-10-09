@@ -5,7 +5,7 @@
 
 ## Status
 
-Accepted（A/B/C 已实现并验证；D 待做）
+Accepted（A/B/C/D 四项均已实现并验证）
 
 ## Context
 
@@ -130,21 +130,35 @@ archive/delete 权限）；单选文件夹 → `["move","delete_folders"]`；混
 
 ---
 
-### 0038-D AG Grid 主题美化（UI 不恶化）
+### 0038-D AG Grid 主题美化（UI 不恶化）— ✅ 已实现（含一次方案修订）
 
-**上下文**：迁移后落入 AG Grid 默认主题（白底/固定行高/无品牌色），较旧手写视觉落差明显；原 css 自称
-「仅兼容保留」，等于放弃美化。
+**上下文**：迁移后原以为落入「AG Grid 默认主题」，真机核验后修正认知 —— 宿主**已有**全局网格主题
+  `app/assets/stylesheets/shared/ag_table.scss`（用 SciNote token `--sn-*` 统管表头底/悬浮/选中/内边距/边框），
+  栅格并非默认皮肤。真正肉眼可见的「恶化」是**列被压扁**：宿主 `shared/datatable` 在**无持久化列状态**时
+  调用 `gridApi.sizeColumnsToFit()`（`table.vue#onGridReady`）；本页 16 列、各列 `minWidth` 之和已超视口，
+  size-to-fit 把非 `name` 列一律压到 `minWidth`（宿主默认 110）⇒ 表头截断为「开始日…」「已完成…」。
 
 **决策**：
-1. 新增 `addons/eln_ui/app/assets/stylesheets/eln_project_list.scss`（取代「仅兼容保留」的 css），
-   用 **scoped override** 覆盖 AG Grid 主题变量与关键节点：品牌主色、行高/字号、表头、空状态、hover、
-   卡片视图间距（`.eln-card`）。
-2. 在 `packs/eln_project_list.js` 引入该 scss，并登记 `assets.precompile`（生产 `assets.compile=false`）。
-3. 不引入新 UI 框架，只覆盖 AG Grid CSS 变量 + 少量节点样式，确保与宿主 Tailwind 视觉协调。
+1. **列宽（主修）**：`list.vue` 的列改为经 computed `columnDefs` 注入 `suppressSizeToFit: true`
+   —— AG Grid 官方属性「size-to-fit 时固定该列宽」。此后列按定义宽度渲染、超视口走横向滚动（宽表正常行为）。
+2. **主题（微调，不另起皮肤）**：`addons/eln_ui/app/javascript/vue/eln_project_list/styles/eln_project_list.scss`，
+   scoped 到 `#eln-project-list`，**只补宿主 `ag_table.scss` 未覆盖的点**：
+   - `--ag-alpine-active-color` / `--ag-checkbox-checked-color` 对齐 `var(--sn-science-blue)`（#3B99FD）
+     —— 宿主未设该 alpine 变量，否则落 AG Grid 默认 #2196f3，复选框/选区会与全站品牌色分叉；
+   - 空数据 / 加载遮罩文案（宿主未定义）。
+   其余（表头底、行高、悬浮、选中、内边距、边框、字体）一律交宿主统一主题，**不覆盖、不重复**。
+3. **样式承载方式并入 webpack**：SCSS 由 `packs/eln_project_list.js` import → `MiniCssExtractPlugin` 抽取为
+   `app/assets/builds/eln_project_list.css` → 登进 `assets.precompile`（`addons/eln_ui/.../engine.rb`）→ 视图用
+   `stylesheet_link_tag 'eln_project_list'`。**退休**原型 blob `eln_vue3/eln_project_list.css`（连同其旧
+   `:root` token 一起删；实测新 SFC 不依赖那些变量），消除「项目列表 CSS 走 Sprockets 特殊路径」这一历史例外。
 
 **取舍**：
-- 得：在不推翻原生栈前提下，把视觉拉回 V1 手写水准甚至更好（统一主题）。
-- 舍：需维护一份覆盖样式（AG Grid 升级时可能需同步）——但比「回退手写表格」代价小得多。
+- 得：在不动宿主共享主题、不引入新 UI 框架的前提下消除「表头截断」这一实打实的观感缺陷；eln 表与全站表格外观一致。
+- 舍：不再追求「V1 prototype 独有皮肤」——生产品牌色是 `--sn-science-blue`（与 ELN 状态色/卡片色一致），
+  强行套 V1 的 `--color-primary #2563EB` 反而与全站分叉；故 ADR 原计划的「整套变量覆盖」被**否决**。
+- ⚠ **已知遗留**：`suppressSizeToFit` 只对**新**列状态生效；若某用户已存过「被压扁」的列状态
+  （宽度 110），`applyColumnState` 仍会还原旧宽度（宿主无列状态迁移机制）。本次已清库侧 `user_settings`
+  三条 `eln_project_list*table_state`；宿主 DataTable 的列状态迁移属共享组件改动，单独立项。
 
 ---
 
@@ -156,8 +170,11 @@ archive/delete 权限）；单选文件夹 → `["move","delete_folders"]`；混
   薄端点 `POST /eln_project_list/actions`（复用宿主 `Toolbars::ProjectsService`，做单/复数 type 映射 +
   `allowed` 过滤）。行装配与分页逻辑零改动（已复用）。
 - **前端复用宿主能力**：收藏走宿主 `FavoriteRenderer`、批量条走宿主内建 `ActionToolbar`、批量移动走宿主
-  `MoveModal`、列管理走原生 DataTable —— 不重造轮子（C 项原计划的「自建批量 toolbar」已被否决）。
-- **风险**：0038-D 的 CSS override 需真机核验（AG Grid 节点类名随版本变）。
+  `MoveModal`、列管理走原生 DataTable、网格外观走宿主 `shared/ag_table.scss` 主题 —— 不重造轮子
+  （C 项原计划的「自建批量 toolbar」、D 项原计划的「整套 AG Grid 变量覆盖」均已被否决）。
+- **真机核验已完成**：D 项经 headless Chromium（现签 Warden 会话）实测 —— 列宽恢复定义值
+  （status 130 / owner 180 / completed 140 …，此前统一被压到 110）、表头不再截断、`--ag-alpine-active-color`
+  解析为 #3B99FD；卡片视图文件夹徽章、收藏列星标、`Show: 全部/20 条` 档位均可见。
 - **不在本 ADR**：页面级「权限设置」入口（属 access_control addon，单独推进）；行菜单 7 项已在 07e0fc1d4 保留。
 
 ## 关联
