@@ -443,6 +443,11 @@ Rails.application.routes.draw do
     get 'eln_project_list/grid',
         to: 'scinote/eln_ui/project_list#grid'
 
+    # V2.1（ADR-0038-C）—— 批量操作条的动作端点（宿主 shared/datatable 的 actionsUrl）。
+    # 多选后 ActionToolbar POST 到这里拿可用动作；复用宿主 Toolbars::ProjectsService。
+    post 'eln_project_list/actions',
+         to: 'scinote/eln_ui/project_list#actions'
+
     # ELN UI —— 实验详情页（Vue3 原型第三页，项目详情 → 实验详情的落点）。
     # 形状同上面两条：不能带前导斜杠，否则 to: 会被当成绝对路径解析。
     #
