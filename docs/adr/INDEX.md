@@ -77,11 +77,12 @@
 | 0039 | `0039-project-list-v1-gap-batch3.md` | 项目列表（eln_ui）V1 全功能补缺批次三：**文件夹层级面包屑 + 返回上一层**（spec SCN-7）——后端 `folderNav` 补 `rootUrl`、前端修 ui 拉取丢 query + 渲染面包屑 + 高度链（Accepted） |
 | 0040 | `0040-datatable-column-state-migration-and-access-entry.md` | **宿主 DataTable 列状态迁移**：`table.vue` 引入列签名（`colSig`）自愈合，列结构变化自动作废旧状态（排除运行时列 `ag-Grid-ControlsColumn`）；附 access_control「页面级入口」调研（行级 `access` 已就位 / visibility_matrix 系实验页入口 / 列表页无页面级落点，待裁决）（A：Accepted；B：Proposed） |
 | 0041 | `0041-row-action-access-modal-native-contract.md` | 行级「访问权限」弹窗按原生契约修：`user_roles` 是**二维元组**不是对象（角色下拉空的真因）/ 候选池随行下发 `assignable_users_url` / 新增成员走 **collection POST `?id=`** 而非 member 路径（后者无 POST 必 404）；附重复实现债：`vue/eln/` 下另一份 `RowActionModal` 未注册 entryList，后续整车复用原生 `AccessModal`（Accepted） |
+| 0042 | `0042-split-runtime-db-check-from-build-gate.md` | **构建期 CI 门禁与运行期 DB 依赖解耦**：`access_control.verify!` 按外部依赖拆两半，构建期只跳需DB 的表检查（`SKIP_ACCESS_CONTROL_DB_CHECK`），装饰器探测照跑；否决「跳过整个verify!」/「构建期起 db」/「删门禁」三案，含护栏自证记录（Accepted） |
 
 ---
 
 ## 平铺时序清单（编号即身份，supersede 依据编号）
 
-0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034 · 0035 · 0036 · 0037 · 0038 · 0039 · 0040 · 0041
+0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034 · 0035 · 0036 · 0037 · 0038 · 0039 · 0040 · 0041 · 0042
 
-共 41 篇。新增 ADR 继续顺延编号（`0041-...`），并补一行到对应主题分组与本清单。
+共 42 篇。新增 ADR 继续顺延编号（`0042-...`），并补一行到对应主题分组与本清单。

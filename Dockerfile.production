@@ -77,10 +77,17 @@ RUN \
 # 在此 ~30s 内失败，省去后续 yarn/webpack/资源预编译的 ~20 分钟。
 # 新增 addon 的 rb 文件若触发此步失败，通常是常量名与目录不匹配（参考
 # app/models/scinote/ai_eln/ 的子目录命名惯例）或 lib/ 模块缺 require_relative。
+#
+# ⚠ SKIP_ACCESS_CONTROL_DB_CHECK=1：access_control 的 verify! 分两半——
+#   表存在性检查要连库，而构建期没有 db 容器（上面那条 DATABASE_URL 是占位符，
+#   `db` 会解析到容器网段地址且无密码 ⇒ fe_sendauth: no password supplied）。
+#   只跳过这一半；装饰器挂载探测是纯内存的，照跑不误。
+#   该 ENV 不写进最终镜像 ⇒ 运行时启动仍严格校验表（ADR-0033 的护栏不失效）。
 RUN \
   DATABASE_URL=postgresql://postgres@db/scinote_production \
   SECRET_KEY_BASE=dummy \
   DEFACE_ENABLED=true \
+  SKIP_ACCESS_CONTROL_DB_CHECK=1 \
   bin/rails zeitwerk:check
 
 # === 前端资源构建：yarn install + webpack + sass + tailwind ===

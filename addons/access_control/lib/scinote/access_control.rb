@@ -16,7 +16,12 @@ module Scinote
         @enabled = value
       end
 
-      # 启动自检。
+      # 启动自检。分两半，因为两半的外部依赖不同：
+      #
+      #   · 表存在性  —— 需要数据库连接。构建期（Dockerfile 的 CI 门禁）没有 db 容器，
+      #     那条 DATABASE_URL 是占位符（`db` 解析到容器网段的地址 + 无密码），
+      #     此时用 SKIP_ACCESS_CONTROL_DB_CHECK=1 跳过；**静态那半仍照跑**。
+      #   · 装饰器挂载 —— 纯内存方法探测，任何时候都能查。
       #
       # 「列在不在 / 装饰挂没挂」原来散在运行时各处（十来处 respond_to? 探测），
       # 那是个坏交易：守卫的理由都成立（生产库跑不了 db:migrate、角色可能没部署），
@@ -37,15 +42,7 @@ module Scinote
       }.freeze
 
       def verify!
-        conn = ActiveRecord::Base.connection
-
-        REQUIRED_TABLES.each do |table, migration|
-          next if conn.table_exists?(table)
-
-          raise "access_control addon: #{table} table is missing — " \
-                "run addons/access_control/db/migrate/#{migration} " \
-                '(生产库用 _db/migrate_addon.rb 手工跑) before booting this addon.'
-        end
+        verify_tables! unless ENV['SKIP_ACCESS_CONTROL_DB_CHECK'].present?
 
         return if Experiment.method_defined?(:ac_manually_granted?) ||
                   Experiment.private_method_defined?(:ac_manually_granted?)
@@ -55,6 +52,21 @@ module Scinote
       end
 
       private
+
+        # 表存在性检查（ADR-0033 用来防「隔离引擎静默失效」的那道运行时护栏）。
+        # 独立成方法是为了让构建期能只跳过它——静态那半（装饰器探测）必须继续跑，
+        # 否则这道门禁就只剩个名字了。见 verify! 的注释。
+        def verify_tables!
+          conn = ActiveRecord::Base.connection
+
+          REQUIRED_TABLES.each do |table, migration|
+            next if conn.table_exists?(table)
+
+            raise "access_control addon: #{table} table is missing — " \
+                  "run addons/access_control/db/migrate/#{migration} " \
+                  '(生产库用 _db/migrate_addon.rb 手工跑) before booting this addon.'
+          end
+        end
 
         # DB 还没起来的早期阶段 table_exists? 返回 false，之后每次调用重查——
         # 不会像 memo 那样把「这次查不到」锁死成永久 true。
