@@ -29,10 +29,16 @@
     :view-renders="viewRenders"
     :per-page-options-override="perPageOptions"
     :with-pinned-columns="true"
+    :with-checkboxes="true"
+    :actions-url="actionsUrl"
     :skip-save-table-state="false"
     @create="onToolbarAction"
     @create_folder="onToolbarAction"
     @updateFavorite="updateFavorite"
+    @archive="onBulkArchive"
+    @restore="onBulkRestore"
+    @delete_folders="onBulkDeleteFolders"
+    @move="onBulkMove"
   >
     <!-- 卡片视图：去掉 table-only 后启用。宿主表格的卡片区是具名插槽 #card，
          不传就是一片空白 —— 必须自带卡面（且必须是 ELN 行形状的卡面）。 -->
@@ -59,6 +65,17 @@
     @close="newFolder = false"
     @create="onCreated"
   />
+  <!-- 批量「移动至文件夹」—— 复用宿主移动模态框（host 别名，单一真源）。
+       ⚠ selectedObjects 的 type 由本文件映射成宿主端点认的**复数**
+         （project_folders / projects，见 project_folders#move_to），
+         因为 ELN 行的 type 是单数（project / project_folder）。 -->
+  <MoveModal
+    v-if="bulkMove"
+    :move-to-url="bulkMove.moveToUrl"
+    :folders-tree-url="bulkMove.foldersTreeUrl"
+    :selected-objects="bulkMove.selectedObjects"
+    @move="onBulkMoved"
+  />
 </template>
 
 <script>
@@ -68,6 +85,8 @@ import DataTable from 'shared/datatable/table.vue';
 // 宿主项目模态框（经 webpack alias `host` 引用，内部相对 import 按宿主文件位置解析）。
 import ProjectFormModal from 'host/projects/modals/form.vue';
 import NewFolderModal from 'host/projects/modals/new_folder.vue';
+// 批量移动模态框：复用宿主原生（host 别名），不复制一份文件夹树/提交逻辑。
+import MoveModal from 'host/projects/modals/move.vue';
 // 卡片视图的卡面：用 ELN 专属卡片，不复用宿主 ProjectCard
 // （宿主卡读原生行形状 urls.show / created_at，ELN 行是 detailUrl / createdAt ⇒ 空白卡 + TypeError）
 import ProjectCard from './renderers/project_card.vue';
@@ -87,7 +106,7 @@ import axios from 'custom_axios';
 
 export default {
   name: 'ElnProjectList',
-  components: { DataTable, ProjectFormModal, NewFolderModal, ProjectCard, HostFavoriteRenderer },
+  components: { DataTable, ProjectFormModal, NewFolderModal, MoveModal, ProjectCard, HostFavoriteRenderer },
   data() {
     return {
       // 注意：tableId 会拼成 user_settings 的 key（stateKey = `${tableId}_${viewMode}_table_state`），
@@ -96,6 +115,9 @@ export default {
       // project_list_controller#grid 提供 AG Grid 契约 JSON
       // （{ data:[{id,type,attributes}], meta:{total_pages,total_count,filtered_count} }）
       dataUrl: '/eln_project_list/grid',
+      // 批量操作条（宿主内建 ActionToolbar）的动作端点：多选后 POST items 拿可用动作。
+      // 与本页 grid 同为 ELN 专用端点（controller#actions 复用宿主 Toolbars::ProjectsService）。
+      actionsUrl: '/eln_project_list/actions',
       // UI 标志（can_create_* / create_urls / 筛选选项），挂载时从 /eln_project_list.json 拉取
       ui: null,
       // 当前所在文件夹 id（从 URL ?project_folder_id=N 解析；与 controller 同名参数）
@@ -105,6 +127,8 @@ export default {
       // 模态框开关
       newProject: false,
       newFolder: false,
+      // 批量移动模态框的参数（null = 关闭）；见 onBulkMove
+      bulkMove: null,
       columnDefs: [
         {
           // 收藏星标列（ADR-0038-A 修订：复用宿主 favorites）：field 命中 payload 下发的
@@ -281,6 +305,60 @@ export default {
           }
         })
         .catch(() => {});
+    },
+    // 刷新网格（默认清空选择）。批量操作完成后调用。
+    reload() {
+      if (this.$refs.dt && typeof this.$refs.dt.reloadTable === 'function') {
+        this.$refs.dt.reloadTable();
+      }
+    },
+    // ------------------------------------------------------------
+    // 批量操作条事件（ADR-0038-C）
+    //
+    // 链路：宿主 ActionToolbar 点击 → emit('toolbar:action') → table.vue#emitAction 按
+    //   action.name 重发 → 本组件对应 handler，签名统一 (action, rows)。
+    //   · action.path 是宿主 Toolbars::ProjectsService 生成的原生端点（本组件不拼路由）；
+    //   · rows 是选中的 ELN 行（AG Grid data，含 id / type / actions）。
+    // 端点均为原生**批量** POST：archive/restore 收 project_ids、delete 收 project_folder_ids。
+    // ------------------------------------------------------------
+    onBulkArchive(action, rows) {
+      axios
+        .post(action.path, { project_ids: rows.map((r) => r.id) })
+        .then(() => this.reload())
+        .catch(() => {});
+    },
+    onBulkRestore(action, rows) {
+      axios
+        .post(action.path, { project_ids: rows.map((r) => r.id) })
+        .then(() => this.reload())
+        .catch(() => {});
+    },
+    onBulkDeleteFolders(action, rows) {
+      axios
+        .post(action.path, { project_folder_ids: rows.map((r) => r.id) })
+        .then(() => this.reload())
+        .catch(() => {});
+    },
+    // 批量移动：宿主 MoveModal 需要 foldersTreeUrl + moveToUrl，二者**不在**批量 action 里
+    // （Toolbars::ProjectsService 的 move action 只给模态内容 path），改从任一选中行的
+    // 单行 actions.move 取（payload 已下发 url + folders_tree_url）。
+    // ⚠ movables 的 type 必须是宿主端点认的**复数**（project_folders / projects）—— ELN 行是单数。
+    onBulkMove(_action, rows) {
+      const sample = rows.find((r) => r.actions && r.actions.move) || {};
+      const mv = (sample.actions && sample.actions.move) || {};
+      if (!mv.url) return;
+      this.bulkMove = {
+        moveToUrl: mv.url,
+        foldersTreeUrl: mv.folders_tree_url,
+        selectedObjects: rows.map((r) => ({
+          id: r.id,
+          type: r.type === 'project_folder' ? 'project_folders' : 'projects'
+        }))
+      };
+    },
+    onBulkMoved() {
+      this.bulkMove = null;
+      this.reload();
     }
   }
 };

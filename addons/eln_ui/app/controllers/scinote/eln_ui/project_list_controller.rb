@@ -57,6 +57,37 @@ module Scinote
         render json: { data: rows, meta: meta }
       end
 
+      # ADR-0038-C 批量操作条的动作来源端点（宿主 shared/datatable 的 actionsUrl）。
+      #
+      # 多选后宿主内建的 <ActionToolbar>（shared/datatable/action_toolbar.vue）会 POST 到这里，
+      # 拿到「在当前选中集合上可用的公共动作」并把它们渲染成按钮；点击再 emit 回父组件。
+      # 动作与逐项权限判定**全部复用宿主 `Toolbars::ProjectsService`**（can_archive_project? /
+      # can_delete_project_folder? / can_manage_team? …），不在这里重写一份动作/权限表 ——
+      # 与原生 /projects 的批量条同一真源。
+      #
+      # 与原生端点 projects#actions_toolbar 的两点差异（有意）：
+      #   ① 原生按 type=='projects'/'project_folders'（**复数**）分流，而 ELN 行 type 是单数
+      #      'project'/'project_folder'（grid 端点自定义）⇒ 这里按单数映射，前端不必改。
+      #   ② 只暴露**已接线的批量动作**（归档/恢复/删除文件夹/移动）；宿主 Service 还会返回
+      #      edit/access/comments/activities/export 等，其中单读类动作由行 kebab 菜单承担，
+      #      这里不重复暴露以免渲染出「点了没反应」的死按钮。
+      def actions
+        items = JSON.parse(params[:items].presence || '[]')
+        folder_ids = items.select { |i| i['type'] == 'project_folder' }.pluck('id')
+        project_ids = items.select { |i| i['type'] == 'project' }.pluck('id')
+
+        # ⚠ 项目集合走 scoped_projects（已含 current_team + readable_by_user 两条口径），
+        #   不直接 Project.where(id:) —— 后者会跨团队/跨权限拿到别人的项目。
+        projects = scoped_projects.where(id: project_ids)
+        folders = current_team.project_folders.where(id: folder_ids)
+
+        allowed = %w[archive restore delete_folders move]
+        all_actions = ::Toolbars::ProjectsService.new(projects, folders, current_user).actions
+        render json: { actions: all_actions.select { |a| allowed.include?(a[:name].to_s) } }
+      rescue JSON::ParserError
+        head :bad_request
+      end
+
       private
 
       # ------------------------------------------------------------
