@@ -442,6 +442,9 @@ Rails.application.routes.draw do
     # 返回 JSON:API 形状 { data:[{id,type,attributes}], meta }，复用现有 Payload 行装配。
     get 'eln_project_list/grid',
         to: 'scinote/eln_ui/project_list#grid'
+    patch 'eln_project_list/:id/star',
+          to: 'scinote/eln_ui/project_list#toggle_star',
+          as: :eln_project_list_star
 
     # ELN UI —— 实验详情页（Vue3 原型第三页，项目详情 → 实验详情的落点）。
     # 形状同上面两条：不能带前导斜杠，否则 to: 会被当成绝对路径解析。
