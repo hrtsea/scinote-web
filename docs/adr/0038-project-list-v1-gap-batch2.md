@@ -5,7 +5,7 @@
 
 ## Status
 
-Proposed
+Accepted（A/B 已实现并验证；C/D 待做）
 
 ## Context
 
@@ -20,8 +20,11 @@ V1 全量功能迁移——旧栈 `3d76f9d51` 手写应用里更多功能在迁�
   未启用 `rowSelection`**（grep 实证 `addons/eln_ui/app/javascript/vue/eln_project_list/list.vue:105-162`）。
 - 后端 **行装配未退化**：`ProjectListRows`（`project_list_rows.rb`）+ `ProjectListScope`
   （`project_list_scope.rb`，workbench 也共用）在 `grid` 端点被完整复用。
-- **唯一后端缺口**：`project_list_payload.rb` 的 `project_row`(L335) 与 `folder_row`(L407) 均
-  **硬编码 `starred: false`**；`Project` 模型与 `config/routes.rb` 均无 star 设施 → 收藏列无数据源、无切换端点。
+- **后端缺口**：`project_list_payload.rb` 的 `project_row` 与 `folder_row` 均**硬编码 `starred: false`**。
+  ⚠ **修订（2026-10-09）**：宿主 `app/` 层面 `Project` **已有** per-user 收藏设施——`Favoritable` concern
+  （`has_many :favorites, as: :item` + `favorite!/unfavorite!`）+ `public.favorites` 多态表 +
+  `POST /projects/:id/favorite|unfavorite` 端点 + `shared/datatable/renderers/favorite.vue`。eln payload
+  只是**没接上**宿主这套（并非宿主无此能力）。
 - **宿主 DataTable 已具备批量能力可复用**：`shared/datatable/table.vue` 支持 `withCheckboxes` prop
   （L160 定义、L350-353 接入 `rowSelection`），选中变化 `emit('selectionChanged', selectedRows)`
   （L770/783/796）。当前 `list.vue` 未开启该 prop。
@@ -34,23 +37,37 @@ V1 全量功能迁移——旧栈 `3d76f9d51` 手写应用里更多功能在迁�
 
 ---
 
-### 0038-A 收藏/星标列（favorite / star）
+### 0038-A 收藏/星标列（favorite）— ✅ 已实现（含一次架构修订）
 
-**上下文**：V1 原型与旧栈均有收藏星标，可一键标星 + 按收藏筛选；当前完全缺失且后端硬编码 false。
+**上下文**：V1 原型与旧栈均有收藏星标，可一键标星；当前完全缺失且后端硬编码 false。**关键发现**：
+宿主 `/projects` 页**原生就有 per-user 收藏**——`public.favorites` 多态表（user/team/item）+
+`Favorite` 模型 + `POST /projects/:id/favorite|unfavorite` 端点（`resources :projects` member）+
+宿主 `shared/datatable/renderers/favorite.vue` 渲染器；`Project` 经 `Favoritable` concern 自带
+`favorite!`/`unfavorite!`/`favorites` 关联。
 
-**决策**：
-1. **数据源**：`ProjectListScope` 增加 `starred` 投射——优先复用宿主 `projects.starred` 列（若 schema 无则
-   加迁移 `add_column :projects, :starred, :boolean, default: false`）；scope 按当前用户判定。
-2. **payload**：删 `project_row`/`folder_row` 两处 `starred: false`，改由 row 真实属性透传
-   （`addons/eln_ui/app/services/scinote/eln_ui/project_list_payload.rb:335,407`）。
-3. **切换端点**：`ProjectListController` 新增 `toggle_star` 动作（`PATCH /eln_project_list/:id/star`），
-   engine 注册路由；前端 `PATCH` 后乐观更新该行 `starred`。
-4. **前端列**：在 `name` 列后插入 `favorite` 列（宽 ~46px），`cellRenderer` = 新
-   `renderers/favorite_renderer.vue`（星标图标 + 点击切换 + 乐观态），folder 行不渲染星标。
+**决策（修订后）**：
+1. **数据源**：**直接复用宿主 `favorites` 表**，不自建表。`payload` 一次
+   `::Favorite.where(user: current_user, item_type: 'Project').pluck(:item_id)` 得当前用户收藏的项目 id 集合
+   （memoize），`favorite: ids.include?(project.id)`。
+2. **切换端点**：**复用宿主** `POST /projects/:id/favorite|unfavorite`；行内下发
+   `urls: { favorite:, unfavorite: }`（`favorite_project_path` / `unfavorite_project_path`）。
+3. **前端列**：`name` 前插 `favorite` 列（宽 46px），`cellRenderer` = **宿主原生 `FavoriteRenderer`**
+   （同一份数据 + 同一外观）；渲染器经 `params.dtComponent.$emit('updateFavorite')` 冒泡，`list.vue` 的
+   `updateFavorite` POST 对应 url 后 `reloadTable()`。folder 行 `favorite:false` 且无 `urls.favorite`
+   ⇒ 宿主渲染器自动隐藏按钮。
+
+**❗️ 架构修订记录（2026-10-09）**：本 ADR 初稿曾计划「`projects` 加 `starred` 全局列 / 自建
+`eln_ui_project_stars` 表 + `toggle_star` 端点」。实现中发现宿主已有原生 `favorites` 机制 ⇒ 自建表会导致
+`/projects` 与 `/eln_project_list` **两套收藏数据分裂**（在 A 页收藏的不在 B 页显示），且用户明确
+「原生就有收藏星标」。故**改为复用宿主**：撤销自建表（新增迁移 `20261009171000_drop_eln_ui_project_stars`）、
+撤销 `toggle_star` 端点与 `PATCH /eln_project_list/:id/star` 路由、删除自写 `favorite_renderer.vue`
+（改用宿主渲染器）。**教训**：动手前先 grep 宿主是否已有同义机制，避免重复造轮子。
 
 **取舍**：
-- 得：补齐 V1 收藏能力，与宿主项目列表语义一致。
-- 舍：需新增路由 + 迁移（若 schema 无 `starred`），改动面略大于「纯前端假星」——但假星不可持久，否决。
+- 得：与 `/projects` 收藏状态**单一数据源**（同表 / 同外观 / 同端点）；零新增表、零新增迁移、零新增端点；
+  前端直接复用宿主渲染器与宿主端点。
+- 舍：eln 列表收藏外观 = 宿主外观（不可独立定制）——这正是期望（一致性优先）。切换后整表
+  `reloadTable()`（与宿主 `projects/list.vue` 同款，非局部刷新）——代价是多一次请求，可接受。
 
 ---
 
@@ -108,11 +125,11 @@ folder 行无视觉区分，`Lists::ProjectAndFolderSerializer#folder_info` 已�
 ## Consequences
 
 - **恢复**：V1 四项功能（收藏 / 文件夹视觉 / 批量 / 美化）补齐，项目列表体验回到 V1 水准且架构更一致。
-- **后端最小切口**：仅 `ProjectListScope` 加 `starred` 投射 + 一处 `toggle_star` 端点 + payload 两行去硬编码；
+- **后端最小切口（修订）**：0038-A payload 一处改用宿主 `Favorite` 查询（替换硬编码 `starred`）+ 行内下发
+  `urls.favorite/unfavorite`；**零新增表 / 迁移 / 端点**（复用宿主）。0038-B 修 `folder_info` 计数来源。
   行装配与分页逻辑零改动（已复用）。
-- **前端复用宿主能力**：批量走 `withCheckboxes`、列管理走原生 DataTable，不重造轮子。
-- **风险**：0038-D 的 CSS override 需真机核验（AG Grid 节点类名随版本变）；0038-A 若 schema 无 `starred`
-  需补迁移，须先 `git grep` 确认。
+- **前端复用宿主能力**：收藏走宿主 `FavoriteRenderer`、批量走 `withCheckboxes`、列管理走原生 DataTable，不重造轮子。
+- **风险**：0038-D 的 CSS override 需真机核验（AG Grid 节点类名随版本变）。
 - **不在本 ADR**：页面级「权限设置」入口（属 access_control addon，单独推进）；行菜单 7 项已在 07e0fc1d4 保留。
 
 ## 关联
