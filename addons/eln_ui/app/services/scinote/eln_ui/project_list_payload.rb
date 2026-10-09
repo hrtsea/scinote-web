@@ -313,6 +313,18 @@ module Scinote
         record.instance_of?(::Project)
       end
 
+      # 当前用户是否收藏了该项目（per-user，见 ProjectStar 模型 / 迁移）。
+      # ⚠ 一次性 pluck 出当前用户全部收藏 project_id 并 memoize，避免每行一次 EXISTS 查询。
+      #   无 current_user（原型独立跑 / 无请求上下文）一律 false。
+      def starred_by_user?(project)
+        return false unless current_user
+
+        @starred_project_ids ||= ::Scinote::ElnUi::ProjectStar
+                                 .where(user_id: current_user.id)
+                                 .pluck(:project_id)
+        @starred_project_ids.include?(project.id)
+      end
+
       def project_row(project, index)
         stats = stats_for(project.id)
         members = members_for(project)
@@ -331,8 +343,8 @@ module Scinote
           # 行类型判别字段（原生 `Lists::ProjectAndFolderSerializer#folder` 同名字段）。
           folder: false,
           name: project.name.to_s,
-          # 原生没有项目级收藏列 → 恒 false（组件渲染灰星，不假装已收藏）。
-          starred: false,
+          # 收藏星标（ADR-0038-A）：per-user 真实值，由 starred_by_user? 判定（非恒 false）。
+          starred: starred_by_user?(project),
           status: status_of(project),
           startDate: date(project.respond_to?(:start_date) ? project.start_date : nil),
           due: date(project.respond_to?(:due_date) ? project.due_date : nil),

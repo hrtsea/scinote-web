@@ -77,12 +77,14 @@ import ElnStatusRenderer from './renderers/status_renderer.vue';
 import ElnProgressRenderer from './renderers/progress_renderer.vue';
 import ElnMembersRenderer from './renderers/members_renderer.vue';
 import ElnRowMenuRenderer from './renderers/row_menu_renderer.vue';
+// ADR-0038-A 收藏星标列渲染器（自带 params.api 乐观刷新，不依赖父组件 gridApi）
+import ElnFavoriteRenderer from './renderers/favorite_renderer.vue';
 // 拉取 UI 标志用的 axios（宿主 custom_axios，自动注入 CSRF）
 import axios from 'custom_axios';
 
 export default {
   name: 'ElnProjectList',
-  components: { DataTable, ProjectFormModal, NewFolderModal, ProjectCard },
+  components: { DataTable, ProjectFormModal, NewFolderModal, ProjectCard, ElnFavoriteRenderer },
   data() {
     return {
       // 注意：tableId 会拼成 user_settings 的 key（stateKey = `${tableId}_${viewMode}_table_state`），
@@ -101,6 +103,21 @@ export default {
       newProject: false,
       newFolder: false,
       columnDefs: [
+        {
+          // 收藏星标列（ADR-0038-A）：点击切换，per-user 持久化。
+          // field 命中 payload 下发的 starred（项目行真实值；文件夹行恒 false 由渲染器隐藏）。
+          headerName: '',
+          field: 'starred',
+          colId: 'favorite',
+          width: 46,
+          minWidth: 46,
+          pinned: 'left',
+          sortable: false,
+          resizable: false,
+          suppressMovable: true,
+          cellRenderer: ElnFavoriteRenderer,
+          cellStyle: { padding: 0, display: 'flex', justifyContent: 'center', alignItems: 'center' }
+        },
         {
           headerName: '项目名称',
           field: 'name',
