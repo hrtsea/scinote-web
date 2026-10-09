@@ -21,11 +21,14 @@
 
 
 <% if resource.errors.present? %>
-  <% form_errors = {} %>
-
-  <% resource.errors.each do |err, msg| %>
-    <% form_errors[err] = (msg == "not found") ? ["Email not found"] : [msg] %>
-  <% end %>
-  <div class="hidden" id="form-error-data" data-form-errors="<%= form_errors.to_json %>"></div>
-  <%= javascript_include_tag 'users/confirmation/new' %>
+  <%
+    form_errors = {}
+    resource.errors.each do |err, msg|
+      form_errors[err] = (msg == "not found") ? ["Email not found"] : [msg]
+    end
+  %>
+  <div id="userConfirmationErrors">
+    <user-confirmation-new :errors="<%= form_errors.to_json %>"></user-confirmation-new>
+  </div>
+  <%= javascript_include_tag 'vue_user_confirmation_new' %>
 <% end %>

@@ -1,13 +1,12 @@
 <%- if devise_mapping.omniauthable? && resource_class.omniauth_providers.any? %>
   <%= link_to omniauth_authorize_path(resource_name, :linkedin), method: :post, title: "Sign in with LinkedIn", class: 'linkedin-link' do %>
-        <%= image_tag('linkedin/Sign-in-Large---Default.png',
-                      class: 'linkedin-signin-button',
-                      alt: "Sign in with LinkedIn",
-                      data: {
-                        'hover-src': image_path('linkedin/Sign-in-Large---Hover.png'),
-                        'default-src': image_path('linkedin/Sign-in-Large---Default.png'),
-                        'click-src': image_path('linkedin/Sign-in-Large---Active.png')
-                      }) %>
-        <%= javascript_include_tag 'users/shared/linkedin_sign_in_links' %>
+        <span id="linkedinSignInMount">
+          <linkedin-sign-in
+            :default-src="<%= image_path('linkedin/Sign-in-Large---Default.png').to_json %>"
+            :hover-src="<%= image_path('linkedin/Sign-in-Large---Hover.png').to_json %>"
+            :click-src="<%= image_path('linkedin/Sign-in-Large---Active.png').to_json %>">
+          </linkedin-sign-in>
+        </span>
   <% end -%>
+  <%= javascript_include_tag 'vue_linkedin_sign_in' %>
 <% end -%>

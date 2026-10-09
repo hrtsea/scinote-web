@@ -29,6 +29,7 @@
 | 0033 | `0033-access-control-refactor-write-side-only.md` | access_control 重构：读写分离，判定权归还宿主（**延伸** 0010） |
 | 0011 | `0011-serializer-driven-api.md` | 序列化器驱动 API |
 | 0012 | `0012-async-jobs-export-notify.md` | 异步任务 / 导出 / 通知 |
+| 0036 | `0036-wopi-unconfigured-graceful-degradation.md` | WOPI 未配置时资产 view/edit 优雅降级（修复全量 500；Accepted） |
 
 ## C. addon 规范与注册（↔ `开发计划/addons-config`）
 
@@ -66,15 +67,16 @@
 |---|---|---|
 | 0029 | `0029-resource-application-approvers.md` | 资源申请筛选、可见范围与审批人配置 |
 | 0030 | `0030-material-application-is-procurement.md` | 材料类申请＝请购单；终审通过 → 到货验收 → 入库 |
-| 0031 | `0031-embed-native-inventories-list.md` | 资源台账内嵌原生 Inventories 列表（不新造外壳；含 ERB 脚本顺序硬约束） |
+| 0031 | `0031-embed-native-inventories-list.md` | 资源台账内嵌原生 Inventories 列表（不新造外壳）。**V2.0 2026-10-09 换承载**：改由 ResCenter 自己的 Vue app `import` 原生 `repositories/table.vue` 渲染（取代「第二个 Vue app + 挂载点外渲染 + `style.display` 显隐」三条硬约束）；含 `isolate_namespace` 让 addon controller 宿主路由助手失效的实证与修法 |
 | 0032 | `0032-receipt-verification-photos-configurable-inspector.md` | 到货验收：照片 ＋ 可配置验货人 ＋ 分批验收 ＋ 未验货阻断（修正 0030 的「验货人沿用终审名单」） |
 | 0033 | `0033-access-control-refactor-write-side-only.md` | access_control addon 重构目标形态：读写分离，判定权归还宿主（Proposed） |
-| 0034 | `0034-vueify-workspace-list.md` | 工作区列表 Vue 化：自建轻量 AG Grid，打包范式对齐 eln_ui / workbench addon（预打包单体 `.js` + Sprockets），数据走 `window.__ELN_TEAMS__`（Accepted） |
+| 0034 | `0034-vueify-workspace-list.md` | 工作区列表 Vue 化：**源码归 eln_ui（packs + vue/teams/table.vue）、构建挂宿主 webpack**，SSR props 注入（取代早期的「预打包 blob + Sprockets」方向）。**rev 2026-10-08：由 AG Grid 改为「复刻原生」**（Bootstrap 4 列表格 + 服务端 JSON 分页/排序 + 原生弹窗，文案服务端注入）（Accepted） |
+| 0035 | `0035-project-list-column-state-and-pinning.md` | 项目列表（eln_ui）列状态持久化（复用原生 /user_settings/:key 端点，按用户存服务端）＋ 钉列（冻结到该列，sticky 前缀语义）｜含 engine 路由 helper 两个实测坑（Accepted） |
 
 ---
 
 ## 平铺时序清单（编号即身份，supersede 依据编号）
 
-0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034
+0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034 · 0035 · 0036
 
-共 34 篇。新增 ADR 继续顺延编号（`0035-...`），并补一行到对应主题分组与本清单。
+共 36 篇。新增 ADR 继续顺延编号（`0037-...`），并补一行到对应主题分组与本清单。

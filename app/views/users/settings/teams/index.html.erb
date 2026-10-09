@@ -8,6 +8,7 @@
 
 <%= render partial: "users/settings/sidebar" %>
 <div class="tab-content">
+  <div class="tab-pane content-pane" role="tabpanel"></div>
   <div class="tab-pane content-pane active" role="tabpanel">
     <div>
       <% if @member_of > 0 %>
@@ -19,20 +20,43 @@
         <br><br>
         <em><%= t("users.settings.teams.index.no_teams") %></em>
       <% end %>
+      <% if can_create_teams? %>
+        <span id="new-team-button" data-e2e="e2e-BT-settings-workspaces-newWorkspace">
+          <%= link_to new_team_path, class: "btn btn-primary", style: "margin-left: 30px;" do %>
+            <span class="sn-icon sn-icon-new-task"></span>
+            <span class="hidden-xs">
+              <%= t("users.settings.teams.index.new_team") %>
+            </span>
+          <% end %>
+        </span>
+      <% end %>
     </div>
 
-    <% if @member_of > 0 %>
-      <%# ADR-0034 (rev 2026-10-07): 改为宿主 webpack 源码构建，源码在 addons/eln_ui/app/javascript。
-          数据经下方全局变量注入后作为 prop 传给 <teams-table>，避免把任意 JSON 塞进 HTML 属性导致引号断裂 %>
-      <script nonce="<%= content_security_policy_nonce %>">
-        window.__ELN_TEAMS__ = <%= raw @teams_payload.to_json.gsub('</', '<\/') %>;
-      </script>
-      <div id="teams-table-vue">
-        <teams-table
-          :teams="window.__ELN_TEAMS__"
-          :can-create="<%= can_create_teams? ? 'true' : 'false' %>"
-          new-team-url="<%= can_create_teams? ? new_team_path : '' %>"
-        />
+    <%# ADR-0034 (rev3 2026-10-08)：工作区列表 = AG Grid（参照 /projects 的宿主
+        shared/datatable 栈，ADR-0035 V2.0）。列宽可调（栈默认 resizable）、
+        分页条在表格下方（scrollMode=pages）、表头点击排序走服务端（POST order:{column,dir}）。
+        列 = 7 列（名称/ID/创建人/创建时间/角色/成员/退出）——rev2 的用户需求列集不变。
+        组件源码：addons/eln_ui/app/javascript/vue/teams/table.vue（薄封装）
+        入口：宿主 webpack entry `vue_teams_table`。 %>
+    <% if @member_of > 0 || current_user.system_admin? %>
+      <%# 高度容器是硬约束：shared/datatable 根节点为 h-full，无高度会塌 0（ADR-0035 铁律）。 %>
+      <div id="teams-table-vue" class="teams-datatable" style="height: calc(100vh - 330px); min-height: 420px;">
+        <%# 表头文案由服务端注入（单一真源）。刻意不用 window.I18n 取这些 key：
+            translations.js 是已提交的生成产物，thead_id/thead_created_by 等较新 key 不在
+            bundle 里（栈自用的 datatable.* 等 json 老 key 除外，双语都在）。 %>
+        <team-table
+          :data-source="<%= teams_datatable_path.to_json %>"
+          labels="<%= {
+            name: t('users.settings.teams.index.thead_name'),
+            id: t('users.settings.teams.index.thead_id'),
+            createdBy: t('users.settings.teams.index.thead_created_by'),
+            createdAt: t('users.settings.teams.index.thead_created_at'),
+            role: t('users.settings.teams.index.thead_role'),
+            members: t('users.settings.teams.index.thead_members'),
+            leave: t('users.settings.teams.index.leave'),
+            error: t('users.settings.user_teams.general_error')
+          }.to_json %>"
+        ></team-table>
       </div>
     <% else %>
       <br />
@@ -40,4 +64,5 @@
   </div>
 </div>
 
+<%= render partial: "users/settings/user_teams/leave_user_team_modal" %>
 <%= javascript_include_tag "vue_teams_table", nonce: content_security_policy_nonce %>

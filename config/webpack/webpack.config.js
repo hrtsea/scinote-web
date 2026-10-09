@@ -58,6 +58,7 @@ const entryList = {
   vue_repositories_table: './app/javascript/packs/vue/repositories_table.js',
   vue_import_repository_modal: './app/javascript/packs/vue/import_repository_modal.js',
   vue_reports_table: './app/javascript/packs/vue/reports_table.js',
+  vue_reports_new: './app/javascript/packs/vue/reports_new.js',
   vue_open_locally_menu: './app/javascript/packs/vue/open_locally_menu.js',
   vue_scinote_edit_download: './app/javascript/packs/vue/scinote_edit_download.js',
   vue_design_system_modals: './app/javascript/packs/vue/design_system/modals.js',
@@ -83,6 +84,8 @@ const entryList = {
   vue_user_groups_show: './app/javascript/packs/vue/user_groups_show.js',
   vue_my_module_show: './app/javascript/packs/vue/my_module_show.js',
   vue_tags_table: './app/javascript/packs/vue/tags_table.js',
+  vue_webhooks: './app/javascript/packs/vue/webhooks.js',
+  vue_label_printers: './app/javascript/packs/vue/label_printers.js',
   vue_team_automations: './app/javascript/packs/vue/team_automations.js',
   vue_protocol_versions: './app/javascript/packs/vue/protocol_versions.js',
   vue_protocol_repository_rows: './app/javascript/packs/vue/protocol_repository_rows.js',
@@ -90,14 +93,39 @@ const entryList = {
   vue_shareable_links_my_module_assigned_items: './app/javascript/packs/vue/shareable_links/assigned_repository.js',
   vue_equipment_bookings: './app/javascript/packs/vue/equipment_bookings.js',
   vue_event_create_repository_row: './app/javascript/packs/vue/event_create_repository_row.js',
-  vue_shareable_links_my_module_assigned_items: './app/javascript/packs/vue/shareable_links/assigned_repository.js',
   vue_my_module_archive: './app/javascript/packs/vue/my_module_archive.js',
   vue_protocol_report_templates: './app/javascript/packs/vue/protocol_report_templates.js',
   vue_my_module_reports: './app/javascript/packs/vue/my_module_reports.js',
+  // --- 本轮 Vue 3 迁移新增 entry（Gen-1 页面迁移）---
+  vue_assets_office: './app/javascript/packs/vue/assets_office.js',
+  vue_user_confirmation_new: './app/javascript/packs/vue/user_confirmation_new.js',
+  vue_user_invitation_edit: './app/javascript/packs/vue/user_invitation_edit.js',
+  vue_user_registration_new: './app/javascript/packs/vue/user_registration_new.js',
+  vue_global_activities: './app/javascript/packs/vue/global_activities.js',
+  vue_team_members: './app/javascript/packs/vue/team_members.js',
+  vue_user_registration_edit: './app/javascript/packs/vue/user_registration_edit.js',
+  vue_login_disclaimer: './app/javascript/packs/vue/login_disclaimer.js',
+  vue_linkedin_sign_in: './app/javascript/packs/vue/linkedin_sign_in.js',
+  vue_new_protocol_modal: './app/javascript/packs/vue/new_protocol_modal.js',
+  vue_shareable_protocol_show: './app/javascript/packs/vue/shareable_protocol_show.js',
+  vue_shareable_results_show: './app/javascript/packs/vue/shareable_results_show.js',
   // project_insights addon: 在 dashboard 渲染状态饼图等 widget
   insights_charts: './addons/project_insights/app/javascript/packs/insights_charts.js',
   // eln_ui addon: 工作区列表 Vue 化（源码在 addons/eln_ui/app/javascript，宿主 webpack 构建）
-  vue_teams_table: './addons/eln_ui/app/javascript/packs/vue_teams_table.js'
+  vue_teams_table: './addons/eln_ui/app/javascript/packs/vue_teams_table.js',
+  // eln_ui addon: 项目列表接入原生 AG Grid 栈（引用 shared/datatable，非复制）。
+  // 产物输出到 app/assets/builds/eln_project_list.js，视图用 javascript_include_tag 'eln_project_list'。
+  eln_project_list: './addons/eln_ui/app/javascript/packs/eln_project_list.js',
+  // --- ELN 系统 Vue3 内嵌页（资源中心 / 工作台 / 项目详情 / 实验详情 / 任务详情 / 申请详情）---
+  // 真源统一在 addons/eln_ui/app/javascript/vue/eln/（与 Vue3 原型 ELN系统-Vue3 同一份组件），
+  // 各 pack 仅 re-import 对应 entry（entry 在加载时读 window.__ELN_*__ 并挂载到 #eln-*）。
+  // 产物输出到 app/assets/builds/eln_*.js + eln_*.css，视图用 javascript_include_tag 'eln_*'。
+  eln_res_center: './addons/eln_ui/app/javascript/packs/eln_res_center.js',
+  eln_workbench: './addons/eln_ui/app/javascript/packs/eln_workbench.js',
+  eln_project_detail: './addons/eln_ui/app/javascript/packs/eln_project_detail.js',
+  eln_exp_detail: './addons/eln_ui/app/javascript/packs/eln_exp_detail.js',
+  eln_task_detail: './addons/eln_ui/app/javascript/packs/eln_task_detail.js',
+  eln_apply_detail: './addons/eln_ui/app/javascript/packs/eln_apply_detail.js'
 };
 
 // Engine pack loading based on https://github.com/rails/webpacker/issues/348#issuecomment-635480949
@@ -243,7 +271,18 @@ module.exports = {
   },
   resolve: {
     // Add additional file types
-    extensions: ['.js', '.jsx', '.scss', '.css', '.vue', '.less']
+    extensions: ['.js', '.jsx', '.scss', '.css', '.vue', '.less'],
+    // eln_ui 引用宿主原生 shared/datatable（AG Grid 栈）时使用，避免跨 addon 的长相对路径
+    // __dirname 在 config/webpack/ 下，需 ../.. 回到应用根再进 app/javascript/vue/shared
+    alias: {
+      shared: resolve(__dirname, '..', '..', 'app/javascript/vue/shared'),
+      // addon 引用宿主原生 vue 组件（**非 shared 子目录**，如 repositories/table.vue）时使用。
+      // 与 shared 同理：避免跨 addon 的 7 级长相对路径；且解析到同一绝对路径 ⇒ 与 addon
+      // 侧 `shared/...` 引用的是**同一个模块实例**（webpack 按绝对路径去重，不会出现两份 AG Grid）。
+      host: resolve(__dirname, '..', '..', 'app/javascript/vue'),
+      // addon 代码跨边界引用宿主原生 axios（含 CSRF 注入），避免 ../../../.. 长相对路径
+      custom_axios: resolve(__dirname, '..', '..', 'app/javascript/packs/custom_axios.js')
+    }
   },
   plugins: [
     new webpack.optimize.LimitChunkCountPlugin({

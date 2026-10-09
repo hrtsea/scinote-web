@@ -62,20 +62,10 @@
     </ul>
   </li>
 
-  <li class="zebra-settings-collapse">
-    <div class="collapse-row">
-      <i class="sn-icon sn-icon-down" data-toggle="collapse" href="#PrintersSection" aria-expanded="false"></i>
-      <div class="row-title">Printers</div>
-        <div class="update-printers">
-          <%= button_tag type: 'submit', class: "btn btn-light zebra-printer-refresh" do %>
-            <i class="fas fa-sync"></i>
-            <%= t("users.settings.account.label_printer.update_printers") %>
-          <% end %>
-        </div>
-    </div>
-    <ul class="collapse in zebra-printers collapse-content" id="PrintersSection"></ul>
+  <li id="zebraPrintersMount" class="zebra-settings-collapse">
+    <zebra-printers></zebra-printers>
   </li>
 </ul>
 
+<%# BrowserPrint / Zebra 驱动脚本必须早于 vue_label_printers 执行，故仍留在本 partial 内 %>
 <%= render partial: 'label_printers/zebra_printer_library' %>
-<%= javascript_include_tag "label_printers/zebra_settings" %>

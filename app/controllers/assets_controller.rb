@@ -196,6 +196,8 @@ class AssetsController < ApplicationController
 
   def edit
     action = @asset.file_size.zero? && !@asset.locked? ? 'editnew' : 'edit'
+    return render_asset_unsupported(action) unless @asset.can_perform_action(action)
+
     @action_url = append_wd_params(@asset.get_action_url(current_user, action, false))
     @favicon_url = @asset.favicon_url('edit')
     tkn = current_user.get_wopi_token
@@ -209,6 +211,8 @@ class AssetsController < ApplicationController
   end
 
   def view
+    return render_asset_unsupported('view') unless @asset.can_perform_action('view')
+
     @action_url = append_wd_params(@asset.get_action_url(current_user, 'view', false))
     @favicon_url = @asset.favicon_url('view')
     tkn = current_user.get_wopi_token
@@ -681,6 +685,13 @@ class AssetsController < ApplicationController
     exclude_params = %w(wdPreviousSession wdPreviousCorrelation)
     wd_params = params.as_json.select { |key, _value| key[/^wd.*/] && !(exclude_params.include? key) }.to_query
     url + '&' + wd_params
+  end
+
+  # When WOPI is not available (unconfigured/disabled), degrade gracefully:
+  # render an informative fallback page (HTTP 200) instead of raising inside
+  # the WOPI discovery path. See ADR-0036.
+  def render_asset_unsupported(_action)
+    render template: 'assets/unsupported', layout: false
   end
 
   def toggle_view_mode_params

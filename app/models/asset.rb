@@ -308,6 +308,10 @@ class Asset < ApplicationRecord
   end
 
   def get_action_url(user, action, with_tokens = true)
+    # Defense in depth: never build a WOPI URL unless WOPI is explicitly
+    # enabled and the asset actually has a file name.
+    return nil unless ENV['WOPI_ENABLED'] == 'true' && file_name.present?
+
     file_ext = file_name.split('.').last&.downcase
     action = get_action(file_ext, action)
     if !action.nil?

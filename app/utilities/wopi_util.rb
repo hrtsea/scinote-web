@@ -19,6 +19,8 @@ module WopiUtil
 
   def get_action(extension, action)
     discovery = current_wopi_discovery
+    return nil if discovery.blank?
+
     discovery[:actions].find { |i| i[:extension] == extension && i[:action] == action }
   end
 
@@ -52,6 +54,11 @@ module WopiUtil
 
   # Currently only saves Excel, Word and PowerPoint view and edit actions
   def initialize_discovery
+    # Graceful degradation: when WOPI is not configured, do not attempt
+    # discovery (which would call URI(nil) and raise). Return nil so all
+    # callers treat WOPI as unavailable instead of crashing the request.
+    return nil if ENV.fetch('WOPI_DISCOVERY_URL', nil).blank? || ENV['WOPI_ENABLED'] != 'true'
+
     Rails.cache.fetch(:wopi_discovery, expires_in: DISCOVERY_TTL) do
       @doc = Nokogiri::XML(Net::HTTP.get(URI(ENV.fetch('WOPI_DISCOVERY_URL', nil))))
       discovery_json = {}

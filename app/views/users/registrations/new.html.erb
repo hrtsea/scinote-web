@@ -67,29 +67,29 @@
 
 <%= render partial: 'users/sessions/login_disclaimer'%>
 
-<% if resource && resource.errors.present? %>
-  <% form_errors = {} %>
+<% if (resource && resource.errors.present?) || (@team && @team.errors.present?) %>
+  <%
+    user_errors = {}
+    if resource && resource.errors.present?
+      resource.errors.as_json.each do |err, messages|
+        user_errors[err] = []
+        messages.each { |message| user_errors[err].push(message) }
+      end
+    end
 
-  <% resource.errors.as_json.each do |err, messages| %>
-    <% form_errors[err] = [] %>
-    <% messages.each do |message| %>
-      <% form_errors[err].push(message) %>
-    <% end %>
-  <% end %>
-  <div class="hidden" id="resource-error-data" data-form-errors="<%= form_errors.to_json %>"></div>
-  <%= javascript_include_tag 'users/registrations/resource_errors' %>
-<% end %>
-
-<% if @team && @team.errors.present? %>
-
-  <% form_errors = {} %>
-
-  <% @team.errors.as_json.each do |err, messages| %>
-    <% form_errors[err] = [] %>
-    <% messages.each do |message| %>
-      <% form_errors[err].push(message) %>
-    <% end %>
-  <% end %>
-  <div class="hidden" id="team-error-data" data-form-errors="<%= form_errors.to_json %>"></div>
-  <%= javascript_include_tag 'users/registrations/team_errors' %>
+    team_errors = {}
+    if @team && @team.errors.present?
+      @team.errors.as_json.each do |err, messages|
+        team_errors[err] = []
+        messages.each { |message| team_errors[err].push(message) }
+      end
+    end
+  %>
+  <div id="userRegistrationErrors">
+    <user-registration-new
+      :user-errors="<%= user_errors.to_json %>"
+      :team-errors="<%= team_errors.to_json %>">
+    </user-registration-new>
+  </div>
+  <%= javascript_include_tag 'vue_user_registration_new' %>
 <% end %>

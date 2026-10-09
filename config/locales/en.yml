@@ -3912,6 +3912,8 @@ en:
           thead_members: "Members"
           na: "n/a"
           leave: "Leave workspace"
+          showing: "Showing %{from} to %{to} of %{total} entries"
+          loading: "Processing..."
         new:
           name_label: "Workspace name"
           name_placeholder: "My workspace"

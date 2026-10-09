@@ -3884,6 +3884,8 @@ zh-CN:
           thead_members: 成员
           na: n/a
           leave: 退出工作区
+          showing: 显示第 %{from} - %{to} 条，共 %{total} 条
+          loading: 处理中…
         new:
           name_label: 工作区名称
           name_placeholder: 我的工作区

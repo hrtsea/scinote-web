@@ -1,22 +1,22 @@
 <% if login_disclaimer %>
-  <div class="modal" id="loginDisclaimerModal" tabindex="-1" role="dialog" aria-labelledby="confirm-archive-modal-label">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><i class="sn-icon sn-icon-close"></i></button>
-          <h4 class="modal-title" id="confirm-archive-modal-label">
-            <%= login_disclaimer["title"]&.html_safe %>
-          </h4>
-        </div>
-        <div class="modal-body">
-          <%= login_disclaimer["body"]&.html_safe  %>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal"><%= t("general.cancel") %></button>
-          <button type="button" class="btn btn-primary" data-action="submit"><%= login_disclaimer["action"]  %></button>
-        </div>
-      </div>
-    </div>
+  <% disclaimer_pairs = [
+       { button: '.log-in-button', form: '#new_user' },
+       { button: '.btn-okta', form: '#oktaForm' },
+       { button: '.btn-azure-ad', form: '.azureAdForm' },
+       { button: '.btn-openid-connect', form: '#openidConnectForm' },
+       { button: '.btn-saml', form: '#samlForm' },
+       { button: '.sign-up-button', form: '#sign-up-form' },
+       { button: '.forgot-password-submit', form: '#forgot-password-form' },
+       { button: '.invitation-submit', form: '#invitation-form' }
+     ] %>
+  <div id="loginDisclaimerMount">
+    <login-disclaimer
+      :pairs="<%= disclaimer_pairs.to_json %>"
+      :title="<%= login_disclaimer['title'].to_json %>"
+      :body="<%= login_disclaimer['body'].to_json %>"
+      :action-label="<%= login_disclaimer['action'].to_json %>"
+      :cancel-label="<%= t('general.cancel').to_json %>">
+    </login-disclaimer>
   </div>
-  <%= javascript_include_tag "users/login_disclaimer" %>
+  <%= javascript_include_tag 'vue_login_disclaimer' %>
 <% end %>

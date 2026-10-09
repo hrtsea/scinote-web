@@ -1,6 +1,32 @@
 <% provide(:head_title, t("users.registrations.edit.head_title")) %>
 <% provide(:container_class, "no-second-nav-container") %>
 
+<%
+  # 页面数据在服务端组装后一次注入，Vue 只负责渲染与交互；
+  # 所有 URL 均由 Rails 路由助手生成，保证接口地址/参数与迁移前完全一致。
+  # 仅迁移原先由 app/assets/javascripts/users/registrations/edit.js 驱动的
+  # 邮件与密码两个内联编辑表单；头像(croppie 包)、2FA(sitewide/two_factor_wizard.js)、
+  # 姓名/缩写/外部ID/职位(shared/inline_editing) 均由各自独立的宿主资产驱动，保持不动。
+  user_registration_email_payload = {
+    value: @user.email,
+    form_id: 'user-email-field',
+    form_class: 'settings-page-email',
+    sso_enabled: sso_enabled?,
+    sso_provider_enabled: sso_provider_enabled?,
+    confirmable: devise_mapping.confirmable?,
+    pending_reconfirmation: resource.pending_reconfirmation?,
+    unconfirmed_email: resource.unconfirmed_email
+  }
+  user_registration_password_payload = {
+    form_id: 'user-password-field',
+    form_class: 'settings-page-change-password',
+    sso_enabled: sso_enabled?,
+    sso_provider_enabled: sso_provider_enabled?,
+    disable_local_passwords: Rails.application.config.x.disable_local_passwords
+  }
+  user_registration_update_url = registration_path(resource_name, format: :json)
+%>
+
 <%= render partial: "users/settings/sidebar" %>
 
 <div class="content-pane active flexible user-settings">
@@ -29,8 +55,13 @@
               <%= render partial: 'users/registrations/edit_partials/job_title' %>
             </div>
             <div class="col-md-6">
-              <%= render partial: 'users/registrations/edit_partials/email' %>
-              <%= render partial: 'users/registrations/edit_partials/password' %>
+              <div id="userRegistrationEditForms">
+                <user-registration-edit-forms
+                  :email="<%= user_registration_email_payload.to_json %>"
+                  :password="<%= user_registration_password_payload.to_json %>"
+                  :update-url="<%= user_registration_update_url.to_json %>"
+                ></user-registration-edit-forms>
+              </div>
             </div>
           </div>
         </div>
@@ -87,4 +118,4 @@
 
 <%= javascript_include_tag 'croppie' %>
 <%= stylesheet_link_tag 'croppie_styles' %>
-<%= javascript_include_tag "users/registrations/edit" %>
+<%= javascript_include_tag "vue_user_registration_edit" %>

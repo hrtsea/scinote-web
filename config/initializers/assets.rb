@@ -21,7 +21,6 @@ Rails.application.config.assets.precompile += %w(users/settings/account/preferen
 Rails.application.config.assets.precompile += %w(users/settings/teams/add_user_modal.js)
 Rails.application.config.assets.precompile += %w(users/settings/teams/show.js)
 Rails.application.config.assets.precompile += %w(users/settings/teams/invite_users_modal.js)
-Rails.application.config.assets.precompile += %w(users/settings/webhooks/index.js)
 Rails.application.config.assets.precompile += %w(my_modules/activities.js)
 Rails.application.config.assets.precompile += %w(my_modules/protocols.js)
 Rails.application.config.assets.precompile += %w(my_modules/repositories.js)
@@ -35,7 +34,6 @@ Rails.application.config.assets.precompile += %w(assets/wopi/create_wopi_file.js
 Rails.application.config.assets.precompile += %w(results/result_tables.js)
 Rails.application.config.assets.precompile += %w(results/result_assets.js)
 Rails.application.config.assets.precompile += %w(results/result_texts.js)
-Rails.application.config.assets.precompile += %w(users/registrations/edit.js)
 Rails.application.config.assets.precompile += %w(jquery-ui/draggable.js)
 Rails.application.config.assets.precompile += %w(jquery-ui/droppable.js)
 Rails.application.config.assets.precompile += %w(jquery.ui.touch-punch.min.js)
@@ -50,12 +48,10 @@ Rails.application.config.assets.precompile += %w(projects/canvas.js)
 Rails.application.config.assets.precompile += %w(experiments/dropdown_actions.js)
 Rails.application.config.assets.precompile += %w(experiments/table.js)
 Rails.application.config.assets.precompile += %w(experiments/show.js)
-Rails.application.config.assets.precompile += %w(reports/new.js)
 Rails.application.config.assets.precompile += %w(protocols/index.js)
 Rails.application.config.assets.precompile += %w(protocols/protocolsio.js)
 Rails.application.config.assets.precompile += %w(protocols/header.js)
 Rails.application.config.assets.precompile += %w(protocols/steps.js)
-Rails.application.config.assets.precompile += %w(protocols/new_protocol.js)
 Rails.application.config.assets.precompile += %w(protocols/edit.js)
 Rails.application.config.assets.precompile += %w(protocols/import_export/eln_table.js)
 Rails.application.config.assets.precompile += %w(protocols/import_export/import.js)
@@ -72,13 +68,10 @@ Rails.application.config.assets.precompile += %w(projects/show.js)
 Rails.application.config.assets.precompile += %w(notifications.js)
 Rails.application.config.assets.precompile += %w(users/invite_users_modal.js)
 Rails.application.config.assets.precompile += %w(search.js)
-Rails.application.config.assets.precompile += %w(label_printers/index.js)
-Rails.application.config.assets.precompile += %w(label_printers/zebra_settings.js)
 Rails.application.config.assets.precompile += %w(repositories/index.js)
 Rails.application.config.assets.precompile += %w(repositories/share_modal.js)
 Rails.application.config.assets.precompile += %w(repositories/edit.js)
 Rails.application.config.assets.precompile += %w(repositories/repository_datatable.js)
-Rails.application.config.assets.precompile += %w(global_activities/index.js)
 Rails.application.config.assets.precompile += %w(repositories/show.js)
 Rails.application.config.assets.precompile += %w(sidebar_toggle.js)
 Rails.application.config.assets.precompile += %w(reports/reports_datatable.js)
@@ -88,25 +81,14 @@ Rails.application.config.assets.precompile += %w(session_end.js)
 Rails.application.config.assets.precompile += %w(users/connected_devices.js)
 Rails.application.config.assets.precompile += %w(BrowserPrint-3.0.216.min.js)
 Rails.application.config.assets.precompile += %w(BrowserPrint-Zebra-1.0.216.min.js)
-Rails.application.config.assets.precompile += %w(users/login_disclaimer.js)
-Rails.application.config.assets.precompile += %w(assets/office_form.js)
-Rails.application.config.assets.precompile += %w(global_activities/date_picker.js)
 Rails.application.config.assets.precompile += %w(shared/color_picker_select.js)
-Rails.application.config.assets.precompile += %w(users/confirmation/new.js)
-Rails.application.config.assets.precompile += %w(users/invitations/team_errors.js)
-Rails.application.config.assets.precompile += %w(users/invitations/resource_errors.js)
-Rails.application.config.assets.precompile += %w(users/registrations/team_errors.js)
-Rails.application.config.assets.precompile += %w(users/registrations/resource_errors.js)
 Rails.application.config.assets.precompile += %w(users/registrations/new_with_provider.js)
 Rails.application.config.assets.precompile += %w(repository_columns/manage_column_partials/number.js)
 Rails.application.config.assets.precompile += %w(repository_columns/manage_column_partials/stock.js)
 Rails.application.config.assets.precompile += %w(shared/file_preview.js)
-Rails.application.config.assets.precompile += %w(users/shared/linkedin_sign_in_links.js)
 Rails.application.config.assets.precompile += %w(reports/template_helpers.js)
-Rails.application.config.assets.precompile += %w(shareable_links/my_module_protocol_show.js)
 Rails.application.config.assets.precompile += %w(shareable_links/date_formatting.js)
 Rails.application.config.assets.precompile += %w(shareable_links/handson_table_wraping.js)
-Rails.application.config.assets.precompile += %w(shareable_links/my_module_results_show.js)
 
 # Libraries needed for Handsontable formulas
 Rails.application.config.assets.precompile += %w(jquery.js)
@@ -130,34 +112,21 @@ Rails.application.config.assets.precompile += %w(sn_icon_font.css)
 # Separate translations file
 Rails.application.config.assets.precompile += %w(i18n_bundle.js)
 
-# ELN UI（addons/eln_ui）—— 按 Vue3 原型重建的项目详情页。
+# ELN UI（addons/eln_ui）—— 前端迁移到宿主 webpack 构建后的资产登记说明。
 #
-# addon 的 app/assets/* 已经自动进了 sprockets 的 load path，但**不会自动预编译**；
-# 生产是 assets.compile = false，没登记进这里的话 asset_path 会直接抛
-# "The asset ... is not present in the asset pipeline"（实测就是这一步把首屏打成 500）。
-# 改完必须重新 assets:precompile，否则线上照 500。
+# 除项目列表页外，其余 5 页（res_center / workbench / project_detail / exp_detail /
+# task_detail / apply_detail）的 JS+CSS 已全部改为**宿主 webpack 构建**：
+#   · 真源在 addons/eln_ui/app/javascript/vue/eln/（与 Vue3 原型 ELN系统-Vue3 同一份组件）；
+#   · 各 entry 在 config/webpack/webpack.config.js 注册为 eln_*；
+#   · 产物输出到 app/assets/builds/eln_*.js + eln_*.css，视图用
+#     javascript_include_tag 'eln_*' / stylesheet_link_tag 'eln_*' 引用。
+#   webpack 产物不走 Sprockets 预编译（与 eln_project_list 同机制），故此处无需登记。
+#
+# ⚠ 仅剩项目列表页的 CSS 仍沿用原型 vite 单独打包的 blob：列表页 SFC 自身无 <style>，
+#   样式完全由该 blob（eln_vue3/eln_project_list.css）承载，且列表页 JS 已走宿主 webpack
+#   的 eln_project_list entry。故此处只保留这一条 CSS 登记，删 blob 时切勿一并删掉。
 Rails.application.config.assets.precompile += %w(
-  eln_vue3/eln_project_detail.js
-  eln_vue3/eln-system-vue3.css
-)
-
-# ELN UI —— 项目列表页（同 addon 的第二页，规则与上一段完全一致）。
-# ⚠ 列表页的 CSS 是**单独打包**的（vite.embed.list.config.js，cssCodeSplit:false）：
-#   它只含 tokens + 列表页用到的组件样式，跟详情页那份 eln-system-vue3.css 不是同一份。
-#   **两页不能共用一份 CSS** —— 列表页引详情页那份会缺 .proj-list 系列样式。
-#   所以这里登记 eln_project_list.css（对应 addons/eln_ui/.../eln_vue3/eln_project_list.css），
-#   页面各自引自己那一份。
-Rails.application.config.assets.precompile += %w(
-  eln_vue3/eln_project_list.js
   eln_vue3/eln_project_list.css
-)
-
-# ELN UI —— 实验详情页（addon 的第三页，规则与上两段完全一致）。
-# 同样**独立打包、独立一份 CSS**（vite.embed.exp.config.js）：三页共用同一批组件，
-# 但每页只引自己那一份，引错页面就会缺样式。
-Rails.application.config.assets.precompile += %w(
-  eln_vue3/eln_exp_detail.js
-  eln_vue3/eln_exp_detail.css
 )
 
 # Add stuff installed by yarn

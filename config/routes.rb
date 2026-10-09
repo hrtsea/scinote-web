@@ -103,6 +103,11 @@ Rails.application.routes.draw do
     get 'users/settings/teams',
         to: 'users/settings/teams#index',
         as: 'teams'
+    # 工作区列表数据源（服务端分页/排序）。ADR-0034 rev 2026-10-08：前端 vue_teams_table
+    # 组件消费此 JSON 端点；参数 {page, per_page, sort, dir}，返回 {rows, total}。
+    post 'users/settings/teams/datatable',
+         to: 'users/settings/teams#datatable',
+         as: 'teams_datatable'
     get 'users/settings/teams/new',
         to: 'users/settings/teams#new',
         as: 'new_team'
@@ -433,6 +438,11 @@ Rails.application.routes.draw do
         to: 'scinote/eln_ui/project_list#index',
         as: :eln_project_list
 
+    # V2.0 —— AG Grid 契约 JSON 端点（原生 shared/datatable 的 dataUrl）。
+    # 返回 JSON:API 形状 { data:[{id,type,attributes}], meta }，复用现有 Payload 行装配。
+    get 'eln_project_list/grid',
+        to: 'scinote/eln_ui/project_list#grid'
+
     # ELN UI —— 实验详情页（Vue3 原型第三页，项目详情 → 实验详情的落点）。
     # 形状同上面两条：不能带前导斜杠，否则 to: 会被当成绝对路径解析。
     #
@@ -465,6 +475,15 @@ Rails.application.routes.draw do
     get 'eln_res_center/export',
         to: 'scinote/eln_ui/res_center#export',
         as: :eln_res_center_export
+
+    # ELN UI —— 资源中心 5 张表的服务端网格端点（宿主 shared/datatable/table.vue 契约）。
+    # dataset ∈ { ledger | consume | by_project | by_member | apply }；筛选走 query / postParams。
+    # ⚠ 宿主组件只在 loadMethod=post 时把 postParams 随请求发出（GET 会忽略），
+    #   故本端点同时接受 POST（筛选/分页/排序经 postParams 下发）。
+    match 'eln_res_center/grid',
+          to: 'scinote/eln_ui/res_center#grid',
+          via: [:get, :post],
+          as: :eln_res_center_grid
 
     # ELN UI —— 资源申请详情页（Vue3 原型第 6 页，资源中心 → 申请单点入）。
     # 业务编号 SQ-YYYY-NNNN 直接作为路径段（不编业务 ID 列，迁移里 :no 是 unique）。

@@ -1,9 +1,12 @@
 # ADR-0031：资源台账内嵌原生 Inventories 列表（不新造外壳）
 
-- 状态：已采纳（2026-10-06）
+- 状态：**部分被取代（2026-10-09）** —— 核心决策「用原生列表、不新造外壳」仍有效；
+  实现方式被 **V2.0「换承载」**取代（见文末），以下「三条硬约束」**全部作废**。
 - 决策人：用户（AskUserQuestion 三选一：整页跳转 / 点页签即跳 / **页签内嵌原生列表组件**）
-- 相关：DEC-012（自研能力挂载到原生视图，不新造外壳）、`REQ-RESOURCE` / `SCN-RES-1`、`REQ-RES-APPROVER`
-- 影响面：`addons/eln_ui/app/views/scinote/eln_ui/res_center/index.html.erb`、`ELN系统-Vue3/src/views/ResCenter.vue`（**零后端 Ruby 改动**）
+- 相关：DEC-012（自研能力挂载到原生视图，不新造外壳）、`REQ-RESOURCE` / `SCN-RES-1`、`REQ-RES-APPROVER`、
+  **ADR-0034**（Vue 化正路：源码归 addon、构建挂宿主 webpack）
+- 影响面：`addons/eln_ui/app/views/scinote/eln_ui/res_center/index.html.erb`、
+  `addons/eln_ui/app/javascript/vue/eln/views/ResCenter.vue`、`res_center_controller.rb`、`config/webpack/webpack.config.js`
 
 ## 背景
 
@@ -33,6 +36,8 @@ mountWithTurbolinks(app, '#repositoriesTable');   // ← 挂载点是 DOM id
 `repositories#show` 的）。数据源 `/repositories.json`。
 
 ## 三条硬约束（写在 ERB 注释里，改这块前先读）
+
+> ⚠️ **2026-10-09 已全部作废**（V2.0 换承载删掉了它们所依附的机制）。原样保留供追溯。
 
 1. **宿主节点必须渲染在 `#eln-res-center` 外面。**
    若交给 Vue3 用 `v-if` 异步渲染，原生 pack 执行那一刻 `document.querySelector('#repositoriesTable')`
@@ -67,3 +72,76 @@ mountWithTurbolinks(app, '#repositoriesTable');   // ← 挂载点是 DOM id
 |---|---|
 | 页签内留入口、整页跳 `/repositories` | 最稳，但离开资源中心上下文，与「内嵌」诉求不符 |
 | 点页签即自动跳 `/repositories` | 同上，且点击即离开，返回只能靠浏览器后退 |
+
+---
+
+## V2.0 换承载（2026-10-09，取代上面三条硬约束）
+
+- 状态：已采纳
+- 决策人：用户（AskUserQuestion 三选一：全部重写 / **保留原生能力，只换承载** / 保持现状）
+- 相关：ADR-0034（Vue 化正路）、`rescenter-internals §8`
+- 影响面：`ResCenter.vue`、`index.html.erb`、`res_center_controller.rb`、`config/webpack/webpack.config.js`
+- 归档：`patches/2026-10-09-rc-inventory-host-swap/`（含部署配方 + 验收探针 + 实录）
+
+### 决策
+
+**保留原生能力，只换承载**：由 ResCenter 自己的 Vue app 直接
+`import RepositoriesTable from 'host/repositories/table.vue'` 渲染，
+不再渲染 `<repositories-table>` 自定义元素、不再加载 `vue_repositories_table` pack。
+
+同一组件、同一批接口、同一份源码 —— 原生功能（新建库存 / 归档切换 / 列自定义 / 行操作 / 授权 / 导出）
+零损失，而页面从「两个 Vue app + 挂载点外渲染 + `style.display` 显隐」收敛为**一个 Vue app**。
+
+### 为什么三条硬约束可以作废
+
+它们全部是「第二个 Vue app + `mountWithTurbolinks` 的 `innerHTML`-当-模板语义」的副作用：
+
+| 原约束 | 作废原因 |
+|---|---|
+| 宿主节点必须在挂载点外 | 不再有第二个 app/pack，没有 `mountWithTurbolinks` 挂载点，组件是 `import` 进来的 SFC |
+| 两个 script 顺序敏感 | 只剩一个 bundle，顺序无从谈起 |
+| 显隐不归 Vue3 管 | 组件就在 Vue 模板里，`v-if="activeTab==='inventory'"` 天然管得到 |
+
+### 代价与配套（必须一并做，否则功能静默缺失）
+
+- URL / 权限仍**必须服务端生成**（前端不拼路由）：controller 新增 `native_repository_props`，
+  并入 payload `inventory.native`。补上了原生 ERB 漏传的 required prop `userRolesUrl`。
+- addon 入口必须补 `app.component('PerfectScrollbar', …)`：原生 `shared/access_modal/*` 模板用
+  `<perfect-scrollbar>` 但**组件自身没有 import**，靠全局注册 —— 否则授权弹窗渲染失败。
+- webpack 新增 `host` 别名 → `app/javascript/vue`（addon 要引用**非 `shared/` 子目录**的宿主组件）。
+
+### 🔴 本轮踩到的坑：`isolate_namespace` 让 addon controller 的宿主路由助手全部失效
+
+第一版 `native_repository_props` 用裸 `repositories_path(format: :json)`，`/eln_res_center` 直接 500：
+
+```
+ActionController::UrlGenerationError
+  (No route matches {action: "index", controller: "repositories", format: :json})
+```
+
+根因（容器内探针实证）：`addons/eln_ui/lib/scinote/eln_ui/engine.rb` 有
+`isolate_namespace Scinote::ElnUi` ⇒ Rails 把该命名空间下 controller 的 `_routes` 指向
+**引擎自己的路由集**，而 eln_ui 引擎**没有 `config/routes.rb`（0 条路由）**：
+
+```
+ENGINE_ISOLATED=true   ENGINE_ROUTE_COUNT=0
+CTRL_ROUTES_IS_ENGINE=true   CTRL_ROUTES_IS_APP=false
+ENGINE_HAS_repositories_path=false   APP_HAS_repositories_path=true（rails runner 里正常）
+```
+
+于是裸调 = `engine.routes.generate(controller: "repositories", action: "index", …)` ⇒ 必然 `No route matches`。
+
+**修法**：addon 里凡引用宿主路由，一律 `Rails.application.routes.url_helpers.<helper>`
+（本 controller 收敛为私有 `host_routes`）。
+
+> ⚠️ 与 ADR-0035 记的 **不是同一类**：那里是「该 helper 压根不存在（`user_settings_path` 无 collection 路由）
+> ⇒ `NameError`」，runner 里同样失败；这里是「helper 存在于**宿主** route set，但 controller 的 `_routes`
+> 是**引擎**那个 ⇒ `UrlGenerationError`」，runner 里**却正常**。两者都要全限定，但症状与排查方向相反：
+> **controller 里炸、runner 里好 → 先怀疑 route set，不是参数。**
+
+### 验收
+
+`_prod_shots/_rc_native_inv_shot.js`：`FAILS=0 / ERRORS_TOTAL=0`，核心断言 `insideMount=true`
+（原生表在 `#eln-res-center` **内部**）、旧容器 `#eln-repositories-native` 与旧挂载点 `#repositoriesTable`
+均不存在、`pageVScroll=false`（原「多一条滚动条」问题上文 `高度覆写` 一节已随之消解）、
+`New inventory` 在、授权弹窗 PerfectScrollbar 正常、其余 4 页签与原生 `/repositories` 页无回归。

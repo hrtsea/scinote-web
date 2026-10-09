@@ -9,32 +9,11 @@
   <%= render partial: 'header' %>
 
   <!-- USERS TABLE -->
-  <div class="users-datatable" data-e2e="e2e-CO-settings-workspace-usersTable">
-    <% if can_invite_team_users?(@team) %>
-      <div id="add-new-team-members-button" class="hidden">
-        <a href="#" class="btn btn-primary" data-trigger="invite-users" data-turbolinks="false" data-modal-id="team-invite-users-modal">
-          <span class="sn-icon sn-icon-new-task"></span>
-          <%= I18n.t('users.settings.teams.edit.add_user') %>
-        </a>
-      </div>
-      <%= render(partial: 'shared/invite_users_modal',
-                  locals: { modal_id: 'team-invite-users-modal',
-                            type: 'invite_to_team_with_role',
-                            team: @team } ) %>
-    <% end %>
-    <table id="users-table" class="table" data-source="<%= team_users_datatable_path(@team, format: :json) %>">
-      <thead>
-        <tr>
-          <th id="user-name"><%= t("users.settings.teams.edit.thead_user_name") %></th>
-          <th id="email"><%= t("users.settings.teams.edit.thead_email") %></th>
-          <th id="user-role"><%= t("users.settings.teams.edit.thead_role") %></th>
-          <th id="joined-on"><%= t("users.settings.teams.edit.thead_joined_on") %></th>
-          <th id="status"><%= t("users.settings.teams.edit.thead_status") %></th>
-          <th id="options"><%= t("users.settings.teams.edit.thead_actions") %></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <div id="teamMembersTableMount">
+    <team-members-table
+      :data-source="<%= team_users_datatable_path(@team, format: :json).to_json %>"
+      :can-invite="<%= can_invite_team_users?(@team).to_json %>"
+    ></team-members-table>
   </div>
   <!-- End of USERS TABLE -->
 
@@ -49,9 +28,19 @@
   <% end %>
 </div>
 
+<%# The invite modal is rendered server-side and wired by the global `invite_users_modal.js`
+    (loaded via application.js). It is kept as static markup so Bootstrap/open behaviour is
+    unchanged. %>
+<% if can_invite_team_users?(@team) %>
+  <%= render(partial: 'shared/invite_users_modal',
+              locals: { modal_id: 'team-invite-users-modal',
+                        type: 'invite_to_team_with_role',
+                        team: @team } ) %>
+<% end %>
+
 <%= render partial: 'users/settings/teams/description_modal' %>
 <%= render partial: 'users/settings/teams/destroy_modal', locals: { team: @team } %>
 <%= render partial: 'users/settings/user_teams/destroy_user_team_modal' %>
 <%= stylesheet_link_tag 'datatables' %>
-<%= javascript_include_tag 'users/settings/teams/show' %>
+<%= javascript_include_tag 'vue_team_members' %>
 <span data-hook="team-bottom"></span>

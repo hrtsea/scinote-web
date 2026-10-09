@@ -1,6 +1,36 @@
 <% provide(:head_title, t('webhooks.index.title')) %>
 <% provide(:container_class, "no-second-nav-container") %>
 
+<%
+  # 页面数据在服务端组装后一次注入，Vue 只负责渲染与交互；
+  # 所有 URL 均由 Rails 路由助手生成，保证接口地址/参数与迁移前完全一致。
+  webhook_filters_payload = @activity_filters.map do |filter|
+    {
+      id: filter.id,
+      name: filter.name,
+      info_url: filter_info_users_settings_webhooks_path(filter_id: filter.id),
+      create_url: users_settings_webhooks_path(filter_id: filter.id, sort: @current_sort),
+      webhooks: filter.webhooks.order(created_at: :desc).map do |webhook|
+        {
+          id: webhook.id,
+          http_method: webhook.http_method,
+          url: webhook.url,
+          active: webhook.active?,
+          include_serialized_subject: webhook.include_serialized_subject,
+          secret_key: webhook.secret_key,
+          update_url: users_settings_webhook_path(webhook, filter_id: filter.id, sort: @current_sort),
+          enable_url: users_settings_webhook_path(webhook, filter_id: filter.id, 'webhook[active]' => true, sort: @current_sort),
+          disable_url: users_settings_webhook_path(webhook, filter_id: filter.id, 'webhook[active]' => false, sort: @current_sort),
+          delete_url: users_settings_webhook_path(webhook, filter_id: filter.id, sort: @current_sort)
+        }
+      end
+    }
+  end
+
+  webhook_urls_payload = { destroy_filter: destroy_filter_users_settings_webhooks_path(sort: @current_sort) }
+  webhook_methods_payload = Webhook.http_methods.keys.map { |key| { value: key, label: key.upcase } }
+%>
+
 <%= render partial: "users/settings/sidebar" %>
 
 <div class="content-pane flexible webhooks-index">
@@ -28,105 +58,14 @@
   <div class="webhooks-description">
     <%= t('webhooks.index.description') %>
   </div>
-  <ul class="activity-filters-list">
-    <% @activity_filters.each do |filter| %>
-      <li class="filter-element">
-        <div class="filter-block">
-          <i class="sn-icon sn-icon-down collapsed" data-toggle="collapse" href="#activityFilter<%= filter.id %>" aria-expanded="false"></i>
-          <span class="filter-name" title="<%= filter.name %>">
-            <%= filter.name %>
-          </span>
-          <div class="info-container dropdown" data-url="<%= filter_info_users_settings_webhooks_path(filter_id: filter.id) %>" >
-            <div id="filter-info-<%= filter.id %>-button" class="btn btn-light show-filter icon-btn" data-toggle="dropdown">
-              <i class="sn-icon sn-icon-info"></i>
-            </div>
-            <div class="dropdown-menu" aria-labelledby="filter-info-<%= filter.id %>-button" role="menu">
-              <p class="filter-info-title"><%= t('webhooks.index.applied_filters') %></p>
-              <div class="tags-list"></div>
-            </div>
-          </div>
-          <div class="btn btn-light create-webhook">
-            <i class="sn-icon sn-icon-new-task"></i>
-            <%= t('webhooks.index.new_webhook') %>
-          </div>
-          <div class="btn btn-light delete-filter icon-btn" data-id="<%= filter.id %>" data-name="<%= filter.name %>">
-            <i class="sn-icon sn-icon-delete"></i>
-          </div>
-        </div>
-        <ul class="webhooks-list collapse" id="activityFilter<%= filter.id %>">
-          <li class="create-webhook-container hidden">
-            <%= form_with model: Webhook.new, url: users_settings_webhooks_path(filter_id: filter.id, sort: @current_sort), class: 'webhook-form', data: { remote: true } do |f| %>
-              <%= render partial: 'webhook_form', locals: {f: f} %>
-            <% end %>
-          </li>
-          <% filter.webhooks.order(created_at: :desc).each do |webhook| %>
-            <li class="webhook <%= 'active' if webhook.active? %>">
-              <div class="view-mode">
-                <span class="webhook-text" title="<%= webhook.url %>" >
-                  <%= t('webhooks.index.webhook_text_html', method: webhook.http_method.upcase, url: webhook.url) %>
-                </span>
-                <% if webhook.active? %>
-                  <span class="active-webhook">
-                    <i class="fas fa-check-circle"></i>
-                    <%= t("webhooks.index.active") %>
-                  </span>
-                <% else %>
-                  <span class="disabled-webhook">
-                    <i class="fas fa-unlink"></i>
-                    <%= t("webhooks.index.disabled") %>
-                  </span>
-                <% end %>
-                <div class="dropdown webhook-menu">
-                  <button class="btn btn-light icon-btn dropdown-toggle" type="button" id="webhookMenuButton<%= webhook.id %>" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                    <span><i class="sn-icon sn-icon-more-hori"></i></span>
-                  </button>
-                  <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="webhookMenuButton<%= webhook.id %>">
-                    <li class="divider-label"><%= t("webhooks.index.webhook_options").upcase %></li>
-                    <li>
-                      <a href="#" class="edit-webhook">
-                        <i class="sn-icon sn-icon-edit"></i>
-                        <%= t('general.edit') %>
-                      </a>
-                    </li>
-                    <li>
-                      <% if webhook.active? %>
-                        <%= link_to users_settings_webhook_path(webhook, filter_id: filter.id, 'webhook[active]' => false, sort: @current_sort), method: :patch do %>
-                          <i class="fas fa-unlink"></i>
-                          <%= t("webhooks.index.disable") %>
-                        <% end %>
-                      <% else %>
-                        <%= link_to users_settings_webhook_path(webhook, filter_id: filter.id, 'webhook[active]' => true, sort: @current_sort), method: :patch do %>
-                          <i class="fas fa-check-circle"></i>
-                          <%= t("webhooks.index.enable") %>
-                        <% end %>
-                      <% end %>
-                    </li>
-                    <li>
-                      <%= link_to users_settings_webhook_path(webhook, filter_id: filter.id, sort: @current_sort), method: :delete, data: { confirm: t('webhooks.index.delete_webhook_confimration') } do %>
-                        <i class="sn-icon sn-icon-delete"></i>
-                        <%= t('general.delete') %>
-                      <% end %>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div class="edit-webhook-container hidden">
-                <%= form_with model: webhook, url: users_settings_webhook_path(webhook, filter_id: filter.id, sort: @current_sort), class: 'webhook-form', method: :patch, data: { remote: true } do |f| %>
-                  <%= render partial: 'webhook_form', locals: {f: f} %>
-                <% end %>
-              </div>
-            </li>
-          <% end %>
-        </ul>
-      </li>
-    <% end %>
-  </ul>
 
-  <%= render partial: 'delete_filter_modal' %>
-
+  <div id="webhooksIndex">
+    <webhooks-index
+      :filters="<%= webhook_filters_payload.to_json %>"
+      :urls="<%= webhook_urls_payload.to_json %>"
+      :method-options="<%= webhook_methods_payload.to_json %>"
+    ></webhooks-index>
+  </div>
 </div>
 
-
-
-<%= javascript_include_tag "users/settings/webhooks/index" %>
-
+<%= javascript_include_tag 'vue_webhooks' %>

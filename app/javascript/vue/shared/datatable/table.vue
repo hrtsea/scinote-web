@@ -228,6 +228,14 @@ export default {
       type: String,
       default: 'pages'
     },
+    // 每页档位覆盖（可选扩展点，默认 null = 沿用内置 [10, 20, 50, 100]）。
+    // 用途：某些页的档位真源在服务端 payload（spec「同一事实只许一个真源」，
+    // 前端不得写死第二份），例如 ELN 项目列表的 [0, 20, 50, 100]，
+    // 其中 0 = 全部 / 不分页，UI 上必须渲染为「全部」而非「0」。
+    perPageOptionsOverride: {
+      type: Array,
+      default: null
+    },
     objectArchived: {
       type: Boolean,
       default: false
@@ -317,7 +325,16 @@ export default {
       return Object.keys(this.filledRowTemplate).every((key) => this.filledRowTemplate[key].isValid);
     },
     perPageOptions() {
-      return [10, 20, 50, 100].map((value) => ([value, `${value} ${this.i18n.t('datatable.rows')}`]));
+      const values = this.perPageOptionsOverride || [10, 20, 50, 100];
+      return values.map((item) => {
+        // 允许直接给 [值, 标签] 对：标签由调用方定。
+        // ⚠ 为什么需要这条：0 档（全部/不分页）渲染成「0」「0 行」在业务上无意义，
+        //   而 JS 翻译包（`app/assets/javascripts/i18n/translations.js`）是**预生成产物**，
+        //   新增 yml 键不会自动进 bundle（会渲染成 `[missing "…" translation]`），
+        //   所以「全部」这类标签必须由调用方自带，不能指望 i18n 现取。
+        if (Array.isArray(item)) return item;
+        return [item, `${item} ${this.i18n.t('datatable.rows')}`];
+      });
     },
     actionsParams() {
       return {
@@ -453,7 +470,7 @@ export default {
 
     window.addEventListener('resize', this.resize);
   },
-  beforeDestroy() {
+  beforeUnmount() {
     delete window.resetGridColumns;
     window.removeEventListener('resize', this.resize);
   },
