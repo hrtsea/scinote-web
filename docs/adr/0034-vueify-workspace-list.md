@@ -246,9 +246,8 @@
 
 ## 修订 rev4 2026-10-09：datatable 后端对齐宿主 Lists 模板（AMS + Service）
 
-- 状态：**Accepted**（2026-10-09，用户拍板：「按这个模板动手改」）→
-  ⚠️ **代码已落地但尚未真机验证**（本机 `bundle install` 未完成，`rails runner` 起不来，
-  只做了静态校验）。上线前须走下方「验证清单」。本修订**不改前端、不改协议**，
+- 状态：**Accepted**（2026-10-09，用户拍板：「按这个模板动手改」）→ **已验证**（2026-10-10，
+  生产容器 `scinote_web_production` 内跑通，见下方「验证结果」）。本修订**不改前端、不改协议**，
   只重构后端实现形态。
 - 触发：rev3 把前端换成宿主 AG Grid 栈、协议换成 `{data, meta}`，但后端是**手搓 hash**
   （`datatable` action 内 `rows.map { row.except(:id) }`）。用户随后问「本地为什么不走
@@ -298,7 +297,17 @@
 `columnDefs.field`（`name/id/created_by/created_at/role/members_count/leave`）与两个
 cellRenderer 消费的 `can_manage` / `members_url` / `can_leave` / `leave_url` 全部保持；
 AMS 输出的 `attributes` 会被栈的 `formatData` 摊平，行结构不变。
-`type` 亦不变：AMS 0.10 由 `object.class.name.underscore` 解析出 `team`，与 rev3 手搓值相同。
+
+⚠️ **两处与 rev3 手搓值不同、但对前端无影响的字段差异**（实测记录，勿误判为回归）：
+
+| 字段 | rev3（手搓） | rev4（AMS） | 影响 |
+| --- | --- | --- | --- |
+| `type` | `'team'`（单数） | `"teams"`（复数，来自 `model_name.element`） | 无。栈 `formatData` 仅把 `type` 搬到行对象，全链路无逻辑消费 |
+| `id` | `42`（整数） | `"42"`（字符串，AMS 0.10 默认） | 无。仅用于 `getRowId` 拼接 `e2e-TB-row-<id>`，插值结果一致 |
+
+实际渲染由 `ActiveModelSerializers::Adapter::JsonApi` 产出（见容器日志），输出形状为
+`{data:[{id,type,attributes}], links:{...}, meta:{...}}`，与 rev3 的 `{data, meta}` 兼容
+（多出的 `links` 键栈不读取）。
 
 ### 判定单一真源未动
 
@@ -307,14 +316,57 @@ AMS 输出的 `attributes` 会被栈的 `formatData` 摊平，行结构不变。
 判定为内存查找。`can_manage` 仍是 `can_manage_team?(team) || system_admin_bypass?`，
 与 `load_team` 门槛一致。
 
-### 验证清单（⚠️ 待执行）
+### 验证结果（2026-10-10，生产容器内实测）
 
-1. `GET /users/settings/teams` 表格挂载，首屏**默认按名称升序**（验决策 3）；
-2. 逐列点表头，尤其 `role` / `members_count` 这两个**走输出列别名**的（验白名单排序）；
-3. **重点对比 `members_count` 数字**与 rev3 一致（验决策 2 的 SQL 口径）；
-4. 退出按钮 enabled/disabled 分布与 rev3 一致（最后管理者仍禁用）；
-5. 静态校验已过：`ruby -c` × 3、lints 0、`TeamsService`/`Lists::TeamSerializer`
-   全仓唯一调用点确认。
+环境：容器 `scinote_web_production`（镜像构建时已含本轮三个文件，md5 与本地逐一致），
+Rails 7.2.3.2。手段：`warden test_mode` + `ActionDispatch::Integration::Session`
+直接打 `POST /users/settings/teams/datatable`，读真实 JSON 响应（数据：users=6 / teams=3）。
+
+| # | 验证项 | 结果 |
+| --- | --- | --- |
+| 1 | 端点响应形状 | ✅ `{data:[{id,type,attributes}], links, meta}`，`attributes` 九键齐全 |
+| 2 | `meta.filtered_count` | ✅ `3`（`pagination_dict` 无此键，已由 controller `merge` 补齐） |
+| 3 | **`members_count` SQL vs Ruby** | ✅ T42 `1=1`、T40 `2=2`、T1 `5=5`（对齐 `Assignable#users`，决策 2 成立） |
+| 4 | `role` 子查询 vs `assignment.user_role.name` | ✅ 三行均 `"Owner" == "Owner"` |
+| 5 | `created_by` 子查询 vs `created_by.full_name` | ✅ 三行均 `"Admin" == "Admin"` |
+| 6 | 六列排序 | ✅ `name` 中文升序、`id` asc `[1,40,42]` / desc `[42,40,1]`、`created_at` 时间升序、`members_count` asc `[1,2,5]` / desc `[5,2,1]`；`role` 因三者同为 Owner 排序无可观差异 |
+| 7 | 白名单外的列名 | ✅ `order.column=bogus_col` → 200 且不报错（回落默认序） |
+| 8 | 搜索真过滤 | ✅ `结构` → 1 行 / `total_count=1`；`zzz不存在` → 0 行 / `total=0`；**空串 → 3 行**（不误触发） |
+| 9 | `per_page` 白名单 | ✅ `10` 生效；`0` / `-5` / `999` 全部回退 20，均 200 |
+| 10 | **`can_leave` 真值可达** | ✅ `000`(成员1)→`false`、`崔老师组`(成员2)→`false`、`结构调控课题组`(成员5)→`true`。**true/false 并存 ⇒ 判定未退化成常量**（满足 ADR 铁律） |
+| 11 | `can_leave` 与后端同源 | ✅ 仍调 `assignment.last_with_permission?(TeamPermissions::USERS_MANAGE)`，未改写 |
+| 12 | 静态校验 | ✅ `ruby -c` × 3、lints 0、`TeamsService`/`Lists::TeamSerializer` 全仓唯一调用点 |
+
+**真浏览器验证（2026-10-10，容器 + playwright chromium）**：`_prod_shots/_verify_teams_page.js`
+—— **20/21 PASS**，前端零改动、协议未变得到确认。PASS 项含：Vue 挂载 / `.ag-theme-alpine` /
+7 列文案 / 列宽手柄 / 行 `e2e-TB-row-<id>` / 名称列钉左且可点 / 退出按钮 enabled+disabled 合计=行数
+且**存在禁用态**（最后管理者）/ 分页条含 Show 下拉 / 页头新建按钮 / 点表头触发服务端排序 200 /
+退出弹窗含表单 / datatable 全 200 / 0 console error / 0 pageerror / 0 失败请求。
+
+唯一 FAIL 是**数据基线过期**，非回归：脚本第 117-121 行硬编码「首行含 `40` + `崔老师组`」
+（2026-10-07 当时的行序基线），而**team 42「000」已于 10-08 创建**（`created_at=2026-10-08 14:56`），
+按 name 升序 `"000" < "崔老师组" < "结构调控课题组"`（`'0'`=U+0030 < `'崔'`=U+5D14 < `'结'`=U+7ED3），
+首行自然变成 team 42。实测三行行序与容器内 `sort name` 完全一致：
+
+| 行 id | 名称 | created_by | created_at | role | members | leave |
+| --- | --- | --- | --- | --- | --- | --- |
+| `e2e-TB-row-42` | 000 | Admin | 2026-10-08 14:56 | Owner | 1 | enabled |
+| `e2e-TB-row-40` | 崔老师组 | Admin | 2026-10-07 05:04 | Owner | 2 | enabled |
+| `e2e-TB-row-1` | 结构调控课题组 | Admin | 2026-09-29 13:34 | Owner | 5 | enabled |
+
+⇒ 该断言应改为校验「name 升序」而非硬编码 team id。
+
+⚠️ 真机验收的两个前置（否则是假绿，已实测踩过）：
+1. **会话必须现签**：`mksession.rb` 不随镜像走，容器重启后 `tmp/` 即失；旧 TSV 会静默 302 到
+   `/users/sign_in`，页面照样 200 → 表现为「Vue 未挂载 + 0 失败请求」，极易误判为前端回归。
+2. **`playwright-core` 需自备**：`_prod_shots/` 下无 `node_modules`，须
+   `npm install playwright-core --no-save --no-package-lock`，并依赖已下载的 chromium 可执行文件。
+
+**本地开发机（Windows）无法验证的原因**（与本次改造无关，属环境限制）：
+1. bootsnap ISeq 缓存在中文路径 `F:/eln开发/` 下抛 `Errno::E-01` → 需 `DISABLE_BOOTSNAP=1`；
+2. `graphviz (1.2.1)`（`Gemfile:92` 无条件声明）在 Windows 加载失败：
+   `Function 'tcgetpgrp' not found in [ucrtbase.dll]`（其 `posix` 依赖需 POSIX 符号）。
+   ⇒ 本地任何 Rails 命令都起不来，验证须走容器。
 
 ### 新增铁律（通用，本轮踩坑得出）
 
