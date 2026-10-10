@@ -241,3 +241,92 @@
   Show 下拉+条目文案 / 点 `e2e-CO-tableHeader-created_by` 触发服务端排序 200 /
   退出弹窗（原生 modal）正常 / datatable 全 200 / 0 console error / 0 pageerror。
   产物 digest `vue_teams_table-d0762f71…js`（1,712,556B，含 AG Grid + js-routes）。
+
+---
+
+## 修订 rev4 2026-10-09：datatable 后端对齐宿主 Lists 模板（AMS + Service）
+
+- 状态：**Accepted**（2026-10-09，用户拍板：「按这个模板动手改」）→
+  ⚠️ **代码已落地但尚未真机验证**（本机 `bundle install` 未完成，`rails runner` 起不来，
+  只做了静态校验）。上线前须走下方「验证清单」。本修订**不改前端、不改协议**，
+  只重构后端实现形态。
+- 触发：rev3 把前端换成宿主 AG Grid 栈、协议换成 `{data, meta}`，但后端是**手搓 hash**
+  （`datatable` action 内 `rows.map { row.except(:id) }`）。用户随后问「本地为什么不走
+  DataTables 协议 / 看看其他页面如何实现」，核查结论：全仓消费该栈的页面
+  （`/projects`、`/users/settings/teams/:id/user_groups`、库存 `index_ag`）后端**全是
+  `{data, meta}`，无一走 DataTables 协议**（DataTables 协议仅残留在尚未 Vue 化的
+  `app/datatables/*.rb`）。故 rev3 的协议选择本来就是随大流，**唯一偏差是实现方式**：
+  teams 是全仓唯一不用 AMS serializer 的列表页。
+
+### 改了什么
+
+| 维度 | rev3（手搓） | rev4（对齐宿主模板） |
+| --- | --- | --- |
+| 取数 | `workspace_scope.to_a` 全量入内存 | `Lists::TeamsService`（继承 `Lists::BaseService`） |
+| 行构造 | controller 私有 `workspace_row`（55 行） | `Lists::TeamSerializer`（AMS） |
+| 分页 | Ruby `drop(...).first(per_page)` | Kaminari（`.page().per()`，`BaseService` 既有能力） |
+| 排序 | Ruby `sort_by`（6 个 case 分支） | SQL `ORDER BY`，白名单 `sortable_columns` |
+| 搜索 | **忽略** `search`/`filters` | `where_attributes_like(['teams.name'], search)` |
+| 成员数 | 每行 `team.users.count`（**N+1**） | SQL 子查询一次算出 |
+| 创建人/角色 | 每行 `created_by` / 预加载数组查找 | SQL 子查询选出 |
+| `per_page` 校验 | controller `datatable_per_page` | service `sanitized_per_page` |
+| action 体积 | 26 行 | 5 行（controller −105 行） |
+
+新增 `app/services/lists/teams_service.rb`、`app/serializers/lists/team_serializer.rb`；
+改 `app/controllers/users/settings/teams_controller.rb`（+19 / −105）。
+
+### 关键设计决策
+
+1. **派生列一律用相关标量子查询，禁用 JOIN**（本轮最关键）。
+   `members_count` / `role` 若 `JOIN user_assignments`，会按**该工作区的全部成员**展开行数
+   ⇒ 分页与计数全错；要聚合就得 `GROUP BY`，又与 Kaminari 的 `count` 打架。
+   故三个派生列写成标量子查询，保证「一行一 team」。附带好处：Kaminari 取 `total_count` 时
+   Rails 会把整个 `SELECT` 换成 `COUNT(*)`，子查询自动退出语句。
+2. **`members_count` 必须复刻 `Assignable#users` 口径**（`app/models/concerns/assignable.rb:29-42`）：
+   直连成员 ∪ 用户组成员 ∪ 上级团队成员，三路并集逐条译成 SQL。
+   代码内已标注「改动此 SQL 必须同步 `Assignable#users`」。
+3. **无 `order` 时必须显式给默认排序**。栈首次加载 `order` 为 `null`（`table.vue:289`），
+   而 `BaseService#sort_records` 是「blank 即不排序」——直接沿用会让**首屏行序未定义**。
+   故 override：缺省 `LOWER(teams.name)`，与原生 `TeamsDatatable` 缺省一致。
+4. **`.distinct` 可安全去掉**：`UserAssignment` 对 `(user, assignable, team_id)` 有唯一性验证
+   （`app/models/user_assignment.rb:22`），`@user.teams` 不会展开重复行。
+   原先挂在 `workspace_scope` 上的 `.preload` 则下沉到 service（预加载是取数职责，
+   不属授权范围）。
+
+### 前端零改动
+
+`columnDefs.field`（`name/id/created_by/created_at/role/members_count/leave`）与两个
+cellRenderer 消费的 `can_manage` / `members_url` / `can_leave` / `leave_url` 全部保持；
+AMS 输出的 `attributes` 会被栈的 `formatData` 摊平，行结构不变。
+`type` 亦不变：AMS 0.10 由 `object.class.name.underscore` 解析出 `team`，与 rev3 手搓值相同。
+
+### 判定单一真源未动
+
+`can_leave` 仍调 `assignment.last_with_permission?(TeamPermissions::USERS_MANAGE)`
+（`UserTeamsController#destroy` 同一口径），`user_assignments`（含 `user_role`）已预加载，
+判定为内存查找。`can_manage` 仍是 `can_manage_team?(team) || system_admin_bypass?`，
+与 `load_team` 门槛一致。
+
+### 验证清单（⚠️ 待执行）
+
+1. `GET /users/settings/teams` 表格挂载，首屏**默认按名称升序**（验决策 3）；
+2. 逐列点表头，尤其 `role` / `members_count` 这两个**走输出列别名**的（验白名单排序）；
+3. **重点对比 `members_count` 数字**与 rev3 一致（验决策 2 的 SQL 口径）；
+4. 退出按钮 enabled/disabled 分布与 rev3 一致（最后管理者仍禁用）；
+5. 静态校验已过：`ruby -c` × 3、lints 0、`TeamsService`/`Lists::TeamSerializer`
+   全仓唯一调用点确认。
+
+### 新增铁律（通用，本轮踩坑得出）
+
+1. **列表页 Vue 化必须走 AMS + `Lists::XxxService`，不得手搓 hash。**
+   手搓的代价实测有三：字段定义塞进 controller（胖控制器）、排序无法下推 SQL、
+   派生属性只能 per-row 查询（N+1）。仓库已有标准件，不需要自造。
+2. **`per-row` 派生属性（当前用户的角色、跨表聚合计数）在 SQL 侧用相关子查询，
+   绝不 JOIN。** JOIN 会按成员数展开行数，静默破坏分页与 `COUNT(*)`。
+3. **迁到 `Lists::BaseService` 时必须 override `sort_records` 补默认排序**，
+   基类的「blank 即不排序」是为有天然序的表设计的；列表端点必须自己定义缺省序。
+4. **`pagination_dict` 的 meta 比栈读的少一个键。** 栈读
+   `meta.{total_pages,total_count,filtered_count}`（`table.vue:724-726`），而
+   `pagination_dict` 只产出 5 键、**无 `filtered_count`** ⇒ `/projects` 的
+   `meta.filtered_count` 实为 `undefined`。本列表已显式 `merge(filtered_count: …)` 补齐；
+   是否给 `pagination_dict` 统一补上，属独立议题（涉及 projects/protocols 等多页），待议。

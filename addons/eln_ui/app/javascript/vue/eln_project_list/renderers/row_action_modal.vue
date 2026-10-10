@@ -90,14 +90,35 @@
                 </thead>
                 <tbody>
                   <tr v-for="m in members" :key="m.id">
-                    <td>{{ m.name }}</td>
                     <td>
-                      <select :value="String(m.roleId)" @change="changeRole(m, $event)" class="sci-input-field" :data-e2e="`e2e-DD-rowAction-role-${m.id}`">
-                        <option v-for="r in userRoles" :key="r.id" :value="String(r.id)">{{ r.name }}</option>
-                      </select>
+                      {{ m.name }}
+                      <span v-if="m.currentUser" class="text-xs text-sn-grey">（{{ $t('access_permissions.you') }}）</span>
+                      <div v-if="m.inheritMessage" class="text-xs text-sn-grey text-nowrap">{{ m.inheritMessage }}</div>
                     </td>
                     <td>
-                      <button class="btn btn-light icon-btn" @click="removeMember(m)" :data-e2e="`e2e-BT-rowAction-remove-${m.id}`">
+                      <!-- 可改：下拉。与原生 edit.vue 同构。 -->
+                      <select
+                        v-if="memberEditable(m)"
+                        :value="String(m.roleId)"
+                        @change="changeRole(m, $event)"
+                        class="sci-input-field"
+                        :data-e2e="`e2e-DD-rowAction-role-${m.id}`"
+                      >
+                        <option v-for="r in userRoles" :key="r.id" :value="String(r.id)">{{ r.name }}</option>
+                      </select>
+                      <!-- 不可改：渲染死标签（同原生 `pointer-events-none` 兜底），
+                           保留角色文字、去掉下拉箭头，不让用户以为能改。 -->
+                      <span v-else class="btn btn-light pointer-events-none" :data-e2e="`e2e-TX-rowAction-role-${m.id}`">
+                        {{ roleName(m.roleId) }}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        v-if="memberEditable(m)"
+                        class="btn btn-light icon-btn"
+                        @click="removeMember(m)"
+                        :data-e2e="`e2e-BT-rowAction-remove-${m.id}`"
+                      >
                         <i class="sn-icon sn-icon-trash"></i>
                       </button>
                     </td>
@@ -169,6 +190,10 @@ export default {
       assignableUsers: [],
       newUserId: '',
       newRoleId: '',
+      // 🔴 权限三判定（等价原生 shared/access_modal/edit.vue:135 那一行 v-if）：
+      //   最后一个有管理权的人 / update_access 总闸 / 本人行的继承态 —— 任一命中即只读。
+      //   默认 true：拿不到判定数据时不误伤（服务端仍会422兜底，见 changeRole/removeMember）。
+      canUpdateAccess: true,
       // comment
       commentsHtml: '',
       commentAddable: false,
@@ -189,7 +214,7 @@ export default {
         archive: '归档项目',
         delete: '删除文件夹'
       };
-      return (map[this.kind] || '操作') + (this.row.attributes && this.row.attributes.name ? `：${this.row.attributes.name}` : '');
+      return (map[this.kind] || '操作') + (this.rowData().name ? `：${this.rowData().name}` : '');
     },
     confirmText() {
       if (this.kind === 'archive') return '确定要归档该项目吗？此操作可在归档列表中恢复。';
@@ -235,6 +260,23 @@ export default {
     }
   },
   methods: {
+    // 权限三判定的**唯一真源**（与原生 edit.vue:135 逐项对齐，改这里即可）。
+    // 语义完全一致：
+    //   1) last_owner —— 最后一位有管理权的指派，宿主禁止降级/删除（base_controller
+    //      #update/#destroy 都用 UserAssignment#last_with_permission? 拦）
+    //   2) canUpdateAccess —— update_access 总闸，服务端 truth，false 时整行只读
+    //   3) 本人行 + 继承 —— 宿主约定继承来的权限本人不可改
+    memberEditable(m) {
+      if (!m) return false;
+      if (!this.canUpdateAccess) return false;
+      if (m.lastOwner) return false;
+      if (m.currentUser && m.inheritMessage) return false;
+      return true;
+    },
+    roleName(roleId) {
+      const hit = this.userRoles.find((r) => Number(r.id) === Number(roleId));
+      return hit ? hit.name : '';
+    },
     async init() {
       try {
         if (this.kind === 'edit') this.initEdit();
@@ -245,8 +287,16 @@ export default {
         this.error = (e && e.message) || '加载失败';
       }
     },
+    // 🔴 行对象形状：DataTable#formatData（shared/datatable/table.vue:659-665）把 AMS 的
+    //   item.attributes **摊平到顶层**（`{...item.attributes, id, type}`），
+    //   而 row_menu_renderer 传进来的正是 `params.data`（已摊平）
+    //   ⇒ **row.attributes 不存在**，payload 字段（name/permissions/...）在 row 顶层。
+    //   取值统一走 rowData()，兼容两种形状，避免再踩「读 attributes 全是 undefined」。
+    rowData() {
+      return (this.row && (this.row.attributes || this.row)) || {};
+    },
     initEdit() {
-      const a = this.row.attributes || {};
+      const a = this.rowData();
       this.form.name = a.name || '';
       this.form.startDate = (a.startDate || '').toString().slice(0, 10);
       this.form.due = (a.due || '').toString().slice(0, 10);
@@ -293,9 +343,30 @@ export default {
           return {
             id: user.id,
             name: user.name || attrs.name,
-            roleId: attrs.user_role && attrs.user_role.id
+            roleId: attrs.user_role && attrs.user_role.id,
+            // 🔴 权限三判定所需字段（原生存量，缺一个就等于把门禁拆了）：
+            //   · last_owner    —— 最后一个有管理权的人，角色不可改、不可删（原生同源
+            //     UserAssignments 判定，不是纯前端；serializer 已下发）
+            //   · inherit_message —— 继承自上级的权限，宿主约定只读
+            //   · current_user  —— 本人行（本人行的继承态同样只读）
+            // 三层合起来等价于原生 shared/access_modal/edit.vue:135 那一行 v-if：
+            //   !last_owner && urls.update_access && !(current_user && inherit_message)
+            lastOwner: !!attrs.last_owner,
+            inheritMessage: attrs.inherit_message || null,
+            currentUser: !!attrs.current_user
           };
         }).filter((m) => m.id);
+
+        // 🔴 update_access 总闸：**随行 payload 下发**（不是从成员响应读 —— 读不到）。
+        //   原生 edit.vue 判 `params.object.urls.update_access`，那个 URL 只在
+        //   can_manage_project_users? 为真时才写进 urls
+        //   （app/serializers/project_serializer.rb:95-100 的 if 守卫），
+        //   等价谓词 = permissions.manage_users_assignments，由 payload 逐行下发。
+        //   为什么不能从成员响应拿：GET /access_permissions/projects/:id 用
+        //   `each_serializer: UserAssignmentSerializer`（base_controller#show），
+        //   扁平数组，attributes 里**没有 permissions 也没有 urls**。
+        const rowPerms = this.rowData().permissions || {};
+        this.canUpdateAccess = rowPerms.manage_users_assignments !== false;
 
         // 🔴 角色列表：`{ data: [[id, display_name], ...], default_role_id }` —— **二维元组**，
         //   不是对象数组（照 [name, id] 解会整个反：option 变空值、下拉只剩空窄框）。
@@ -328,6 +399,14 @@ export default {
       }
     },
     async changeRole(member, ev) {
+      // 前端门禁（体验层）：命中三判定直接拒绝并说明原因。
+      // ⚠ 真正的强制在服务端 base_controller#update（last_with_permission? ⇒ 422），
+      //   这里只是把「为什么不能改」提前讲清楚，不替代服务端校验。
+      if (!this.memberEditable(member)) {
+        ev.target.value = String(member.roleId);
+        this.error = this.readonlyReason(member);
+        return;
+      }
       this.busy = true;
       this.error = '';
       try {
@@ -342,6 +421,10 @@ export default {
       }
     },
     async removeMember(member) {
+      if (!this.memberEditable(member)) {
+        this.error = this.readonlyReason(member);
+        return;
+      }
       this.busy = true;
       this.error = '';
       try {
@@ -354,6 +437,13 @@ export default {
       } finally {
         this.busy = false;
       }
+    },
+    // 门禁命中原因（与服务端拦下的场景一一对应，便于用户理解为什么置灰）
+    readonlyReason(m) {
+      if (m && m.lastOwner) return '这是最后一位拥有管理权限的成员，不能移除或降级';
+      if (!this.canUpdateAccess) return '你没有修改该项目访问权限的权限';
+      if (m && m.currentUser && m.inheritMessage) return '该权限继承自上级，不能在此修改';
+      return '当前不可修改';
     },
     async addMember() {
       if (!this.newUserId) return;

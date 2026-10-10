@@ -366,7 +366,36 @@ module Scinote
           # 与 /projects 页同源（同一份 public.favorites 数据），前端复用宿主 FavoriteRenderer。
           favorite: starred_by_user?(project),
           # 切换端点（宿主原生）：前端复用宿主 FavoriteRenderer，由其父组件 POST 此 url。
-          urls: { favorite: favorite_url_for(project), unfavorite: unfavorite_url_for(project) },
+          # 🔴 `update` 是描述列的保存端点（spec SCN-PROJ-LIST-12 第 4 条要求写
+          #   `PUT /projects/:id` + `project[description]`），口径照抄原生
+          #   ProjectAndFolderSerializer#urls：**只有 managable? 才下发**（无权限时前端
+          #   不显示「添加描述」/「编辑」入口，端点也不给）。
+          urls: {
+            favorite: favorite_url_for(project),
+            unfavorite: unfavorite_url_for(project),
+            update: can_manage_project?(project) ? routes.project_path(project) : nil
+          },
+          # 行级权限（spec SCN-PROJ-LIST-11/12 的前置：渲染器要靠它决定显示
+          # 「+」/纯文本 0、以及「添加描述」/无入口）。两个谓词与原生序列化器
+          # **逐字对齐**（`app/serializers/lists/project_and_folder_serializer.rb`）：
+          #   create_comments ← can_create_project_comments?
+          #   manage         ← can_manage_project?
+          permissions: {
+            create_comments: can_create_project_comments?(project),
+            manage: can_manage_project?(project),
+            # 🔴 行级弹窗「访问权限」的**总闸**（原生 shared/access_modal/edit.vue 判的
+            #   `params.object.urls.update_access`）。原生那个 URL 只在
+            #   can_manage_project_users? 为真时才写进 urls
+            #   （app/serializers/project_serializer.rb:95-100 的 if守卫），
+            #   等价谓词就是 permissions.manage_users_assignments。
+            #   为什么必须随行下发：成员列表 GET /access_permissions/projects/:id 用
+            #   `each_serializer: UserAssignmentSerializer`（base_controller#show），
+            #   是**扁平数组**，attributes 只有
+            #   id/assigned/assignable_type/user/user_role/last_owner/inherit_message/current_user
+            #   —— **不含 permissions、不含 urls** ⇒ 行作用域拿不到这个闸门。
+            #   与 create_comments/manage 同源同真源（都走 Canaid can_*?）。
+            manage_users_assignments: can_manage_project_users?(project)
+          },
           status: status_of(project),
           startDate: date(project.respond_to?(:start_date) ? project.start_date : nil),
           due: date(project.respond_to?(:due_date) ? project.due_date : nil),
@@ -382,6 +411,15 @@ module Scinote
           tasksCompleted: stats[:completed_tasks],
           tasksTotal: stats[:tasks],
           commentsCount: stats[:comments],
+          # 评论列要直接复用宿主 CommentsRenderer，而它读的是**嵌套结构**
+          # `params.data.comments.count` / `.count_unseen`（不是标量），见
+          # `app/javascript/vue/shared/datatable/renderers/comments.vue`。
+          # ⇒ 这里必须给嵌套形状；commentsCount 保留给 ELN 自己的旧消费方。
+          # count_unseen 复用宿主 CommentHelper#count_unseen_comments（未读小红点）。
+          comments: {
+            count: stats[:comments].to_i,
+            count_unseen: unseen_comments_count_of(project)
+          },
           description: description_of(project),
           createdAt: datetime(project.respond_to?(:created_at) ? project.created_at : nil),
           updatedAt: datetime(project.respond_to?(:updated_at) ? project.updated_at : nil),
@@ -747,6 +785,21 @@ module Scinote
       # NoMethodError；这里显式补一个，让 payload 在无 controller 上下文时也能判。
       def current_user
         @current_user
+      end
+
+      # 评论未读数：口径与宿主 `CommentHelper#count_unseen_comments` 逐字一致
+      #（该项目评论里 `unseen_by` 含当前用户的条数）。
+      # ⚠ **不直接调宿主那个方法**：它的签名 `(commentable, current_user)` 里，
+      #   方法体内部又用无参 `current_user`（helper 语境由 controller 注入）——
+      #   传参会遮蔽那个无参调用，在 Service 语境里必然NoMethodError。故就地展开。
+      def unseen_comments_count_of(project)
+        user = @current_user
+        return 0 if user.nil?
+
+        project.comments.count { |c| c.unseen_by.include?(user.id) }
+      rescue StandardError
+        # 评论表/关联不可用时不伪造数字（宁可少一个小红点，也不要整页 500）。
+        0
       end
 
       # ------------------------------------------------------------

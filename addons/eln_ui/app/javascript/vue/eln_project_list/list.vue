@@ -61,6 +61,8 @@
         @create="onToolbarAction"
         @create_folder="onToolbarAction"
         @updateFavorite="updateFavorite"
+        @showDescription="onShowDescription"
+        @openComments="onOpenComments"
         @archive="onBulkArchive"
         @restore="onBulkRestore"
         @delete_folders="onBulkDeleteFolders"
@@ -104,6 +106,15 @@
     :selected-objects="bulkMove.selectedObjects"
     @move="onBulkMoved"
   />
+  <!-- 描述查看/编辑浮层（spec SCN-PROJ-LIST-12）——复用宿主原生 modals/description.vue。
+       ⚠ object.permissions.manage 决定是否显示「编辑」；无描述且有权限时原生 modal
+         自身在 created() 直接进编辑态（SCN-12 第 2 条），此处不重复实现该判定。 -->
+  <HostDescriptionModal
+    v-if="descriptionObject"
+    :object="descriptionObject"
+    @update="onDescriptionUpdate"
+    @close="descriptionObject = null"
+  />
 </template>
 
 <script>
@@ -129,12 +140,34 @@ import ElnRowMenuRenderer from './renderers/row_menu_renderer.vue';
 // 与 /projects 页同一份数据（public.favorites）+ 同一外观。渲染器点击后通过
 // params.dtComponent.$emit('updateFavorite') 抛给本组件，由本组件 POST 宿主端点并刷新。
 import HostFavoriteRenderer from 'shared/datatable/renderers/favorite.vue';
+// 评论列 + 描述列（spec SCN-PROJ-LIST-11 / 12）：同样**复用宿主原生渲染器**，
+// 与 /projects 页同一份外观与同一份判定逻辑，零复制。
+//
+// · 描述列：直接用宿主 description.vue。它读 params.data.description +
+//   params.data.permissions.manage，点击经 dtComponent.$emit('showDescription')
+//   抛给本组件处理（渲染器自己不碰数据）。列定义见 baseColumns。
+import HostDescriptionRenderer from 'shared/datatable/renderers/description.vue';
+// · 评论列：走 ELN 薄封装 renderers/comments_renderer.vue —— 宿主 comments.vue 渲染
+//   `.open-comments-sidebar` + data-object-type/id，由宿主全局 comments_sidebar.js 的
+//   委托接管（addon 不自建第二套评论组件，SCN-11 最后一条明确要求）；
+//   计数回写靠 `#comment-count-<objectId>` id契约，故SCN-11 第 4 条自动成立。
+//   ⚠ 薄封装存在的唯一理由：宿主那份靠 params.data.type 做 switch 推objectType，
+//   而 ELN 行经 DataTable#formatData（table.vue:661 `{...item.attributes}`）摊平后，
+//   AMS 放在**顶层**的 "type":"project" 不在 attributes 里 ⇒ objectType 落空。
+//   也不能改后端下成复数 'projects'（ELN 全链路用单数）。理由全文见那个文件。
+import ElnCommentsRenderer from './renderers/comments_renderer.vue';
+// 描述查看/编辑浮层：复用宿主原生（自带 TinymceEditor ⇒ tinymce 包随本 entry 打包，
+// 满足 SCN-12 的「验收前置」——该页必须具备富文本编辑资源）。
+import HostDescriptionModal from 'shared/datatable/modals/description.vue';
 // 拉取 UI 标志用的 axios（宿主 custom_axios，自动注入 CSRF）
 import axios from 'custom_axios';
 
 export default {
   name: 'ElnProjectList',
-  components: { DataTable, ProjectFormModal, NewFolderModal, MoveModal, ProjectCard, HostFavoriteRenderer },
+  components: {
+    DataTable, ProjectFormModal, NewFolderModal, MoveModal, ProjectCard,
+    HostFavoriteRenderer, ElnCommentsRenderer, HostDescriptionRenderer, HostDescriptionModal
+  },
   data() {
     return {
       // 注意：tableId 会拼成 user_settings 的 key（stateKey = `${tableId}_${viewMode}_table_state`），
@@ -155,6 +188,9 @@ export default {
       // 模态框开关
       newProject: false,
       newFolder: false,
+      // 描述查看/编辑浮层当前对象（null = 关闭）。宿主 DescriptionRenderer 点击后
+      // 经 dtComponent.$emit('showDescription', null, [row]) 抛到这里（SCN-12）。
+      descriptionObject: null,
       // 批量移动模态框的参数（null = 关闭）；见 onBulkMove
       bulkMove: null,
       // ⚠ 列定义放在 data（不直接被 AG Grid 消费）；对外经 computed columnDefs 注入
@@ -218,8 +254,11 @@ export default {
           width: 130,
           cellRenderer: ElnMembersRenderer
         },
-        { headerName: '评论', field: 'commentsCount', width: 80 },
-        { headerName: '描述', field: 'description', width: 220 },
+        // 评论列（SCN-11）：宿主 CommentsRenderer。count>0 显示数字、count==0 且有
+        // 权限显示「+」、count==0 且无权限显示不可点的纯文本 0（原生同此例外）。
+        { headerName: '评论', field: 'comments', width: 80, cellRenderer: ElnCommentsRenderer },
+        // 描述列（SCN-12）：宿主 DescriptionRenderer，据 permissions.manage 收敛入口。
+        { headerName: '描述', field: 'description', width: 220, cellRenderer: HostDescriptionRenderer },
         { headerName: '创建时间', field: 'createdAt', width: 160 },
         { headerName: '更新时间', field: 'updatedAt', width: 160 },
         { headerName: '归档日期', field: 'archivedOn', width: 120 },
@@ -373,6 +412,51 @@ export default {
           }
         })
         .catch(() => {});
+    },
+    // ------------------------------------------------------------
+    // 描述列（spec SCN-PROJ-LIST-12）—— 复用宿主原生渲染器 + 模态框
+    //
+    // 链路：宿主 DescriptionRenderer 点击摘要/「更多」/「添加描述」
+    //   → params.dtComponent.$emit('showDescription', null, [row]) → 本方法。
+    // 保存：宿主 modal 发 'update'(description) → PUT 行自带 urls.update
+    //   （= PUT /projects/:id），参数 project[description] —— **正是 SCN-12 第 4 条
+    //   要求的写入口径**，端点由后端随行下发，前端不拼路由。
+    //   保存成功后 reloadTable ⇒ 该行描述立即刷新（第 4 条后半句）。
+    // ------------------------------------------------------------
+    onShowDescription(_evt, rows) {
+      const row = rows && rows[0];
+      if (!row) return;
+      // 渲染器给文件夹行不渲染任何入口；这里再挡一道，纯防御。
+      if (row.folder) return;
+      // 无编辑权限 ⇒ 行里没有 urls.update（后端只在 managable? 时下发）。
+      this.descriptionObject = row;
+    },
+    onDescriptionUpdate(description) {
+      const obj = this.descriptionObject;
+      const url = obj && obj.urls && obj.urls.update;
+      if (!url) return;
+      axios.put(url, { project: { description } }).then(() => {
+        // 列表该行描述必须立即刷新（SCN-12 第 4 条）。
+        this.reload();
+      }).catch(() => {});
+    },
+    // ------------------------------------------------------------
+    // 评论列（spec SCN-PROJ-LIST-11）—— 复用宿主原生渲染器
+    //
+    // 宿主 CommentsRenderer 本身不发事件（它的点击由全局 comments_sidebar.js 的
+    //   `$(document).on('click', '.open-comments-sidebar', ...)` 委托接管，
+    //   读元素上的 data-object-type / data-object-id），所以这里**不需要**处理逻辑，
+    //   只需保证两件事：
+    //     1. 行数据带 comments.count / comments.count_unseen（后端已下发）；
+    //     2. 页面上存在宿主布局渲染的 .comments-sidebar DOM（application 布局提供）。
+    //   保留这个 handler 是为了「显式记录依赖」——若哪天渲染器改成走事件，
+    //   这里就是接入点；否则删掉也不影响（渲染器用 class 触发，不用 emit）。
+    // ⚠ 评论计数回写由宿主 CommentsSidebar#updateCounter 负责，靠
+    //   `#comment-count-<objectId>` 这个 id 契约（渲染器已自带该 id）⇒ SCN-11 第 4 条
+    //   「关闭侧栏后计数刷新为最新值」自动成立，不在本组件重复实现。
+    // ------------------------------------------------------------
+    onOpenComments() {
+      // 见上方说明：委托在宿主全局，本处无需动作。
     },
     // 刷新网格（默认清空选择）。批量操作完成后调用。
     reload() {
