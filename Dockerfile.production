@@ -121,19 +121,29 @@ RUN grep -q '^httpTimeout:' .yarnrc.yml || printf 'httpTimeout: 15000\nhttpRetry
 #   **前提是 Docker 本身要给够**：WSL2 后端下上限来自 `~/.wslconfig` 的 `memory=`
 #   （不是 Settings → Resources 面板！），且改完必须 `wsl --shutdown` 才生效。
 #   这里给 6GB 堆：容器内 12GB 里留一半给系统/其他进程，webpack 不因 GC 被拖慢。
+# ⚠ SKIP_ACCESS_CONTROL_DB_CHECK=1：任何**加载完整 Rails environment** 的构建期命令
+#   （rails tailwindcss:build / i18n:js:export / assets:precompile / deface:precompile）
+#   都会触发 engine 的 before 回调 → AccessControl.verify! → verify_tables! →
+#   conn.table_exists? → 连构建期并不存在的 DB（DATABASE_URL 只是占位串）⇒ 崩。
+#   该开关**只跳过查表那半**（ADR-0042），装饰器挂载探测仍执行，门禁没被掏空。
+#   ⚠ 别只给 zeitwerk:check 加（那是静态检查，不需要 environment）—— 漏了这里会
+#   在 yarn build 全部跑完、10 分钟后才炸，浪费一轮。
 RUN \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn install && \
   NODE_OPTIONS="--max-old-space-size=6144 --dns-result-order=ipv4first" \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn build && \
   npm_config_build_from_source=true SECRET_KEY_BASE=dummy yarn build:css && \
-  npm_config_build_from_source=true SECRET_KEY_BASE=dummy rails tailwindcss:build && \
+  npm_config_build_from_source=true SECRET_KEY_BASE=dummy \
+  SKIP_ACCESS_CONTROL_DB_CHECK=1 rails tailwindcss:build && \
   rm -rf vendor/git-mirror
 
 # i18n:js:export + assets:precompile（Sprockets 聚合 106 entry 的 manifest 同样吃内存）
+# 同上：assets:precompile 依赖完整 environment ⇒ 同样需要 SKIP_ACCESS_CONTROL_DB_CHECK
 RUN \
   DATABASE_URL=postgresql://postgres@db/scinote_production \
   SECRET_KEY_BASE=dummy \
   DEFACE_ENABLED=true \
+  SKIP_ACCESS_CONTROL_DB_CHECK=1 \
   NODE_OPTIONS="--max-old-space-size=6144" \
   bash -c "rails i18n:js:export && rails assets:precompile && rails deface:precompile && rm -rf ./tmp/cache"
 
