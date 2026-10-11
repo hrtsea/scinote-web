@@ -425,10 +425,53 @@ Rails.application.routes.draw do
         to: 'scinote/eln_ui/project_detail#show',
         as: :project_eln_detail
 
+    # 项目基础信息编辑 / 修改项目状态 / 上传项目任务书（2026-10-11 页头三键接线）。
+    # 为什么三条都必须是**具名**路由：payload 要用
+    # `Rails.application.routes.url_helpers.xxx_path` 生 URL 下发给前端，
+    # 无名路由拿不到 helper，前端就只能手拼宿主路径（paths 铁律禁止）。
+    patch 'projects/:project_id/eln_project_detail',
+          to: 'scinote/eln_ui/project_detail#update',
+          as: :project_eln_detail_update
+    post 'projects/:project_id/eln_project_detail/status',
+         to: 'scinote/eln_ui/project_detail#change_status',
+         as: :project_eln_detail_status
+    post 'projects/:project_id/eln_project_detail/task_book',
+         to: 'scinote/eln_ui/project_detail#upload_task_book',
+         as: :project_eln_detail_task_book
+
+    # ELN UI —— 项目指标 CRUD + 达标切换（2026-10-11 起）。
+    #   承载面 = 二开表 eln_ui_project_metrics（原生无项目级指标模型）。
+    #   四条动作共用 canEditBasic 闸门（与「编辑项目信息」同款权限）。
+    #   ⚠ 必须具名：payload 要生 per-row 动作 URL 下发给前端（paths 铁律，不许前端拼宿主路径）。
+    post 'projects/:project_id/eln_project_detail/metrics',
+         to: 'scinote/eln_ui/project_detail#create_metric',
+         as: :project_eln_detail_metrics
+    patch 'projects/:project_id/eln_project_detail/metrics/:id',
+          to: 'scinote/eln_ui/project_detail#update_metric',
+          as: :project_eln_detail_metric_update
+    delete 'projects/:project_id/eln_project_detail/metrics/:id',
+           to: 'scinote/eln_ui/project_detail#destroy_metric',
+           as: :project_eln_detail_metric_destroy
+    post 'projects/:project_id/eln_project_detail/metrics/:id/toggle',
+         to: 'scinote/eln_ui/project_detail#toggle_metric',
+         as: :project_eln_detail_metric_toggle
+
     # ELN UI —— 项目归档导出（报告 §5 第 6 项 #10 · 结构化数据 CSV 预览包）。
     get 'projects/:project_id/eln_project_detail/export',
         to: 'scinote/eln_ui/project_detail#export',
         as: :project_eln_detail_export
+
+    # ELN UI —— 项目详情页 6 张表的服务端网格端点（宿主 shared/datatable/table.vue 契约）。
+    # dataset ∈ { experiments | metrics | required_docs | other_docs | members | cost | task_close_review }，
+    # 取值与 ProjectDetailPayload#grid_dataset_rows 一一对应（单真源：复用既有 block 取数）。
+    # ⚠ 宿主组件只在 loadMethod=post 时把 postParams（排序/分页）随请求发出（GET 会忽略），
+    #   故本端点同时接受 POST（与 eln_res_center/grid 同款）。
+    # ⚠ 必须具名：payload 要生 7 条完整 URL（含 ?dataset=）下发给前端，
+    #   无名路由拿不到 helper，前端就只能手拼宿主路径（paths 铁律禁止）。
+    match 'projects/:project_id/eln_project_detail/grid',
+          to: 'scinote/eln_ui/project_detail#grid',
+          via: [:get, :post],
+          as: :project_eln_detail_grid
 
     # ELN UI —— 项目列表页（Vue3 原型第二页，详情页的入口）。
     # 同样**不能带前导斜杠**，原因见上面那条的详细注释。
