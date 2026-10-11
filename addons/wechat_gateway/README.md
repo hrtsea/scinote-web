@@ -1,6 +1,6 @@
 # WeChat / WeCom → SciNote Gateway Addon
 
-进程内 Rails Engine（`Scinote::WechatGateway`），把微信 / 企业微信消息落成 SciNote 实验记录，支持组长派任务。双通道（iLink 私聊 + 企微群聊）统一收敛到同一写入层。设计依据见 `docs/adr/0023-wechat-gateway-addon.md` 与 `F:\eln开发\wechat_to_elabftw\docs\WECHAT-SCINOTE-PLAN.md`。
+进程内 Rails Engine（`Scinote::WechatGateway`），把微信 / 企业微信消息落成 SciNote 实验记录，支持组长派任务。双通道（iLink 私聊 + 企微群聊）统一收敛到同一写入层。设计依据见 `docs/adr/0023-wechat-gateway-addon.md` 与 `F:\elndev\wechat_to_elabftw\docs\WECHAT-SCINOTE-PLAN.md`。
 
 ## 启用（零入侵）
 

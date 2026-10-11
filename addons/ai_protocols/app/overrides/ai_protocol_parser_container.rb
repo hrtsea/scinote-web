@@ -3,7 +3,7 @@
 # 注入 AI 协议解析弹窗的挂载点（#aiParserContainer）+ 弹窗 pack。
 #
 # 形态逐字对齐官方（my.scinote.net/modules/:id/protocols 实测反抽，
-# 见 规格/ELN系统/调研/官方AI协议解析-源码级反抽.md §9）：
+# 见 规格/eln-system/调研/官方AI协议解析-源码级反抽.md §9）：
 #   · 挂载点位于 .sci--layout-content 内，id = aiParserContainer；
 #   · 宿主入口（app/javascript/vue/protocol/protocolOptions.vue 与
 #     app/javascript/vue/protocols/table.vue）已存在，点击时

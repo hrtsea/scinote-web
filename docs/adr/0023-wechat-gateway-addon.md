@@ -1,7 +1,7 @@
 # 0023 — 微信/企微录入网关 Addon（进程内 Rails Engine，双通道统一写入层）
 
-> 来源：`F:\eln开发\wechat_to_elabftw\docs\WECHAT-SCINOTE-PLAN.md`（2026-09-10 架构决策）；
-> 参考实现：`F:\eln开发\wechat_to_elabftw`（Python 版 eLabFTW 网关，仅作逻辑参考，不并入 addon）。
+> 来源：`F:\elndev\wechat_to_elabftw\docs\WECHAT-SCINOTE-PLAN.md`（2026-09-10 架构决策）；
+> 参考实现：`F:\elndev\wechat_to_elabftw`（Python 版 eLabFTW 网关，仅作逻辑参考，不并入 addon）。
 > 落地：`addons/wechat_gateway`（命名空间 `Scinote::WechatGateway`）。
 
 ## Status

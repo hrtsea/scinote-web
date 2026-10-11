@@ -1,9 +1,9 @@
 # 微信 / 企微网关 Addon 开发计划
 
 > 目标 addon：`addons/wechat_gateway`（`Scinote::WechatGateway`，进程内 Rails Engine）
-> 设计依据：`F:\eln开发\wechat_to_elabftw\docs\WECHAT-SCINOTE-PLAN.md`（2026-09-10 决策：addon 化、双通道、绑定码非 OAuth）
+> 设计依据：`F:\elndev\wechat_to_elabftw\docs\WECHAT-SCINOTE-PLAN.md`（2026-09-10 决策：addon 化、双通道、绑定码非 OAuth）
 > 架构决策：`docs/adr/0023-wechat-gateway-addon.md`
-> 参考实现（仅逻辑参考，不并入）：`F:\eln开发\wechat_to_elabftw`
+> 参考实现（仅逻辑参考，不并入）：`F:\elndev\wechat_to_elabftw`
 > 开发约定：`docs/development/addon-dev-workflow.md`（铁律：改动只收敛进 `addons/wechat_gateway/`）
 
 ---

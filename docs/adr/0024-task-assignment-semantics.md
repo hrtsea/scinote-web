@@ -1,7 +1,7 @@
 # 0024 — F6「组长派任务给组员」的指派语义：任务指定成员（`UserMyModule`），而非实验级角色指派
 
 > 适用范围：`addons/wechat_gateway`（命名空间 `Scinote::WechatGateway`）的 F6 指派功能。
-> 依据：SciNote 宿主源码核实（本仓库 `f:\eln开发\scinote-web`，2026-09-23）。
+> 依据：SciNote 宿主源码核实（本仓库 `f:\elndev\scinote-web`，2026-09-23）。
 > 关联：0023（wechat_gateway addon 总决策）。
 
 ## Status

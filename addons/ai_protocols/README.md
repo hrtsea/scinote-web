@@ -97,7 +97,7 @@ The modal is only usable when `Protocol.ai_parser_enabled?` is true (feature fla
 `test/` holds **minitest** guardrails, run with:
 
 ```bash
-./run_ai_protocols_tests.sh          # from F:/eln开发
+./run_ai_protocols_tests.sh          # from F:/elndev
 ```
 
 `test/protocol_library_entry_test.rb` locks the entry-point contract: the addon
