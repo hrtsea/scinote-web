@@ -14,7 +14,6 @@
               class="bf-date-field"
               size="sm"
               bare
-              placeholder="预定日期"
               data-e2e="bf-date"
             />
             <!-- 🔴 v-if 而不是空串判断：weekdayOf('') 返回 ''，直接渲染会留下

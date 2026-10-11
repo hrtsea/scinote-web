@@ -19,26 +19,25 @@
             <DateField
               v-model="ui.filters.start_date_from"
               data-e2e="fp-start-from"
-              placeholder="开始日期"
             />
             <span class="range-sep">至</span>
-            <DateField v-model="ui.filters.start_date_to" placeholder="结束日期" />
+            <DateField v-model="ui.filters.start_date_to" />
           </div>
         </div>
         <div class="field">
           <label class="field-label">截止日期</label>
           <div class="range">
-            <DateField v-model="ui.filters.due_date_from" data-e2e="fp-due-from" placeholder="截止日期" />
+            <DateField v-model="ui.filters.due_date_from" data-e2e="fp-due-from" />
             <span class="range-sep">至</span>
-            <DateField v-model="ui.filters.due_date_to" placeholder="截止日期" />
+            <DateField v-model="ui.filters.due_date_to" />
           </div>
         </div>
         <div v-if="ui.viewMode === 'archived'" class="field">
           <label class="field-label">归档日期</label>
           <div class="range">
-            <DateField v-model="ui.filters.archived_on_from" placeholder="归档日期" />
+            <DateField v-model="ui.filters.archived_on_from" />
             <span class="range-sep">至</span>
-            <DateField v-model="ui.filters.archived_on_to" placeholder="归档日期" />
+            <DateField v-model="ui.filters.archived_on_to" />
           </div>
         </div>
         <div class="field">

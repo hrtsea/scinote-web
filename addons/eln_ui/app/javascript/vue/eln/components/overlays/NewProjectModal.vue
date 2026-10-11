@@ -14,11 +14,11 @@
         <div class="field-row">
           <div class="field">
             <label class="field-label">开始日期</label>
-            <DateField v-model="form.start" placeholder="开始日期" data-e2e="np-start" />
+            <DateField v-model="form.start" data-e2e="np-start" />
           </div>
           <div class="field">
             <label class="field-label">截止日期</label>
-            <DateField v-model="form.due" placeholder="截止日期" data-e2e="np-due" />
+            <DateField v-model="form.due" data-e2e="np-due" />
           </div>
         </div>
         <div class="field">

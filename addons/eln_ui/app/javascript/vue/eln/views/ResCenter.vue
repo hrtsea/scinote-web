@@ -88,10 +88,32 @@
             <option value="">全部操作人</option>
             <option v-for="u in ledgerFilterUsers" :key="u" :value="u">{{ u }}</option>
           </select>
-          <input v-model="ledgerFilterFrom" type="date" class="rc-date" aria-label="起始日期" />
+          <DateField
+            v-model="ledgerFilterFrom"
+            size="md"
+            class="rc-date-field"
+            data-e2e="rc-ledger-from"
+            :aria-label="'起始日期'"
+            :invalid="ledgerRangeInverted"
+          />
           <span class="rc-filter-sep">~</span>
-          <input v-model="ledgerFilterTo" type="date" class="rc-date" aria-label="截止日期" />
+          <DateField
+            v-model="ledgerFilterTo"
+            size="md"
+            class="rc-date-field"
+            data-e2e="rc-ledger-to"
+            :aria-label="'截止日期'"
+            :invalid="ledgerRangeInverted"
+          />
           <button class="rc-filter-reset" @click="resetLedgerFilter">重置</button>
+          <!-- 🔴 区间反了只警告、不阻断（spec 硬约束 2）：不清空、不拦查询、不拦导出。
+               条件反了通常来自误点，用户要自己决定改起始还是改截止；
+               硬阻断会把「改一个值」变成「清空两个值重填」。
+               放在 .rc-filter-controls 内（它已 flex-wrap），窄屏会自然换行，
+               不会像 .rc-filter 的兄弟节点那样被 space-between 挤到右侧。 -->
+          <span v-if="ledgerRangeInverted" class="rc-range-warn" data-e2e="rc-ledger-warn">
+            起始日期晚于截止日期，当前区间查不到记录
+          </span>
         </div>
       </div>
       <div class="rc-card rc-card--grid">
@@ -129,10 +151,27 @@
             <option value="">全部操作人</option>
             <option v-for="u in consumeFilterUsers" :key="u.id" :value="u.id">{{ u.name }}</option>
           </select>
-          <input v-model="filterFrom" type="date" class="rc-date" aria-label="起始日期" />
+          <DateField
+            v-model="filterFrom"
+            size="md"
+            class="rc-date-field"
+            data-e2e="rc-consume-from"
+            :aria-label="'起始日期'"
+            :invalid="consumeRangeInverted"
+          />
           <span class="rc-filter-sep">~</span>
-          <input v-model="filterTo" type="date" class="rc-date" aria-label="截止日期" />
+          <DateField
+            v-model="filterTo"
+            size="md"
+            class="rc-date-field"
+            data-e2e="rc-consume-to"
+            :aria-label="'截止日期'"
+            :invalid="consumeRangeInverted"
+          />
           <button class="rc-filter-reset" @click="resetConsumeFilter">重置</button>
+          <span v-if="consumeRangeInverted" class="rc-range-warn" data-e2e="rc-consume-warn">
+            起始日期晚于截止日期，当前区间查不到记录，导出也会是空的
+          </span>
         </div>
         <button class="rc-filter-export" @click="exportConsume">导出 CSV</button>
       </div>
@@ -415,6 +454,11 @@ import ResGrid from './ResGrid.vue'
 import RepositoriesTable from 'host/repositories/table.vue'
 // 申请编号列下钻链接渲染器（AG Grid cellRenderer；目标 URL 由后端 apply_row 下发）
 import ElnLinkRenderer from '../renderers/link_renderer.vue'
+// 日期输入统一走 DateField（薄封装 @vuepic/vue-datepicker，契约是 'YYYY-MM-DD' 字符串）。
+// 2026-10-11 ticket 04：4 处原生 <input type="date" class="rc-date"> 换装 ——
+// 保持两个独立选择器形态（不引 range 数组），所以 4 个 ref / 两个重置函数 / 两处
+// postParams.range_from 一行未改。
+import DateField from '../components/DateField.vue'
 import { ui, openNavigator, closeNavigator } from '../store/ui'
 import { navigate, openHostEndpoint } from '../utils/env'
 import { resCenterPayload } from '../data/mock'
@@ -454,6 +498,12 @@ const filterUserId = ref('')
 const filterFrom = ref('')
 const filterTo = ref('')
 
+// 区间反了（起始 > 截止）—— 仅告警，不阻断。YMD 定宽零填充 ⇒ 字符串比较即日期比较，
+// 不要 new Date()：空串会被解析成 Invalid Date 而让比较恒为 false。
+const consumeRangeInverted = computed(() =>
+  !!filterFrom.value && !!filterTo.value && filterFrom.value > filterTo.value
+)
+
 function resetConsumeFilter() {
   filterType.value = ''
   filterProjectId.value = ''
@@ -487,6 +537,11 @@ const ledgerFilterProject = ref('')
 const ledgerFilterUser = ref('')
 const ledgerFilterFrom = ref('')
 const ledgerFilterTo = ref('')
+
+// 同 consumeRangeInverted：定宽 YMD 字符串比较即日期比较。
+const ledgerRangeInverted = computed(() =>
+  !!ledgerFilterFrom.value && !!ledgerFilterTo.value && ledgerFilterFrom.value > ledgerFilterTo.value
+)
 
 // 出入库筛选用候选：改由后端 payload.ledger.filterOptions 下发（与网格同源，
 // 覆盖 team 范围内全量流水，不受前端展示截断影响；占位串已在服务端剔除）。
@@ -1070,8 +1125,7 @@ watch(applyPostParams, () => { applyReloadNonce.value += 1 })
   flex-wrap: wrap;
   gap: 8px;
 }
-.rc-select,
-.rc-date {
+.rc-select {
   height: 30px;
   padding: 0 8px;
   border: 1px solid var(--color-border);
@@ -1081,11 +1135,30 @@ watch(applyPostParams, () => { applyReloadNonce.value += 1 })
   background: var(--color-card);
   box-sizing: border-box;
 }
-.rc-select:focus,
-.rc-date:focus {
+.rc-select:focus {
   outline: none;
   border-color: var(--color-primary);
 }
+/* 🔴 2026-10-11 ticket 04：4 处日期从原生 <input type="date" class="rc-date"> 换成 DateField。
+   .rc-date 规则随之退休（改用 .rc-date-field），因为 DateField 渲染的是 .date-field 根节点
+   + v7 内部 .date-field__input，原来挂在 .rc-date 上的 height/padding/border 一条都落不到。
+   尺寸由 DateField 的 size="md" 自带（30px / 6px 圆角 / 12px 字号，与上面 .rc-select 对齐）。 */
+.rc-date-field {
+  /* DateField 的 .date-field 是 width:100%，放进 flex 容器会被拉满整行，
+     把三个下拉和分隔线全挤走 ⇒ 必须给固定宽度当 flex 子项。
+     宽度取原生 input[type=date] 的观感值（150px 装得下 YYYY-MM-DD + 日历图标 + 清空钮）。 */
+  width: 150px;
+  flex: none;
+}
+
+/* 区间反了的告警文案（.rc-date-field 的告警态由 DateField 的 invalid prop 负责） */
+.rc-range-warn {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-danger);
+  white-space: nowrap;
+}
+
 .rc-filter-sep {
   font-size: 12px;
   color: var(--color-placeholder);

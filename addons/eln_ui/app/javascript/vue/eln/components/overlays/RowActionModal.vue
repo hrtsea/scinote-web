@@ -37,11 +37,11 @@
             <div class="field-row">
               <div class="field">
                 <label class="field-label">开始日期</label>
-                <DateField v-model="form.start" placeholder="开始日期" data-e2e="ra-edit-start" />
+                <DateField v-model="form.start" data-e2e="ra-edit-start" />
               </div>
               <div class="field">
                 <label class="field-label">截止日期</label>
-                <DateField v-model="form.due" placeholder="截止日期" data-e2e="ra-edit-due" />
+                <DateField v-model="form.due" data-e2e="ra-edit-due" />
               </div>
             </div>
             <div class="field">

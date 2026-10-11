@@ -14,7 +14,7 @@
       :auto-apply="true"
       :clearable="clearable"
       :disabled="disabled"
-      :placeholder="placeholder"
+      :placeholder="effectivePlaceholder"
       :week-start="0"
       :six-weeks="true"
       :no-today="true"
@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue/dist/vue.esm-bundler.js'
+import { computed, onMounted, ref } from 'vue/dist/vue.esm-bundler.js'
 import VueDatePicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import AppIcon from './AppIcon.vue'
@@ -77,6 +77,12 @@ const props = defineProps({
   /** 🔴 契约：日期字面量字符串 'YYYY-MM-DD'，空 = ''。与原生 <input type="date"> 完全一致，
    *      所以调用方的 v-model 与 data 层一行都不用改。 */
   modelValue: { type: [String, Date], default: '' },
+  /** 占位提示。🔴 刻意做成"格式 + 可输入"两段信息：
+   *    1) 'YYYY-MM-DD' —— 用户故事 8，输入框当场显示统一格式，
+   *       用户不必关心本机浏览器用哪种日期顺序（原生的分段框做不到这点）；
+   *    2) '可直接输入' —— 明确告知这是个可键入的框，不是只能点的选择器
+   *       （用户故事 7：习惯键入的人不该被逼着点日历）。
+   *    调用方可以覆盖（个别场景语义更贴切，如「未登记则留白」），但不传也能看到提示。 */
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
   clearable: { type: Boolean, default: true },
@@ -85,12 +91,24 @@ const props = defineProps({
   invalid: { type: Boolean, default: false },
   /** 无边框裸输入（BookingForm 的 .bf-bare 态）。 */
   bare: { type: Boolean, default: false },
+  /** 无障碍标签，落到内部 input 上。v7 只给「翻月箭头」那个 button 提供 ariaLabel prop，
+   *  输入框本身没有对应 prop（实测 dist：`ariaLabel` 只出现在 dp--arrow-btn-nav 上），
+   *  而它渲染的 input 又不接受属性透传 ⇒ 只能自己挂。 */
+  ariaLabel: { type: String, default: '' },
   dataE2e: { type: String, default: '' }
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
 
 const pickerRef = ref(null)
+
+// 默认占位提示（用户故事 8 + 7）。
+// 🔴 为什么在组件内兜底而不是每处调用方都写一遍：
+//    漏传 placeholder 时 v7 会渲染成空白框，用户既不知道格式、也不知道能打字 ——
+//    那正是"像坏掉了"的观感。把默认值收在这里，新增调用方天然带提示。
+//    调用方传了就用它的（个别场景语义更贴切，如 ProjectDetail 的「未登记则留白」）。
+const DEFAULT_PLACEHOLDER = 'YYYY-MM-DD · 可直接输入'
+const effectivePlaceholder = computed(() => props.placeholder || DEFAULT_PLACEHOLDER)
 
 // 直接键入的交互设定（用户故事 7：不想点日历的人仍可打字）。
 // 🔴 enterSubmit / tabSubmit 都**关掉**：提交由本组件的 onKeydownCapture
@@ -207,6 +225,16 @@ function onFocusout(e) {
 }
 
 defineExpose({ clear: onCleared })
+
+// aria-label 手动挂到 v7 渲染出的 input 上（原因见 props.ariaLabel 注释）。
+// 🔴 必须 afterNextTick：v7 的 input 在子组件挂载后才存在，
+//    且它带自己的 data-v，拿 scoped 选择器 / ref 都够不着，只能 DOM 查询。
+//    用 :deep(.date-field__input) 查询是安全的 —— class 名由 input-class-name 固定。
+onMounted(() => {
+  if (!props.ariaLabel) return
+  const el = document.querySelector(`[data-e2e="${props.dataE2e}"] .date-field__input`)
+  if (el) el.setAttribute('aria-label', props.ariaLabel)
+})
 </script>
 
 <!--

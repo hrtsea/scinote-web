@@ -365,20 +365,19 @@
         -->
         <label class="pd-field">
           <span class="f-label">立项时间（项目批准日期，非创建时间）</span>
-          <DateField
-            v-model="form.approvedOn"
-            placeholder="未登记则留白"
-            data-e2e="pd-approved-on"
-          />
+          <!-- 格式提示走 DateField 默认值；"可留空"的语义由上方 label 承担，
+               不塞进 placeholder —— 那两个字段（开始/截止）是必填，
+               若这里写"未登记则留白"会让人以为整个日期区都可空。 -->
+          <DateField v-model="form.approvedOn" data-e2e="pd-approved-on" />
         </label>
         <div class="pd-field-row">
           <label class="pd-field">
             <span class="f-label">开始日期</span>
-            <DateField v-model="form.startDate" placeholder="开始日期" data-e2e="pd-start" />
+            <DateField v-model="form.startDate" data-e2e="pd-start" />
           </label>
           <label class="pd-field">
             <span class="f-label">截止日期</span>
-            <DateField v-model="form.dueDate" placeholder="截止日期" data-e2e="pd-due" />
+            <DateField v-model="form.dueDate" data-e2e="pd-due" />
           </label>
         </div>
         <label class="pd-field">
