@@ -28,6 +28,10 @@
 module Scinote
   module ElnUi
     class ResCenterPayload
+      # 服务端网格原语（排序 / 切片 / 契约）—— 与 ProjectDetailPayload 共用一份实现。
+      # 2026-10-11 抽出：本类原先自带一份 sort_rows/paginate，两份口径迟早漂。
+      include Scinote::ElnUi::GridSupport
+
       DATE_FMT = '%Y-%m-%d %H:%M'
       # ⚠ 金额不带空格（'¥12,400'）：原型与项目详情页 cost_block 都是紧贴的，
       #   这里原来是 '¥ 12,400'，同一套 UI 里两种写法、测试断言也跟着写歪。
@@ -86,8 +90,7 @@ module Scinote
       #   因此「页面底部 stats/recon」与「网格行」永远来自同一计算，不会漂。
       # ------------------------------------------------------------
       def grid_rows(dataset:, filters: {}, order: nil, page: 1, per_page: 20)
-        page = [[page.to_i, 1].max, 1000].min
-        per_page = [[per_page.to_i, 1].max, 100].min
+        page, per_page = clamp_paging(page, per_page)
         case dataset.to_s
         when 'consume'     then grid_consume(filters, order, page, per_page)
         when 'ledger'      then grid_ledger(filters, order, page, per_page)
@@ -152,72 +155,8 @@ module Scinote
         visible.ordered.to_a.map { |a| apply_row(a) }
       end
 
-      def empty_grid
-        { data: [], meta: { total_pages: 1, total_count: 0, filtered_count: 0 } }
-      end
-
-      # 数值感知排序：某列「非空值全部可解析为数字」时按数字排（金额/数量/时间），否则整列按字典序。
-      # 时间列是 'YYYY-MM-DD HH:MM'（零填充）⇒ 数字化后序 == 时间序，走数字分支即可。
-      # 关掉客户端排序（宿主组件 comparator:()=>null），排序全部由这里收口。
-      def sort_rows(rows, order)
-        return rows if order.blank?
-
-        o = order.is_a?(Array) ? order.first : order
-        return rows if o.blank?
-
-        col = (o.respond_to?(:dig) ? (o.dig(:column) || o.dig('column')) : nil).to_s
-        return rows if col.blank?
-
-        dir = (o.respond_to?(:dig) ? (o.dig(:dir) || o.dig('dir')) : nil).to_s == 'desc' ? :desc : :asc
-        sym = col.to_sym
-
-        # 整列判定（忽略空单元格，如入库行的「—」）：全可数字化 ⇒ 数字序，否则整列字典序。
-        # ⚠ 必须整列判定，不能逐值判定 —— 否则「名称」这类列里带数字的行会被拆进数字桶，
-        #   与其余行互相穿插，看起来像乱序。
-        filled = rows.map { |r| row_value(r, sym, col) }.reject { |v| blank_cell?(v) }
-        numeric = filled.any? && filled.all? { |v| money_to_d(v).is_a?(Numeric) }
-
-        sorted =
-          if numeric
-            # 空单元格（无数量/无单价）排在末位
-            rows.sort_by { |r| money_to_d(row_value(r, sym, col)) || Float::INFINITY }
-          else
-            rows.sort_by { |r| row_value(r, sym, col).to_s }
-          end
-
-        dir == :desc ? sorted.reverse : sorted
-      end
-
-      # ⚠ 行哈希是**符号键**（ledger_records / consume_record_row / apply_row / cost_block 全是
-      #   `{ time:, qty:, ... }`），而 order 里的 column 是字符串 ⇒ 取值必须符号化。
-      #   否则 r[col] 恒为 nil、整列静默不排序，只剩 dir 在反转默认顺序 ——
-      #   症状极具误导性：「点表头方向反了，且点哪一列都一样」。
-      def row_value(row, sym, str_key)
-        return nil unless row.respond_to?(:[])
-
-        if row.respond_to?(:key?)
-          return row[sym] if row.key?(sym)
-          return row[str_key] if row.key?(str_key)
-        end
-        row[sym]
-      end
-
-      def blank_cell?(v)
-        s = v.to_s.strip
-        s.empty? || ['—', '-', '–'].include?(s)
-      end
-
-      def money_to_d(v)
-        return nil if v.nil?
-
-        s = v.to_s.gsub(/[^\d.]/, '')
-        return nil if s.blank?
-
-        s.to_d
-      rescue StandardError
-        nil
-      end
-
+      # 数值感知排序 / 取值 / 切片 / 契约 —— 已抽到 Scinote::ElnUi::GridSupport
+      # （本类 include，与 ProjectDetailPayload 共用一份；此处只留筛选专用的日期判定）。
       def in_date_range?(time_str, from, to)
         return true if from.blank? && to.blank?
 
@@ -227,22 +166,6 @@ module Scinote
         return false if to.present? && d > parse_filter_date(to)
 
         true
-      end
-
-      def paginate(rows, page, per_page)
-        total = rows.size
-        offset = (page - 1) * per_page
-        slice = rows.slice(offset, per_page) || []
-        {
-          data: slice.map.with_index do |r, i|
-            { id: (r[:id].presence || "row-#{i}").to_s, type: (r[:type].presence || 'rc_row').to_s, attributes: r }
-          end,
-          meta: {
-            total_pages: total.zero? ? 1 : (total.to_f / per_page).ceil,
-            total_count: total,
-            filtered_count: total
-          }
-        }
       end
 
       # ledger 筛选用候选（与展示同一份 ledger_records 抽，避免下拉漏项 / 双口径）
