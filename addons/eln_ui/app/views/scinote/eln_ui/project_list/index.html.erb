@@ -1,32 +1,48 @@
-<%# ELN UI —— 项目列表页（V2.0，接入原生 AG Grid 栈 shared/datatable）
-    § 挂载契约：
-      1. #eln-project-list 是唯一挂载点，对应
-         eln_ui/app/javascript/vue/eln_project_list/list.vue。
-      2. 数据由 list.vue 经 DataTable 异步拉取 /eln_project_list/grid（JSON:API 形状），
-         不再依赖页面内联 JSON 数据块（旧 V1 的 #eln-project-list-data / window.__ELN_PROJECT_LIST__ 已废弃）。
-      3. 多列钉住 / 列重排 / 显隐 / 状态记忆 全部由 shared/datatable 原生支持，
-         并自动持久化到 user_settings（stateKey = `eln_project_list_active_table_state`）。
-      4. 生产 CSP 的 script-src 为 'self' + nonce：挂载脚本必须带 nonce，否则点击无反应。
-      5. 样式（ADR-0038-D）：由 webpack entry 抽取的 eln_project_list.css 承载
-         —— 真源 addons/eln_ui/.../eln_project_list/styles/eln_project_list.scss
-         （AG Grid 主题覆盖，scoped 到 #eln-project-list）。旧原型 blob
-         eln_vue3/eln_project_list.css 已退休，不再加载。
+<%# ELN UI —— 项目列表页（Vue3 原型栈 ELN系统-Vue3）
+    § 挂载契约（改动前先读这段，与详情页 show.html.erb 是同一套）：
+      1. #eln-project-list 是**唯一**挂载点，对应
+         addons/eln_ui/app/javascript/vue/eln/entries/project_list.js。
+         名字改了两边都要改，改完必须真机复测（bundle 找不到节点会静默不渲染）。
+      2. 数据只能来自 #eln-project-list-data（JSON 块）；bundle 里的 mock 会被它覆盖。
+      3. 生产 CSP 的 script-src 是 'self' + nonce：注入块与挂载脚本一律带nonce，
+         否则点了没反应（access_control D10 踩过）。
+      4. 顺序不能动：CSS → JSON 数据 → 挂载点 → bundle。
+      5. ⚠ 这里的 CSS 是**列表页自己那一份**（eln_project_list_v3.css），
+         不是详情页的 eln-system-vue3.css —— 两页各打各的 bundle，
+         组件样式只在自己那份里，引错会整页裸奔（实测提醒：别图省事共用一份）。
+      6. 🔴 资产来源是**宿主 webpack**，不是 addon 里的手写 blob。
+         见下方 2026-10-11 切真源的完整说明。
 %>
 <% provide(:head_title, '项目') %>
 
-<%# addon 视图默认不输出 CSRF meta；新建/新建文件夹等 POST 端点需要它，
-   原生 custom_axios 会读取页面 csrf-token meta 注入请求头。 %>
+<%# 「新建项目 / 新建文件夹」是 POST 原生端点，必须带 CSRF，否则原生 422 InvalidAuthenticityToken。
+    ⚠ 不能靠 csrf_meta_tags 之外的隐式行为：addon 视图默认不输出 CSRF，前端 bundle 手里没 token。
+    这里单独吐一个 meta，与原生 projects/index.html.erb 的做法一致（原生也是 meta + fetch 取用）。 %>
 <%= tag.meta name: 'csrf-token', content: form_authenticity_token %>
-<%# AG Grid 主题覆盖（webpack 产物，见 pack 里 import 的 scss）。
-    ⚠ 扩展名可省（Sprockets 解析 eln_project_list.css），但必须已登记进 manifest，
-      否则生产 assets.compile=false 下 AssetNotFound → 整页 500。 %>
-<%= stylesheet_link_tag 'eln_project_list', media: 'all' %>
-<%# 高度链：shared/datatable 根元素为 h-full，宿主必须提供高度
-    （对齐原生 /projects 的 content-pane.flexible > .fixed-content-body 结构），
-    否则 AG Grid 以 0 高度渲染 —— 表格在 DOM 里存在但视觉上整片空白。 %>
+<%# ⚠ 2026-10-11 从手写 blob 切到宿主 webpack 真源。
+    原先这里引的是 `eln_vue3/eln_project_list.{js,css}` —— 一份 152KB / 5 行压缩 blob，
+    未纳入 git、全仓无构建脚本 ⇒ vue/ 下的组件改动（含 DateField）永远编译不到生产页
+    （实测生产产物里 vue-datepicker 标记 dp__menu 为 0）。
+    现改由 webpack entry eln_project_list_v3 构建 vue/eln/entries/project_list.js，
+    产物 app/assets/builds/eln_project_list_v3.{js,css}。
+    ⚠ 必须带 .css/.js 扩展名：SciNote 的 sprockets 走 precompile 名单精确匹配，
+      漏登记/ 漏扩展名都是 AssetNotFound → 整页 500。
+    ⚠ CSS 是**本 bundle 自己抽取的那份**（styles/tokens.css 等），不是详情页的
+      eln-system-vue3.css —— 两页各打各的 bundle，引错会整页裸奔。 %>
+<%= stylesheet_link_tag 'eln_project_list_v3', media: 'all' %>
+<%# 高度链：list.vue 的根元素撑不满时表格/卡片区会塌陷，对齐原生 /projects 的
+    content-pane.flexible > .fixed-content-body 结构。 %>
 <div class="content-pane flexible">
   <div id="eln-project-list" class="fixed-content-body"></div>
 </div>
-<%# 扩展名不能省：SciNote 的 sprockets 走 precompile 名单精确匹配，
-    不带 .js 会直接 AssetNotFound → 整页 500。 %>
-<%= javascript_include_tag 'eln_project_list', nonce: content_security_policy_nonce %>
+<%# 数据只能来自 #eln-project-list-data：bundle 里的 data/mock 会被 window.__ELN_PROJECT_LIST__覆盖。
+    entry 在挂载前读它，把真实 projects / 权限 / 分页 / 文件夹层级 / 深链筛选全量灌进 store。 %>
+<script type="application/json" id="eln-project-list-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_PROJECT_LIST__ = JSON.parse(
+    document.getElementById('eln-project-list-data').textContent
+  );
+</script>
+<%= javascript_include_tag 'eln_project_list_v3', nonce: content_security_policy_nonce %>

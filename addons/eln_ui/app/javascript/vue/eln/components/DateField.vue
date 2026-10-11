@@ -3,6 +3,8 @@
     class="date-field"
     :class="[`date-field--${size}`, { 'date-field--invalid': invalid, 'date-field--bare': bare }]"
     :data-e2e="dataE2e || null"
+    @keydown.capture="onKeydownCapture"
+    @focusout="onFocusout"
   >
     <VueDatePicker
       ref="pickerRef"
@@ -91,11 +93,13 @@ const emit = defineEmits(['update:modelValue', 'change'])
 const pickerRef = ref(null)
 
 // 直接键入的交互设定（用户故事 7：不想点日历的人仍可打字）。
-// tabSubmit / enterSubmit 都开：回车与 Tab 都能确认，且确认即提交（配合 auto-apply）。
+// 🔴 enterSubmit / tabSubmit 都**关掉**：提交由本组件的 onKeydownCapture
+//    与 onFocusout 自己接管（实测 v7 内置的那条路径在本组合下不提交，
+//    且会与我们的处理重复触发）。理由与实测细节见那两个函数的注释。
 // selectOnFocus 关闭：聚焦时全选会让「看日期」变成「一下就删」，对只读场景不友好。
 const textInputOptions = {
-  enterSubmit: true,
-  tabSubmit: true,
+  enterSubmit: false,
+  tabSubmit: false,
   openMenu: true,
   selectOnFocus: false
 }
@@ -110,11 +114,22 @@ function toYMDString(raw) {
   if (raw instanceof Date) {
     return Number.isNaN(raw.getTime()) ? '' : ymd(raw)
   }
-  const s = String(raw).trim()
+  let s = String(raw).trim()
   if (!s) return ''
   // 只接受完整的 YYYY-MM-DD（允许调用方传 ISO 带时间，取前 10 位）
-  const head = s.slice(0, 10)
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(head)) return ''
+  let head = s.slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(head)) {
+    // 🔴 也接受紧凑的 8 位数字 YYYYMMDD。
+    //   实测（真机）：v7 的 text-input 允许用户直接敲 `20261231`，
+    //   输入框**原样接受**并显示。若这里只认带横线的形状，
+    //   用户敲完按回车反而被清空 —— 比不归一更糟（看着像丢数据）。
+    //   来源上不新增歧义：8 位数字按 YYYYMMDD 解读是唯一的。
+    if (/^\d{8}$/.test(s)) {
+      head = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`
+    } else {
+      return ''
+    }
+  }
   const d = parseYMD(head)
   if (Number.isNaN(d.getTime())) return ''
   // 溢出防护：parseYMD('2026-02-31') 会滚到 03-03（JS 归一化），那不是用户要的日期。
@@ -145,6 +160,50 @@ function onCleared() {
   if (!props.modelValue) return
   emit('update:modelValue', '')
   emit('change', '')
+}
+
+// 🔴🔴 直接键入的提交：**自己接管**，不依赖 VueDatePicker 的 enterSubmit。
+//
+// 实测（2026-10-11，v7.4.1 真机）：`textInput.enterSubmit` 在本组件的组合下
+// **不提交** —— 键入 `20261231` + Enter 后输入框仍停在原串，既不归一
+// 也不关闭浮层；而紧接着点日历又会把已键入内容**静默覆盖**成手点的那个日子。
+// 触发条件是「同页面里另一个 DateField 已有值」（v7 内部 parse 分支与
+// 浮层 openMenu 状态耦合），空面板时反而正常 —— 这种「有时好有时坏」
+// 的行为不可能留给用户。
+//
+// 这里用 capture 阶段监听：从最外层拦截 Enter/Tab，自己读 input.value、
+// 归一、emit，并 stopPropagation 让 v7 收不到这个键。
+// ⚠ 必须 capture：v7 自己的 handler 挂在 input 上（冒泡阶段），
+//   冒泡监听会晚一步、拦不住。
+// 🔴 Tab 不拦：preventDefault 会吃掉焦点移动，破坏键盘可达性
+//   （筛选面板一列日期，用户没法用 Tab 从「开始-从」走到「开始-至」）。
+//   Tab 的归一交给 blur（见下方 onFocusout）—— 失焦时提交同样符合直觉，
+//   且不劫持默认行为。
+function onKeydownCapture(e) {
+  if (e.key !== 'Enter') return
+  const el = e.target
+  if (!el || el.tagName !== 'INPUT') return
+
+  const s = toYMDString(el.value)
+  // 非法输入（含溢出日期）：清空并标红，不要静默留在框里装作成功。
+  el.value = s
+  emit('update:modelValue', s)
+  emit('change', s)
+  e.stopPropagation()
+  e.preventDefault()
+}
+
+// 失焦提交：覆盖 Tab 离开、以及点面板别处这两种收尾。
+// value 已经是 YYYY-MM-DD（v7 按 format 格式化过）时原样 emit，
+// 空则当清空 —— 不会把用户半途输入的内容丢掉。
+function onFocusout(e) {
+  const el = e.target
+  if (!el || el.tagName !== 'INPUT') return
+  const s = toYMDString(el.value)
+  if (s === currentYMD.value) return
+  el.value = s
+  emit('update:modelValue', s)
+  emit('change', s)
 }
 
 defineExpose({ clear: onCleared })

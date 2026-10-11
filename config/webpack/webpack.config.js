@@ -90,6 +90,7 @@ const entryList = {
   vue_protocol_versions: './app/javascript/packs/vue/protocol_versions.js',
   vue_protocol_repository_rows: './app/javascript/packs/vue/protocol_repository_rows.js',
   vue_team_preferences: './app/javascript/packs/vue/team_preferences.js',
+  vue_team_new: './app/javascript/packs/vue/team_new.js',
   vue_shareable_links_my_module_assigned_items: './app/javascript/packs/vue/shareable_links/assigned_repository.js',
   vue_equipment_bookings: './app/javascript/packs/vue/equipment_bookings.js',
   vue_event_create_repository_row: './app/javascript/packs/vue/event_create_repository_row.js',
@@ -111,11 +112,27 @@ const entryList = {
   vue_shareable_results_show: './app/javascript/packs/vue/shareable_results_show.js',
   // project_insights addon: 在 dashboard 渲染状态饼图等 widget
   insights_charts: './addons/project_insights/app/javascript/packs/insights_charts.js',
-  // eln_ui addon: 工作区列表 Vue 化（源码在 addons/eln_ui/app/javascript，宿主 webpack 构建）
-  vue_teams_table: './addons/eln_ui/app/javascript/packs/vue_teams_table.js',
+  // 工作区列表 Vue 化（源码已迁回宿主 app/javascript，与 team_new/team_members 等一致）
+  vue_teams_table: './app/javascript/packs/vue/teams_table.js',
   // eln_ui addon: 项目列表接入原生 AG Grid 栈（引用 shared/datatable，非复制）。
   // 产物输出到 app/assets/builds/eln_project_list.js，视图用 javascript_include_tag 'eln_project_list'。
   eln_project_list: './addons/eln_ui/app/javascript/packs/eln_project_list.js',
+  // --- 测试用孤儿 V1：vue/eln/views/ProjectList.vue + entries/project_list.js ---
+  // 仅用于比对验证，不接生产路由；产物 project_list_v1.js，挂载点同#eln-project-list，
+  // 未注入 window.__ELN_PROJECT_LIST__ 时退化为 data/mock 的 4 条假数据。
+  //⚠ 2026-10-11：entries/project_list.js **已被提为生产真源**（见下方 eln_project_list_v3）。
+  //   本entry 仍指向同一文件，改动会同时影响两者 —— 想隔离比对需先另存一份入口。
+  project_list_v1: './addons/eln_ui/app/javascript/vue/eln/entries/project_list.js',
+  // --- ELN 项目列表页（Vue3 原型栈）= 生产页真源 ---
+  // 🔴 2026-10-11 取代 eln_vue3 手写 blob。此前生产页加载一份 152KB / 5 行压缩 blob
+  //   （app/assets/javascripts/eln_vue3/eln_project_list.js），**未纳入 git、全仓无构建脚本**，
+  //   导致本目录任何组件改动（含 DateField）编译后都到不了生产页
+  //   （实测生产产物中 vue-datepicker 标记 dp__menu 为 0）。
+  //   现由宿主 webpack 构建 vue/eln/entries/project_list.js，产物
+  //   app/assets/builds/eln_project_list_v3.{js,css}，视图引用它。
+  // ⚠ 命名带 _v3 是为与上方 AG Grid 栈的 eln_project_list 区分 —— 后者当前不接生产路由，
+  //   但保留登记以便随时回滚对照，不要在未确认前删掉那个 entry。
+  eln_project_list_v3: './addons/eln_ui/app/javascript/packs/eln_project_list_v3.js',
   // --- ELN 系统 Vue3 内嵌页（资源中心 / 工作台 / 项目详情 / 实验详情 / 任务详情 / 申请详情）---
   // 真源统一在 addons/eln_ui/app/javascript/vue/eln/（与 Vue3 原型 ELN系统-Vue3 同一份组件），
   // 各 pack 仅 re-import 对应 entry（entry 在加载时读 window.__ELN_*__ 并挂载到 #eln-*）。

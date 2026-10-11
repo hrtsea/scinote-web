@@ -80,6 +80,17 @@ module Scinote
       #   · project_list_v1.js / .css —— 孤儿 V1 测试页（/eln_project_list_v1）
       #     用的 webpack entry。与 V2 并排做比对，不接生产主路由，但只要路由可达
       #     就得能出资产，否则那条路由 500。
+      #
+      # 🔴 2026-10-11 补 eln_project_list_v3.{js,css}（生产列表页新真源）：
+      #   项目列表页此前加载的是 `eln_vue3/eln_project_list.js` —— 一份 152KB / 5 行
+      #   压缩**手写 blob**，未纳入 git、全仓找不到任何构建脚本。后果：vue/ 下的
+      #   组件改动（DateField 等）即使正确编译进 webpack 也到不了生产页
+      #   （浏览器实测生产产物里 vue-datepicker 标记 dp__menu 为 0）。
+      #   视图已改引`eln_project_list_v3`，这里配套登记。
+      #   ⚠ 下面两行 `eln_vue3/*` **暂留**：视图已不再引用，但删登记前先确认没有
+      #   其他视图/邮件模板还在引 —— 漏引AssetNotFound 是整页 500 级别的事故。
+      #   确认无人引用后与blob 文件一并清理（届时本注释可删）。
+      # ⚠ .js 与 .css **必须成对登记**，只补一个照样整页 500（AssetNotFound）。
       initializer 'scinote_eln_ui.assets' do |app|
         next unless app.config.respond_to?(:assets)
 
@@ -91,6 +102,7 @@ module Scinote
           eln_task_detail.js eln_task_detail.css
           eln_apply_detail.js eln_apply_detail.css
           eln_project_list.js
+          eln_project_list_v3.js eln_project_list_v3.css
           eln_vue3/eln_project_list.js
           eln_vue3/eln_project_list.css
           project_list_v1.js project_list_v1.css

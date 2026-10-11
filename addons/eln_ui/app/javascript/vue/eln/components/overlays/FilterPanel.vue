@@ -16,25 +16,29 @@
         <div class="field">
           <label class="field-label">开始日期</label>
           <div class="range">
-            <input v-model="ui.filters.start_date_from" type="date" class="field-input" data-e2e="fp-start-from" />
+            <DateField
+              v-model="ui.filters.start_date_from"
+              data-e2e="fp-start-from"
+              placeholder="开始日期"
+            />
             <span class="range-sep">至</span>
-            <input v-model="ui.filters.start_date_to" type="date" class="field-input" />
+            <DateField v-model="ui.filters.start_date_to" placeholder="结束日期" />
           </div>
         </div>
         <div class="field">
           <label class="field-label">截止日期</label>
           <div class="range">
-            <input v-model="ui.filters.due_date_from" type="date" class="field-input" data-e2e="fp-due-from" />
+            <DateField v-model="ui.filters.due_date_from" data-e2e="fp-due-from" placeholder="截止日期" />
             <span class="range-sep">至</span>
-            <input v-model="ui.filters.due_date_to" type="date" class="field-input" />
+            <DateField v-model="ui.filters.due_date_to" placeholder="截止日期" />
           </div>
         </div>
         <div v-if="ui.viewMode === 'archived'" class="field">
           <label class="field-label">归档日期</label>
           <div class="range">
-            <input v-model="ui.filters.archived_on_from" type="date" class="field-input" />
+            <DateField v-model="ui.filters.archived_on_from" placeholder="归档日期" />
             <span class="range-sep">至</span>
-            <input v-model="ui.filters.archived_on_to" type="date" class="field-input" />
+            <DateField v-model="ui.filters.archived_on_to" placeholder="归档日期" />
           </div>
         </div>
         <div class="field">
@@ -98,6 +102,7 @@ import { computed } from 'vue/dist/vue.esm-bundler.js'
 import { ui, closeFilter, resetFilters, applyFilters, refreshList } from '../../store/ui'
 import { members } from '../../data/mock'
 import AppIcon from '../AppIcon.vue'
+import DateField from '../DateField.vue'
 
 // ⚠ 兜底常量必须先声明（<script setup> 的 TDZ）：真机没给选项时用这三档固定状态。
 // 值与原生 Lists::ProjectsService 的 scopes 键一致（not_started/in_progress/done），
@@ -251,6 +256,17 @@ async function clearAll() {
   gap: 8px;
 }
 .range .field-input {
+  flex: 1;
+  min-width: 0;
+}
+/* 🔴 2026-10-11：6 处日期已从原生 <input class="field-input"> 换成 DateField 组件，
+   它渲染的是 .date-field 根节点（不是 .field-input），所以上面那条 .field-input 规则
+   对日期框不再生效 —— 不补这段的症状是：日期框撑满整行、「至」被挤到下一行，
+   两段区间不再并排。
+   .date-field 自身 width:100%，这里把它当 flex 子项按 1 分配即可。
+   另：DateField 的 .date-field__input 尺寸由它自己按 size="lg"（默认 36px）控制，
+   与 .field-input 的 height:36px 对齐，无需在此覆盖。 */
+.range .date-field {
   flex: 1;
   min-width: 0;
 }
