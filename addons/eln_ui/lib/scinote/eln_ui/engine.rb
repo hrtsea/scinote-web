@@ -69,11 +69,14 @@ module Scinote
       #  config/initializers/assets.rb，与 vue_team_new 等宿主 team 页一致。）
       #
       # ⚠ 2026-10-11 补两个新面孔（Vue3 重建引入，此前都漏登记，manifest 实测命中数为 0）：
-      #   · eln_vue3/eln_project_list.js —— **V2 生产页 index.html.erb:31 现在引它**
-      #     （不再引 webpack 的 eln_project_list）。它是 eln_vue3/ 目录下的手写 blob，
-      #     Sprockets 只在**显式登记**后才进 manifest；addon 的 app/assets/javascripts
-      #     并不会被自动全量索引。未登记 ⇒ 生产 assets.compile=false 下
-      #     AssetNotFound ⇒ 整页 500（ADR-0038 记过同类坑）。
+      #   · eln_vue3/eln_project_list.js + .css —— **V2 生产页 index.html.erb 引用它们**
+      #     （第 19 行 asset_path 引 CSS、第 31 行 javascript_include_tag 引 JS；不再引 webpack 的
+      #     eln_project_list）。它们是 eln_vue3/ 目录下的手写 blob，Sprockets 只在**显式登记**
+      #     后才进 manifest；addon 的 app/assets/{javascripts,stylesheets} 并不会被自动全量索引。
+      #     未登记 ⇒ 生产 assets.compile=false 下 AssetNotFound ⇒ 整页 500（ADR-0038 记过同类坑）。
+      #     🔴 **JS 与 CSS 必须成对登记**：只补 .js 漏 .css 时页面照样整页 500
+      #       （asset_path 解析失败直接抛 AssetNotFound，实测 2026-10-11 首次浏览器验收就撞上）。
+      #       补登记后逐个 grep manifest 复核，别只看 JS 那一个。
       #   · project_list_v1.js / .css —— 孤儿 V1 测试页（/eln_project_list_v1）
       #     用的 webpack entry。与 V2 并排做比对，不接生产主路由，但只要路由可达
       #     就得能出资产，否则那条路由 500。
@@ -89,6 +92,7 @@ module Scinote
           eln_apply_detail.js eln_apply_detail.css
           eln_project_list.js
           eln_vue3/eln_project_list.js
+          eln_vue3/eln_project_list.css
           project_list_v1.js project_list_v1.css
         ]
       end
