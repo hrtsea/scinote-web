@@ -425,7 +425,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue/dist/vue.esm-bundler.js'
+import { ref, computed, watch, onMounted } from 'vue/dist/vue.esm-bundler.js'
 import AppIcon from '../components/AppIcon.vue'
 import DateField from '../components/DateField.vue'
 import PageHeader from '../components/PageHeader.vue'
@@ -475,6 +475,56 @@ const subTabs = [
 ]
 const activeSub = ref('basic')
 const costScope = ref('project')
+
+// ---------- 页签态持久化（ISSUE-PD-TAB-RESET / PD-TAB-PERSIST） ----------
+// 背景：本页所有写操作（保存指标 / 编辑项目信息 / 上传任务书 / 删除·切换指标）
+//   成功后统一走 `window.location.reload()` 做「最诚实的刷新」，但 reload 会让
+//   SPA 重挂载、`activeSub` 回落默认 'basic' —— 用户填完「项目指标」保存后
+//   被甩回「项目基础信息」。修复：把当前页签态写进 URL query（?pd_nav/pd_sub/pd_scope），
+//   重载后 onMounted 从 location.search 还原，落回原页签。
+// 为何用 query 而非 sessionStorage / 纯 hash：
+//   · sessionStorage 非惯例、URL 不可分享；
+//   · 纯 hash 在 dev 态会与 vue-router（createWebHashHistory，router/index.js:178）
+//     抢 location.hash、冲掉路由 → 破坏 dev 导航；
+//   · query 写在 hash 之前，dev 态改 search 不触发 popstate、vue-router 无感；
+//     嵌入态 Rails 忽略未知 query、Turbo 对 replaceState 无反应 → 两态统一一套代码。
+// 还原时按白名单校验，拦截未知键；query 参数即“用户偏好”，本身可被分享/书签。
+const TAB_PARAMS = { nav: 'pd_nav', sub: 'pd_sub', scope: 'pd_scope' }
+const validSubKeys = new Set(subTabs.map((s) => s.key))
+const validNavKeys = new Set(navItems.map((n) => n.key))
+const validScopeKeys = new Set(['project', 'user', 'both'])
+
+function readTabFromUrl() {
+  try {
+    const q = new URLSearchParams(window.location.search)
+    const nav = q.get(TAB_PARAMS.nav)
+    const sub = q.get(TAB_PARAMS.sub)
+    const scope = q.get(TAB_PARAMS.scope)
+    if (validNavKeys.has(nav)) activeNav.value = nav
+    if (validSubKeys.has(sub)) activeSub.value = sub
+    if (validScopeKeys.has(scope)) costScope.value = scope
+  } catch (_) {
+    // 解析失败：静默回落默认页签，不阻断页面
+  }
+}
+
+function writeTabToUrl() {
+  try {
+    const url = new URL(window.location.href)
+    url.searchParams.set(TAB_PARAMS.nav, activeNav.value)
+    url.searchParams.set(TAB_PARAMS.sub, activeSub.value)
+    url.searchParams.set(TAB_PARAMS.scope, costScope.value)
+    // replaceState：不新增历史记录（避免 back 键在页签间来回）、不触发 Turbo 访问、
+    // 不触发 vue-router（dev 用 hash history，search 变化不影响路由）；保留既有 history.state。
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash)
+  } catch (_) {
+    // 极少数环境 replaceState 受限：静默退化，不阻断切换/保存流程
+  }
+}
+
+// 页签一变即写回 URL；onMounted 还原时改值会再次触发本 watcher（写回同样的值），无害。
+watch([activeNav, activeSub, costScope], writeTabToUrl)
+onMounted(readTabFromUrl)
 
 // 状态 → 徽章配色（2026-10-11 换栈后统一用 .eln-badge；此前自研表格用的是 .status-dot 色点）。
 // tone 名对应 tokens.css 的 .eln-badge-<tone>。
