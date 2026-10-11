@@ -38,6 +38,20 @@ module Scinote
         end
       end
 
+      # 测试用：孤儿 V1 项目列表（vue/eln/views/ProjectList.vue + entries/project_list.js）。
+      # 与 index 同源（复用 payload），但视图换成 V1 bundle（project_list_v1.js/css），
+      # 把 payload 注入 window.__ELN_PROJECT_LIST__ 供 V1 entry 消费。request.path 为
+      # /eln_project_list_v1，故 listUrl / 文件夹下钻也指向本 action，搜索/刷新/下钻交互自洽。
+      def v1
+        @can_create_project = can_create_project?
+        @can_create_folder = can_create_folder?
+
+        respond_to do |format|
+          format.html { @payload_json = JSON.generate(payload).gsub('<', '\\u003c') }
+          format.json { render json: payload }
+        end
+      end
+
       # V2.0 —— AG Grid 契约 JSON（供原生 shared/datatable 消费）。
       # 复用现有 ProjectListPayload 的行装配（项目∪文件夹、17 列 ELN 形状、stats/members/
       # owner/status/actions 全算好），仅把 :projects 数组包成 JSON:API 形状

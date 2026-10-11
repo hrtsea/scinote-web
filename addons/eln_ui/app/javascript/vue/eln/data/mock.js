@@ -265,6 +265,27 @@ export const projectArchive = {
   exportUrl: ''
 }
 
+// 页头三键的可见性依据（2026-10-11 接线）。
+// 原型独立跑（SPA）默认全 false：没有宿主会话，按钮按下必然失败 ——
+// 与其给一个点不动的按钮，不如不渲染（与「绝不回落演示值」同一条纪律）。
+export const permissions = {
+  canEditBasic: false,
+  canUploadDocs: false,
+  canChangeStatus: false
+}
+
+// 页头三键的动作端点。URL 一律由宿主下发生成，这里不放任何字面路径。
+export const actions = {
+  updateProject: '',
+  changeStatus: '',
+  uploadTaskBook: '',
+  addMetric: '',
+  // 6 张表的服务端网格端点（真机由 payload.actions.grids 逐条覆写）。
+  // 原型态刻意留空 ⇒ ProjectDetail 的 gridUrl() 给 null ⇒ 表格走「未接入宿主数据端点」
+  // 空态，而不是拿一个假地址去请求（那会打出一个 404 且从界面上看不出原因）。
+  grids: {}
+}
+
 // ------------------------------------------------------------
 // 实验（画布 4:525 面包屑 / 4:641 面包屑）
 // EX1 · 硅胶配方与固化体系筛选

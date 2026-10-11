@@ -481,6 +481,11 @@ Rails.application.routes.draw do
         to: 'scinote/eln_ui/project_list#index',
         as: :eln_project_list
 
+    # 测试用：孤儿 V1 项目列表（与 V2 并排，不接生产路径）
+    get 'eln_project_list_v1',
+        to: 'scinote/eln_ui/project_list#v1',
+        as: :eln_project_list_v1
+
     # V2.0 —— AG Grid 契约 JSON 端点（原生 shared/datatable 的 dataUrl）。
     # 返回 JSON:API 形状 { data:[{id,type,attributes}], meta }，复用现有 Payload 行装配。
     get 'eln_project_list/grid',

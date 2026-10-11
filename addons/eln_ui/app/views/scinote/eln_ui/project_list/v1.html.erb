@@ -1,0 +1,25 @@
+<%# ELN UI —— 项目列表页 V1（孤儿 vue/eln/views/ProjectList.vue，仅测试用，与 V2 并排）
+     挂载契约：V1 entry（entries/project_list.js）读 window.__ELN_PROJECT_LIST__ 并挂到 #eln-project-list。
+     数据由 controller#v1 经 ProjectListPayload 生成，内联注入（V1 的唯一数据源）；
+     listUrl / 文件夹下钻都指向 /eln_project_list_v1，交互自洽。 %>
+<% provide(:head_title, '项目 (V1 测试)') %>
+
+<%# addon 视图默认不输出 CSRF meta；新建/新建文件夹等 POST 端点需要它。 %>
+<%= tag.meta name: 'csrf-token', content: form_authenticity_token %>
+
+<div class="content-pane flexible">
+  <div id="eln-project-list" class="fixed-content-body"></div>
+</div>
+
+<%# 内联 JSON 数据块（V1 唯一数据源）；gsub('<') 防 </script> 注入打断脚本。 %>
+<script type="application/json" id="eln-project-list-data" nonce="<%= content_security_policy_nonce %>">
+  <%= raw @payload_json %>
+</script>
+<script nonce="<%= content_security_policy_nonce %>">
+  window.__ELN_PROJECT_LIST__ = JSON.parse(
+    document.getElementById('eln-project-list-data').textContent
+  );
+</script>
+
+<%= stylesheet_link_tag 'project_list_v1', media: 'all' %>
+<%= javascript_include_tag 'project_list_v1', nonce: content_security_policy_nonce %>
