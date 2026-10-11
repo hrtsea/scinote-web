@@ -117,12 +117,16 @@ const entryList = {
   // eln_ui addon: 项目列表接入原生 AG Grid 栈（引用 shared/datatable，非复制）。
   // 产物输出到 app/assets/builds/eln_project_list.js，视图用 javascript_include_tag 'eln_project_list'。
   eln_project_list: './addons/eln_ui/app/javascript/packs/eln_project_list.js',
-  // --- 测试用孤儿 V1：vue/eln/views/ProjectList.vue + entries/project_list.js ---
-  // 仅用于比对验证，不接生产路由；产物 project_list_v1.js，挂载点同#eln-project-list，
-  // 未注入 window.__ELN_PROJECT_LIST__ 时退化为 data/mock 的 4 条假数据。
-  //⚠ 2026-10-11：entries/project_list.js **已被提为生产真源**（见下方 eln_project_list_v3）。
-  //   本entry 仍指向同一文件，改动会同时影响两者 —— 想隔离比对需先另存一份入口。
-  project_list_v1: './addons/eln_ui/app/javascript/vue/eln/entries/project_list.js',
+  // --- 测试用孤儿 V1：旧 AG Grid 渲染器（vue/eln_project_list/list.vue）---
+  // 仅用于比对验证（spec ticket 05：旧渲染器 2 处日期与新架构 15 处行为一致），不接生产路由；
+  // 产物 project_list_v1.js / .css，挂载点同 #eln-project-list。
+  // 🔴 2026-10-11 ticket 02 把 entries/project_list.js 提为生产真源（eln_project_list_v3）后，
+  //   本 entry 曾误指同一新源 ⇒ v1 比对页与生产页渲染同一套新架构、旧 AG Grid 渲染器
+  //   （row_action_modal.vue）被完全孤立，spec ticket 05 前提失效。
+  //   ticket 05 改回指向旧 list.vue 入口，恢复「v1=旧渲染器 / 生产=新架构」的比对关系，
+  //   旧渲染器的 2 处 <input type="date"> 换 DateField 才能在 /eln_project_list_v1 验收。
+  //   （list.vue 经 /eln_project_list/grid 取数，不依赖注入全局，挂到 v1 页可正常取数。）
+  project_list_v1: './addons/eln_ui/app/javascript/packs/eln_project_list.js',
   // --- ELN 项目列表页（Vue3 原型栈）= 生产页真源 ---
   // 🔴 2026-10-11 取代 eln_vue3 手写 blob。此前生产页加载一份 152KB / 5 行压缩 blob
   //   （app/assets/javascripts/eln_vue3/eln_project_list.js），**未纳入 git、全仓无构建脚本**，

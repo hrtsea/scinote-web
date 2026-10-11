@@ -45,11 +45,11 @@
               <template v-if="!isFolder">
                 <div class="mb-3">
                   <label class="sci-label">开始日期</label>
-                  <input type="date" v-model="form.startDate" class="sci-input-field" data-e2e="e2e-IF-rowAction-start" />
+                  <DateField v-model="form.startDate" data-e2e="e2e-IF-rowAction-start" />
                 </div>
                 <div class="mb-3">
                   <label class="sci-label">截止日期</label>
-                  <input type="date" v-model="form.due" class="sci-input-field" data-e2e="e2e-IF-rowAction-due" />
+                  <DateField v-model="form.due" data-e2e="e2e-IF-rowAction-due" />
                 </div>
                 <div class="mb-3">
                   <label class="sci-label">描述</label>
@@ -165,9 +165,13 @@
 
 <script>
 import axios from 'custom_axios';
+import DateField from '../../eln/components/DateField.vue';
 
 export default {
   name: 'ElnRowActionModal',
+  components: {
+    DateField
+  },
   props: {
     kind: { type: String, required: true },
     row: { type: Object, required: true },
