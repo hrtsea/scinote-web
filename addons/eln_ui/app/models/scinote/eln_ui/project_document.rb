@@ -17,6 +17,12 @@ module Scinote
       scope :ordered, -> { order(:position, :id) }
       scope :required, -> { where(category: 'required').ordered }
       scope :other,    -> { where(category: 'other').ordered }
+
+      # 文件本体（2026-10-11 上线，供页头「上传任务书」用）。
+      # 走宿主 ActiveStorage，不自建文件表 —— 同 addon 的 ReceiptVerification#photos
+      # 已经把这条路跑通了（其注释点明先例 form_repository_rows_field_value.rb:19）。
+      # ⚠ 这里只声明：附件大小/类型/清理策略沿用宿主既有约定，不另立一套。
+      has_one_attached :file
     end
   end
 end

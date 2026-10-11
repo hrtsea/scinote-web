@@ -60,6 +60,10 @@ patchObject(mock.projectCost, injected.projectCost || { total: '', note: '', row
 // 报告 §5 第 6 项 #11 / #10：任务关闭审核汇总、项目归档导出态（真机由宿主注入，嵌入态无则空态）
 patchObject(mock.taskCloseReview, injected.taskCloseReview || { total: 0, closed: 0, pending: 0, rejected: 0, indicatorDriven: false, tasks: [] })
 patchObject(mock.projectArchive, injected.projectArchive || { archived: false, archivedAt: null, canExport: false, exportUrl: '' })
+// 页头三键：权限位与动作端点都必须来自宿主。缺了就维持 mock 的全 false / 空串，
+// 组件据此不渲染按钮（而不是渲染一个点了没反应的按钮）。
+patchObject(mock.permissions, injected.permissions || { canEditBasic: false, canUploadDocs: false, canChangeStatus: false })
+patchObject(mock.actions, injected.actions || { updateProject: '', changeStatus: '', uploadTaskBook: '', addMetric: '' })
 
 // ---------- 面包屑下钻地址（宿主注入真实URL；不给就null → 组件回落原型路径）----------
 // 铁律：前端不写死宿主路由。这两段以前在模板里写死 /projects，
@@ -67,6 +71,12 @@ patchObject(mock.projectArchive, injected.projectArchive || { archived: false, a
 if (injected.listUrl !== undefined) ui.projectListUrl = injected.listUrl
 
 // ---------- 挂载 ----------
-createApp({ render: () => h(ProjectDetail) })
-  .component('router-link', HostRouterLink)
-  .mount('#eln-project-detail')
+const app = createApp({ render: () => h(ProjectDetail) })
+app.component('router-link', HostRouterLink)
+// 🔴 i18n 全局属性必须挂：页面上 6 张表改用宿主 shared/datatable（AG Grid）栈后，
+//   栈内部的分页条 / 条目计数 / 错误提示都读 `this.i18n.t(...)`（这些是 datatable.* 老 key，
+//   中文/英文双语都在已提交的 translations.js 里）。
+//   漏挂的症状是「表格区域空白 + 控制台 undefined.t」—— 不是显式报错，很难一眼看出。
+//   与 teams_table.js 的挂法一致（同一套宿主栈、同一条约束）。
+app.config.globalProperties.i18n = window.I18n
+app.mount('#eln-project-detail')

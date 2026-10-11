@@ -23,6 +23,7 @@
       :scroll-mode="'pages'"
       :toolbar-actions="{}"
       :table-only="true"
+      @table-reloaded="onTableReloaded"
     />
   </div>
 </template>
@@ -39,6 +40,15 @@ defineProps({
   reloadingTable: { type: [Boolean, Number], default: false },
   height: { type: String, default: '480px' }
 })
+
+// 宿主栈每次加载完成都发 `tableReloaded(rowData, {filtered})`。
+// 2026-10-11 加透传：项目详情页页头的「指标 N/M 达标」徽标**必须**由同一份网格行算出来
+// （原先读 payload 快照 ⇒ 表改了徽标不动，正是本仓禁止的「同一事实两个真源」）。
+const emit = defineEmits(['tableReloaded'])
+
+function onTableReloaded(rows, meta) {
+  emit('tableReloaded', rows, meta)
+}
 </script>
 
 <style scoped>

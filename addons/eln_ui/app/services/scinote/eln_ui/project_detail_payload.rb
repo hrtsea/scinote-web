@@ -19,6 +19,11 @@
 module Scinote
   module ElnUi
     class ProjectDetailPayload
+      # 服务端网格原语（排序 / 切片 / 契约）—— 与 ResCenterPayload **共用一份**实现。
+      # 2026-10-11 引入：本页 6 张表改用宿主 shared/datatable（AG Grid）后，需要服务端
+      # 排序/分页；两份实现就是两份口径，见 Scinote::ElnUi::GridSupport。
+      include Scinote::ElnUi::GridSupport
+
       # 原型「业务称谓」<-> SciNote UserRole 的映射。
       # 出处：原型 ProjectDetail 面板④ role-note —— "角色映射自 SciNote UserRole：
       # 项目负责人 = Owner、小组组长 = Normal user、组员 = Technician、观察者 = Viewer"。
@@ -42,13 +47,23 @@ module Scinote
       DATE_FMT = '%Y-%m-%d'
 
       class << self
-        def call(project)
-          new(project).call
+        def call(project, user: nil)
+          new(project, user: user).call
+        end
+
+        # controller 的写 action 与前端渲染必须问**同一个**判据：两边各写一遍就会出现
+        # 「页面显示可编辑、点了却 403」。用 send 取私有方法，是为了让实现只有一处。
+        def permissions_for(project, user)
+          new(project, user: user).send(:permissions_block)
         end
       end
 
-      def initialize(project)
+      # @user 可选：真机（controller）传 current_user，据此下发 permissions；
+      #   原型/历史测试只传 project 时 permissions 全 false —— fail-closed，
+      #   宁可页面什么都不给也不能假设谁都能编辑（对比 res_center_payload 的 user 传法）。
+      def initialize(project, user: nil)
         @project = project
+        @user = user
       end
 
       def call
@@ -77,11 +92,52 @@ module Scinote
           # 报告 §5 第 6 项 #10：归档包预览 / 一键导出 / 置已结题禁建任务。
           # 原生 projects 已承载 archived 状态与归档动作（行菜单原生端点），本块只暴露
           # 真实归档态 + 导出入口，不重复造归档状态机。
-          projectArchive: archive_block
+          projectArchive: archive_block,
+          permissions: permissions_block,
+          # 动作端点：URL 一律由宿主 named route 生成（前端不许拼宿主路径）。
+          #   —— 这是页头三个按钮从「死按钮」变「可用」的前提。
+          actions: actions_block
         }
       end
 
+      # ------------------------------------------------------------
+      # 服务端网格 —— 本页 6 张表的统一取数口（宿主 shared/datatable/table.vue）
+      #
+      # 为什么要有它（2026-10-11）：页面上 6 张表从「payload 内联渲染」改为宿主 AG Grid，
+      #   而宿主栈**只能**从 dataUrl 拉数据（`dataUrl` 是它的 required prop）
+      #   ⇒ 必须有服务端端点。做法与资源中心（res_center#grid）、项目列表同源。
+      #
+      # 🔴 单真源：每个 dataset 都**复用下方既有 block** 取数，绝不另起一套聚合 ——
+      #   否则页头徽标/汇总数与网格行会漂，正是本仓反复强调的那条纪律。
+      #
+      # 契约（与 Scinote::ElnUi::GridSupport 同款）：
+      #   { data: [{ id:, type:, attributes: {…} }], meta: { total_pages:, total_count:, filtered_count: } }
+      #   ⚠ attributes 会被宿主 formatData 摊平成行对象 ⇒ 前端 columnDefs.field 必须 == 这里的键。
+      # ------------------------------------------------------------
+      def grid_rows(dataset:, order: nil, page: 1, per_page: 20)
+        page, per_page = clamp_paging(page, per_page)
+        rows = grid_dataset_rows(dataset)
+        # 未知 dataset → 空网格（而不是静默拿全量数据充数）
+        return empty_grid if rows.nil?
+
+        paginate(sort_rows(rows, order), page, per_page)
+      end
+
       private
+
+      # dataset → 既有 block 的行数组。未知名返回 nil（→ empty_grid）。
+      # ⚠ 新增表时这里与前端 columnDefs 必须成对加，否则表空而不报错。
+      def grid_dataset_rows(dataset)
+        case dataset.to_s
+        when 'experiments'       then experiments_block
+        when 'metrics'           then metrics_block
+        when 'required_docs'     then docs_block('required')
+        when 'other_docs'        then docs_block('other')
+        when 'members'           then members_block
+        when 'cost'              then cost_block[:rows]
+        when 'task_close_review' then task_close_review_block[:tasks]
+        end
+      end
 
       # ------------------------------------------------------------
       # ① 项目基础信息（原型 pb：name/code/span/source/foundedAt/owner/team/status/metricProgress/description）
@@ -90,18 +146,24 @@ module Scinote
         {
           id: @project.id,
           name: @project.name.to_s,
-          # projects 表无「项目编号」列 —— 用主键顶上，不编业务编号。
-          code: "##{@project.id}",
+          # projects 表无「项目编号」列。优先取二开业务编号
+          # （eln_ui_project_profiles.business_code，2026-10-11 建表）；没有才回落系统主键。
+          code: project_code,
           span: span_text,
-          # 原生无「项目来源」字段（description 不承载来源）→ 显式 nil。
-          # 页面会渲染成「项目来源」标签下留白 —— 这是原型（ProjectDetail.vue:114）的原生
-          # 行为（{{ pb.source }} 没有兜底文案），**不许在这里编一个来源**；
-          # 要显示「—」得改组件，而改组件就等于偏离原型，所以保持 nil 并在规格里记 OPEN。
-          source: nil,
-          foundedAt: date(@project.created_at),
+          # 原生无「项目来源」字段；二开口径落在 eln_ui_project_profiles.source。
+          # 没登记就 nil —— 页面留白，绝不编一个来源。
+          source: project_profile&.source,
+          # ⚠ 立项时间 = 项目**批准**日期（业务事实），不是记录创建时间。
+          #   承载列 eln_ui_project_profiles.approved_on；未登记 → nil（页面留白「—」），
+          #   绝不回落 created_at —— 用创建时间冒充批准日期属编造值（Q4 裁决 2026-10-11）。
+          foundedAt: date(project_profile&.approved_on),
           owner: owner_text,
           team: team_name,
-          status: @project.archived? ? '已归档' : '执行中',
+          # 展示态：归档即「已结题」（Q2-A：本轮只接这一档真实状态）；否则取二开登记的
+          # status，都没登记才回落「执行中」。statusKey 给前端做样式选择，
+          # 免得前端拿中文文案做相等比较（ProjectDetail.vue 原来就是这么脆）。
+          status: status_label,
+          statusKey: status_key,
           # 原型这里写的是「指标 x/y 达标」；真机没有指标模型，改用**实验完成度**这一真实口径。
           metricProgress: metric_progress,
           # ⚠ 原型是按文本渲染 description 的（ProjectDetail.vue 第 125 行 {{ pb.description }}），
@@ -187,11 +249,119 @@ module Scinote
       end
 
       # ------------------------------------------------------------
+      # 项目二开档案（2026-10-11 建表 eln_ui_project_profiles）：编号 / 来源 / 状态的承载面
+      # ------------------------------------------------------------
+      def project_profile
+        return nil unless profile_table?
+
+        # 🔴 memo 不能用 @project_profile ||= 直接接 nil：查不到时每次都重查一次也没关系，
+        #    写 `||=` 反而会在多线程下重复 find_by。这里的代价一次 SQL，可接受。
+        @project_profile ||= ::Scinote::ElnUi::ProjectProfile.find_by(project_id: @project.id)
+      end
+
+      # 迁移没跑到的库（测试库 / 新环境）里表还不存在 —— 一律当作「没有二开档案」，不炸。
+      def profile_table?
+        return @profile_table unless @profile_table.nil?
+
+        @profile_table = ::Scinote::ElnUi::ProjectProfile.table_exists?
+      end
+
+      def project_code
+        custom = project_profile&.business_code
+        custom.presence || "##{@project.id}"
+      end
+
+      # ⚠ 「已结题」必须以**原生 archived** 为准，不听二开列 —— 否则会出现「页面显示已结题、
+      #   原生却还能建任务」的撕裂：禁建语义（SCN-PM-ARCH-2）绑在原生归档上，不绑本列。
+      def status_pair
+        @status_pair ||= begin
+          key = @project.archived? ? 'closed' : (project_profile&.status.presence || 'running')
+          [key, ::Scinote::ElnUi::ProjectProfile.status_label(key)]
+        end
+      end
+
+      def status_key
+        status_pair[0]
+      end
+
+      def status_label
+        status_pair[1]
+      end
+
+      # ------------------------------------------------------------
+      # 权限下发（2026-10-11）—— SCN-PM-BASIC-1/2 与 SCN-PROJ-DETAIL-2/3 的依据。
+      #   ⚠ 没有这个块，前端对所有角色渲染同一排按钮 = 组员拿到写入口（当前正是这个状态）。
+      #   Owner 判定复用 ResourceApprovalPolicy.project_owner? 的双轨口径，不造第三套。
+      #   小组组长 = 项目级 UserRole 为用户/普通用户两档（ROLE_TITLES 已映射「小组组长」）。
+      # ------------------------------------------------------------
+      def permissions_block
+        {
+          canEditBasic: owner? || group_leader?,
+          canUploadDocs: owner? || group_leader?,
+          # 「修改项目状态」本轮唯一真实动作是置已结题 → 原生归档（REQ-PM-ARCHIVE
+          # SCN-PM-ARCH-1：归档字段操作仅项目负责人），故不给小组组长。
+          canChangeStatus: owner?
+        }
+      end
+
+      def owner?
+        return false if @user.blank?
+
+        ::Scinote::ElnUi::ResourceApprovalPolicy.project_owner?(@user, @project)
+      end
+
+      def group_leader?
+        return false if @user.blank?
+
+        %w[User Normal\ user].include?(role_name_for(@user).to_s)
+      end
+
+      # ------------------------------------------------------------
+      # 页头三键的动作端点（生前与否都下发 URL 常量，由 permissions 决定渲染与否）。
+      #   ⚠ 一律走宿主 named route：前端不许拼宿主路径（paths 铁律）。
+      # ------------------------------------------------------------
+      def actions_block
+        routes = ::Rails.application.routes.url_helpers
+        {
+          updateProject: routes.project_eln_detail_update_path(project_id: @project.id),
+          changeStatus: routes.project_eln_detail_status_path(project_id: @project.id),
+          uploadTaskBook: routes.project_eln_detail_task_book_path(project_id: @project.id),
+          # 指标新增端点（与指标表 per-row 动作同源，前端不许拼宿主路径）。
+          addMetric: routes.project_eln_detail_metrics_path(project_id: @project.id),
+          # 6 张表共用的服务端网格端点。**逐条下发完整 URL（含 ?dataset=）**：
+          #   前端零拼接 —— 「前端不许拼宿主路径」这条铁律不留 query 后缀的口子。
+          #   dataset 取值与 ProjectDetailPayload#grid_dataset_rows 一一对应。
+          grids: {
+            experiments: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'experiments'),
+            metrics: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'metrics'),
+            requiredDocs: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'required_docs'),
+            otherDocs: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'other_docs'),
+            members: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'members'),
+            cost: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'cost'),
+            taskCloseReview: routes.project_eln_detail_grid_path(project_id: @project.id, dataset: 'task_close_review')
+          }
+        }
+      end
+
+      # ------------------------------------------------------------
       # ④ 项目指标（原型 mock.projectMetrics：name/target/current/ok）
       # ------------------------------------------------------------
       def metrics_block
+        routes = ::Rails.application.routes.url_helpers
         Scinote::ElnUi::ProjectMetric.where(project_id: @project.id).ordered.map do |m|
-          { name: m.name.to_s, target: m.target.presence.to_s, current: m.current.presence.to_s, ok: m.ok }
+          {
+            id: m.id,
+            name: m.name.to_s,
+            target: m.target.presence.to_s,
+            current: m.current.presence.to_s,
+            ok: m.ok,
+            # per-row 动作端点：一律宿主 named route 生成（前端不许拼宿主路径）。
+            actions: {
+              update: routes.project_eln_detail_metric_update_path(project_id: @project.id, id: m.id),
+              destroy: routes.project_eln_detail_metric_destroy_path(project_id: @project.id, id: m.id),
+              toggle: routes.project_eln_detail_metric_toggle_path(project_id: @project.id, id: m.id)
+            }
+          }
         end
       end
 

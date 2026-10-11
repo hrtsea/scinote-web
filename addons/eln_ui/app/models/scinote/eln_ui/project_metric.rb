@@ -9,6 +9,8 @@ module Scinote
 
       belongs_to :project, class_name: '::Project', inverse_of: false
 
+      validates :name, presence: true
+
       scope :ordered, -> { order(:position, :id) }
     end
   end

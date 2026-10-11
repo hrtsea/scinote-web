@@ -113,3 +113,14 @@ public/marvin4js-license.cxl
 /.container_*
 /tmp_*.sh
 /tmp_*.rb
+
+# 孤儿代码：elncp/ 是被 addons/eln_ui 取代的旧版项目列表控制器，
+# 其路由 eln_project_list_v1 已标注「孤儿 V1 项目列表，不接生产路径」。
+# 保留在工作区作迁移参考，不入版本库，避免与 eln_ui 双源并存。
+/elncp/
+
+# 注：.scratch/ 不忽略 —— 按 AGENTS.md 约定它是 issue/spec 的正式真源
+# （one dir per feature, tickets under issues/），已有 49 个文件在库内。
+
+# 本地 E2E 冒烟脚本与失败现场截图（验收工具，非交付物）
+/e2e/

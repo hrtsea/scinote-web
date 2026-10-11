@@ -21,7 +21,9 @@ class ElnUiProjectDetailTest < AcTest::Base
 
     assert_equal project.name, basic[:name], '项目名称必须来自 projects.name'
     assert_equal "##{project.id}", basic[:code], '编号用主键（原生无项目编号列）'
-    assert_equal project.created_at.strftime('%Y-%m-%d'), basic[:foundedAt], '立项时间取 created_at'
+    # ⚠ 2026-10-11 改写：原断言「立项时间取 created_at」是**错的** —— 用户澄清
+    #   立项时间 = 项目**批准**日期，不是创建时间。未登记必须留白，拿 created_at 顶是编造值。
+    assert_nil basic[:foundedAt], '立项时间未登记时必须留白，绝不拿 created_at 冒充'
     assert_equal '执行中', basic[:status], '未归档项目应为「执行中」'
     assert_nil basic[:source], '原生无「项目来源」字段 —— 必须留白，不许编'
     assert_equal project.description.to_s.strip, basic[:description]
@@ -40,6 +42,14 @@ class ElnUiProjectDetailTest < AcTest::Base
 
     refute_includes basic[:description], '<div', 'HTML 标签不能出现在页面上'
     assert_includes basic[:description], 'Grant access to all', '文字内容必须保留'
+  end
+
+  # 立项时间是**批准日期**（业务事实），登记了才显示；且不得等于 created_at。
+  def test_founded_at_shows_approved_on_when_registered
+    scene = build_scene!
+    Scinote::ElnUi::ProjectProfile.upsert_for!(scene[:project], approved_on: Date.new(2026, 3, 2))
+
+    assert_equal '2026-03-02', payload(scene)[:projectBasic][:foundedAt], '立项时间取批准的日期'
   end
 
   def test_members_carry_real_user_and_role
@@ -95,7 +105,13 @@ class ElnUiProjectDetailTest < AcTest::Base
     assert_includes html, 'id="eln-project-detail"', '挂载点必须存在'
     assert_includes html, 'id="eln-project-detail-data"', '数据注入块必须存在'
     assert_includes html, 'eln_project_detail', 'Vue bundle 必须被引入'
-    assert_includes html, 'eln-system-vue3', '原型样式表必须被引入'
+    # ⚠ 2026-10-11 修正：这里原断言 'eln-system-vue3' —— 那是**已下线**的遗留资源
+    #   （docs/frontend-vue3-migration.md:468 记录了它的删除），于是这条常年红、
+    #   且与任何近期改动无关，是纯噪音：它会让人以为"详情页坏了"，其实页面一直是好的。
+    #   现在页面引的是宿主 webpack 产物 eln_project_detail.{js,css}，
+    #   按真实标签断言：样式表必须是**带 digest 的 <link>**，而不只是"字符串出现过"。
+    assert_match %r{<link rel="stylesheet" href="/assets/eln_project_detail-\h+\.css"}, html,
+                 '原型样式表（webpack 产物 eln_project_detail.css）必须被引入'
     assert_includes html, scene[:project].name, '页面必须带真项目名（走宿主 layout）'
   end
 
