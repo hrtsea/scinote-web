@@ -65,12 +65,27 @@ module Scinote
 
       HOST_ROUTE_HELPERS = host_route_helpers
 
+      # 🔴 时机：helper 转发**不能**放在 routes initializer 里。
+      #
+      #   initializer 阶段 `after: :add_routes` 执行时，`app.routes.append` 刚把引擎挂上，
+      #   Rails 随后仍会继续初始化路由体系（named_routes 的 @path_helpers_module 会被
+      #   重新生成并 include 进 url_helpers）。我们在此之前 define 的方法因此被**冲掉**：
+      #     · install 自己回报 FORWARDED=29、SKIPPED=0（看起来完全成功）
+      #     · 但重启后宿主 url_helpers 上 0/29 可用 ⇒ 页面一渲染就 NoMethodError
+      #   实测把同一段调用挪到运行时手工执行，`respond_to?` 立刻变true ⇒ 逻辑本身没问题，
+      #   纯粹是时机不对。
+      #
+      #   `config.to_prepare` 在开发态每次请求前、开发态与生产态启动后各跑一次，
+      #   是 Rails 为「需要随路由表变化重新安装的东西」准备的钩子。
+      #   幂等（重复 define_method 只是覆盖同名方法），可安全重入。
       initializer 'scinote_eln_ui.routes', after: :add_routes do |app|
         app.routes.append do
           mount Scinote::ElnUi::Engine => '/'
         end
+      end
 
-        Scinote::ElnUi::Engine.install_route_helpers!(app)
+      config.to_prepare do
+        Scinote::ElnUi::Engine.install_route_helpers!(Rails.application)
       end
 
       # 只 define_method 转发一层，**绝不** include 引擎那个 url_helpers 模块（见上「坑 2」）。
@@ -82,45 +97,68 @@ module Scinote
       # ⚠ 清单必须在 module_eval **块外**取出再传参：`module_eval` 里的常量查找走词法作用域，
       #   看不见 `class Engine` 上定义的 HOST_ROUTE_HELPERS。
       #
-      # 🔴🔴 **只在该helper 真的存在于引擎侧时才转发**（`engine_helpers.respond_to?` 守卫）。
-      #   为什么必须这样：迁移分两步走（ticket 01 只装骨架、路由仍挂宿主；ticket 02 才搬）。
-      #   在第 01 步里引擎侧没有任何路由，此时若强行转发：
-      #     · 转发体调用 engine_helpers.public_send(...) ⇒ 一旦被调用就 NoMethodError；
-      #     · 更隐蔽的是**宿主会用自己的同名 helper 覆盖掉这个转发**（宿主路由表已经
-      #       有这些名字，生成的定义在后、优先级更高），于是转发静默失效——
-      #       实测 helper 的 owner 仍是宿主的 ::ROUTES，看起来"装好了"其实没生效。
-      #   守卫让 01 阶段明确跳过（此时宿主原生 helper 就是权威，不需要转发），
-      #   02 迁完路由后引擎侧 helper 就位，转发生效。幂等、可重复执行。
+      # 🔴🔴🔴 转发实现走 **`method_missing` + `respond_to_missing?`**，不再逐个 define_method。
+      #
+      #   为什么不能用「遍历清单逐个 define_method」——实测连踩三次：
+      #     1. 定义到 `url_helpers` ⇒ instance_methods 查得到、owner 也对、public，
+      #        但 `respond_to?` 全 false（真身另有其模块）。
+      #     2. 改定义到 `named_routes.@path_helpers_module` ⇒ 运行时手工调用能成，
+      #        但**装在 initializer 里会被后续路由初始化冲掉**（install 回报
+      #        FORWARDED=29 / SKIPPED=0，重启后宿主侧 0/29 —— 极具迷惑性）。
+      #     3. 挪到 `config.to_prepare` ⇒ 生产 `cache_classes=true` 只在启动跑一次，
+      #        仍早于路由体系就绪 ⇒ 页面 500
+      #        （`undefined method 'project_eln_detail_metric_update_path'`）。
+      #
+      #   结论：**任何"启动期把方法塞进某个模块"的写法都在与 Rails 路由初始化时序赛跑**。
+      #   `method_missing` 不需要在正确时机写任何东西——它只在**真正被调用时**才转发，
+      #   那时路由表必然已就绪，时序问题被彻底消除。
+      #
+      #   `respond_to_missing?` 同样必须实现，否则 `respond_to?` 返回 false
+      #   （又一次极具迷惑性：方法能调，但 respond_to? 说没有）。
+      #
+      #   对拍access_control：它的方法 owner 是 `url_helpers` 自身，且调用返回
+      #   `/access_permissions/projects/1/visibility_matrix` —— 说明它把转发装在
+      #   `url_helpers` 上是可行的。本实现挂同一处，保持与既有先例一致。
+      #
+      #   ⚠ 清单来自基线（不手写）：漏一个只在访问该页面时才炸。
+      #   ⚠ **两个模块都装**：url_helpers（调用面，AC 的做法）+ @path_helpers_module
+      #     （Rails 后续可能把方法重收进这里）。两处都装、都幂等。
+      #   ⚠ 不 include 引擎的 url_helpers 模块（自带 included 钩子会自套自爆栈）。
+      #     这里只在被调用那一刻取 `Engine.routes.url_helpers` 并 public_send。
+      FORWARD_TARGETS = %i[path_helpers_module url_helpers].freeze
+
       def self.install_route_helpers!(app)
-        engine_helpers = Scinote::ElnUi::Engine.routes.url_helpers
         helper_names = HOST_ROUTE_HELPERS
+        installed = []
 
-        forwarded = []
-        skipped  = []
+        path_helpers = app.routes.named_routes.instance_variable_get(:@path_helpers_module)
+        FORWARD_TARGETS.each do |which|
+          target = which == :path_helpers_module ? path_helpers : app.routes.url_helpers
+          next if target.nil?
 
-        app.routes.url_helpers.module_eval do
-          helper_names.each do |helper_name|
-            unless engine_helpers.respond_to?(helper_name)
-              skipped << helper_name
-              next
+          target.module_eval do
+            define_method(:method_missing) do |name, *args, **kwargs, &block|
+              base = name.to_s
+              # 只接管「清单内 + 带 _path/_url 后缀」的名字，其余一律原样抛 NoMethodError。
+              # 不能吞掉真实错误：吞掉会把 bug 变成"某个 helper 返回 nil"这种更难查的东西。
+              if base.match?(/_(path|url)\z/) && helper_names.include?(base.sub(/_(path|url)\z/, '').to_sym)
+                engine = Scinote::ElnUi::Engine.routes.url_helpers
+                return engine.public_send(name, *args, **kwargs, &block)
+              end
+
+              super(name, *args, **kwargs, &block)
             end
 
-            define_method(helper_name) do |*args, **kwargs, &block|
-              engine_helpers.public_send(helper_name, *args, **kwargs, &block)
+            define_method(:respond_to_missing?) do |name, include_private = false|
+              base = name.to_s
+              (base.match?(/_(path|url)\z/) && helper_names.include?(base.sub(/_(path|url)\z/, '').to_sym)) ||
+                super(name, include_private)
             end
-            forwarded << helper_name
           end
+          installed << which
         end
 
-        # 只在有实际动作时打日志，避免每次启动刷屏；启动期日志噪音会掩盖真异常。
-        if forwarded.any?
-          Rails.logger&.info(
-            "[eln_ui] 路由 helper 转发已安装：#{forwarded.size} 个" \
-            "#{skipped.any? ? "（跳过 #{skipped.size} 个引擎侧尚未定义）" : ''}"
-          )
-        end
-
-        { forwarded: forwarded, skipped: skipped }
+        { installed: installed, count: helper_names.size }
       end
 
       # 装饰器自动加载（照抄 access_control / esignatures 的先例）：
