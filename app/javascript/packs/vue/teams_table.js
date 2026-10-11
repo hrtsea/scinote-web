@@ -1,29 +1,6 @@
 import { createApp } from 'vue/dist/vue.esm-bundler.js';
-import TeamsTable from '../vue/teams/table.vue';
-
-// Mirrors app/javascript/packs/vue/helpers/turbolinks.js (inlined to keep the
-// eln_ui pack build-isolated from the host packs tree).
-function mountWithTurbolinks(app, target, callback = null) {
-  const el = document.querySelector(target);
-  if (!el) return;
-  const originalHtml = el.innerHTML;
-  const cacheDisabled = document.querySelector('#cache-directive');
-  const event = cacheDisabled ? 'turbolinks:before-render' : 'turbolinks:before-cache';
-
-  document.addEventListener(
-    event,
-    () => {
-      app.unmount();
-      if (document.querySelector(target)) {
-        document.querySelector(target).innerHTML = originalHtml;
-      }
-      if (callback) callback();
-    },
-    { once: true }
-  );
-
-  return app.mount(target);
-}
+import TeamsTable from '../../vue/teams/table.vue';
+import { mountWithTurbolinks } from './helpers/turbolinks.js';
 
 // 工作区列表入口（ADR-0034 rev3，2026-10-08）：AG Grid 版。
 //

@@ -82,6 +82,33 @@ export default {
   created() {
     this.fetchAvailableSettings();
   },
+  mounted() {
+    // 接替已删除的页面级 jQuery 协处理器 users/settings/teams/show.js：
+    // 监听全局 inline_editing.js 触发的 inlineEditing:fieldUpdated（冒泡到 document），
+    // 将改名同步到面包屑与团队切换器。组件在 turbolinks 渲染前会 unmount，故配对移除监听器。
+    this.syncTeamNavHandler = (e) => {
+      const container = e.target && e.target.closest
+        ? e.target.closest(".settings-team-name .inline-editing-container")
+        : null;
+      if (!container) return;
+      const viewMode = container.querySelector(".view-mode");
+      const newName = viewMode ? viewMode.textContent.trim() : "";
+      if (!newName) return;
+      const crumb = document.querySelector(".breadcrumb-teams .active");
+      if (crumb) crumb.textContent = newName;
+      const nameEl = document.querySelector(".settings-team-name");
+      if (nameEl && nameEl.dataset.currentTeam === "true") {
+        const switcher = document.querySelector("#team-switch .selected-team");
+        if (switcher) switcher.textContent = newName;
+      }
+    };
+    document.addEventListener("inlineEditing:fieldUpdated", this.syncTeamNavHandler);
+  },
+  unmounted() {
+    if (this.syncTeamNavHandler) {
+      document.removeEventListener("inlineEditing:fieldUpdated", this.syncTeamNavHandler);
+    }
+  },
   methods: {
     fetchAvailableSettings() {
       this.loadingSettings = true;

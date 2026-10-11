@@ -19,7 +19,21 @@ Rails.application.config.assets.precompile += %w(sugar.min.js jquerymy-1.2.14.mi
 Rails.application.config.assets.precompile += %w(users/settings/list_toggle.js.erb)
 Rails.application.config.assets.precompile += %w(users/settings/account/preferences/index.js)
 Rails.application.config.assets.precompile += %w(users/settings/teams/add_user_modal.js)
-Rails.application.config.assets.precompile += %w(users/settings/teams/show.js)
+# ⚠ 原登记的 users/settings/teams/show.js 已移除：该文件随 ADR-0034 迁移删除，
+#   show.html.erb 改用 Vue 岛 vue_team_preferences。生产 assets.compile=false 下，
+#   precompile 名单指向不存在的文件 ⇒ 预编译报错，故必须同步摘掉这条孤儿登记。
+# 工作区创建表单 Vue 岛（宿主 webpack 构建，产物 app/assets/builds/vue_team_new.js）。
+# 显式登记以遵守指南 §10.2 铁律 A：生产 assets.compile=false 下未登记 ⇒ AssetNotFound ⇒ 整页 500。
+Rails.application.config.assets.precompile += %w(vue_team_new.js)
+# 工作区（teams）列表页 Vue 岛（宿主 webpack 构建，产物 app/assets/builds/vue_teams_table.js）。
+# 源码已从 addons/eln_ui 迁回宿主 app/javascript（与 vue_team_new 等宿主 team 页一致）。
+Rails.application.config.assets.precompile += %w(vue_teams_table.js)
+# 工作区设置/成员 Vue 岛（ADR-0034 迁回宿主后的产物）。
+# ⚠ 这两条此前漏登记，但 show.html.erb / members.html.erb 已在引用它们，
+#   且旧 users/settings/teams/show.js 已删除。生产 assets.compile=false 下未登记
+#   ⇒ Sprockets AssetNotFound ⇒ 整页 500（指南 §10.2 铁律 A）。
+Rails.application.config.assets.precompile += %w(vue_team_preferences.js)
+Rails.application.config.assets.precompile += %w(vue_team_members.js)
 Rails.application.config.assets.precompile += %w(users/settings/teams/invite_users_modal.js)
 Rails.application.config.assets.precompile += %w(my_modules/activities.js)
 Rails.application.config.assets.precompile += %w(my_modules/protocols.js)

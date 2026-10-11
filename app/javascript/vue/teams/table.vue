@@ -38,9 +38,8 @@
 </template>
 
 <script>
-// 引用宿主原生 AG Grid 栈。相对路径自 addons/eln_ui/app/javascript/vue/teams/ 上溯 6 级到仓根；
-// 同仓同一 webpack 配置构建，模块解析与宿主 entry 完全一致（单例 Vue / 单份 ag-grid）。
-import DataTable from '../../../../../../app/javascript/vue/shared/datatable/table.vue';
+// 引用宿主原生 AG Grid 栈（与 /projects 等宿主页同一路径解析，单例 Vue / 单份 ag-grid）。
+import DataTable from '../shared/datatable/table.vue';
 import TeamsNameRenderer from './renderers/name_renderer.vue';
 import TeamsLeaveRenderer from './renderers/leave_renderer.vue';
 
