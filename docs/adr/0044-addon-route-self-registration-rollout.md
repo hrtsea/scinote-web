@@ -68,6 +68,56 @@ initializer 只在服务进程启动时执行。⇒ 依赖运行时路由表的�
 ⇒ **凡"迁移后路由是否等价"的断言，必须由真机HTTP + 静态对拍承担**，测试环境只保留
 静态可判的部分（宿主文件内容、基线文件完整性）。
 
+## 优雅禁用的实测结论（2026-10-12，容器 `scinote_web_production`）
+
+契约的另一半——「禁用即下线、宿主照常启动」——已做**真实实验**证明（改 Gemfile + `bundle install
+--local` + 重启，随后立即还原）：
+
+| 观测 | 结果 |
+|---|---|
+| 注释 `gem 'scinote_eln_ui'` 后宿主启动 | **成功**（HTTP 200，零 NameError / 零启动崩溃） |
+| ELN UI 全部路径（详情 / 列表 / 资源中心 / 通知 / 审批人 / 孤儿 V1 / 网格） | **全部 404**，非 500 |
+| 同期 `/eln_workbench` | **500** ← 见下方「遗留问题」 |
+| 还原后 Gemfile md5 与禁用前一致、全部端点 200 | **过程幂等、无残留状态** |
+
+新增常驻守卫 `addons/eln_ui/test/eln_ui_graceful_disable_test.rb`：静态守住禁用契约的**前提**
+（自有 routes 文件存在、宿主零残留、engine 有 `after: :add_routes` 的 append initializer、
+Gemfile 以 `path: addons/eln_ui` 注册）。真正的禁用实验有副作用（改 Gemfile + 重启），
+不适合进单测，故只在守卫注释里记录实测结果；若哪天路由被挂回宿主，守卫会先变红，
+那时禁用实验也就失去意义。
+
+## 🔴 遗留问题：workbench 硬依赖 eln_ui（跨 addon 耦合）
+
+禁用实验中**新发现**、且**独立于路由迁移**的既有问题：
+`addons/workbench/app/services/scinote/workbench/workbench_payload.rb` 有**三处真实调用**
+指向 eln_ui：
+
+- `::Scinote::ElnUi::NotificationsPayload.unread_count_for(...)`
+- `::Scinote::ElnUi::ProjectListScope.participation(...)`
+- `::Scinote::ElnUi::ResourceApplication.for_team(...)`
+
+⇒ **workbench 在役却硬依赖 eln_ui**：一旦 eln_ui 被禁用，`/eln_workbench` 直接 500
+（`NameError: uninitialized constant Scinote::ElnUi`）。
+
+这不是路由迁移造成的，也不影响"eln_ui 自己能被优雅禁用"这条结论（eln_ui 的路径确实全部 404、
+宿主确实正常启动）。但它意味着**当前无法单独禁用 eln_ui 而保持 workbench 可用**，而且它违反了
+「停用 addon 前必查三路引用」铁律的第一路（Ruby 命名空间常量）。
+
+**处置**：需要把三处共享逻辑下沉到二者都能引用的位置（或让 workbench 自持一份），
+属独立工作，**不在本篇范围**，留作后续 spec。处置前不要单独禁用 eln_ui。
+
+## access_control 的"待办注释"已消解
+
+迁移前宿主 `config/routes.rb` 里有一段注释写着「路由挂在这里因为 engine 未被 mount，
+以后改走 engine mount 时可以搬到 addon/config/routes.rb」——**那段注释本身是错的**：
+access_control 的 engine 早已自挂载（`app.routes.append { mount ... => '/' }`），
+addon 侧 4 条路由早已生效；宿主那 4 条带前导斜杠的写法在 Rails 7.2 下**根本无法被加载**
+（加载即抛 ArgumentError），所以是纯死代码。
+
+本次直接删除那 4 条，注释随之消失——比"标记为已办"更彻底。
+ELN UI 与 workbench 的迁移已**完整验证**"addon 路由自注册"这条路可行，
+access_control 自身无需再做迁移。
+
 ## Consequences
 
 - 零入侵契约在仓库层面真正成立：rebase 上游时 `config/routes.rb` 是干净的，
