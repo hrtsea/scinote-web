@@ -9,8 +9,17 @@
         <div class="bf-field">
           <label class="bf-label">预定日期</label>
           <div class="bf-affix">
-            <input v-model="form.date" type="date" class="bf-bare" />
-            <span class="bf-suffix">· 周{{ weekdayOf(form.date) }}</span>
+            <DateField
+              v-model="form.date"
+              class="bf-date-field"
+              size="sm"
+              bare
+              placeholder="预定日期"
+              data-e2e="bf-date"
+            />
+            <!-- 🔴 v-if 而不是空串判断：weekdayOf('') 返回 ''，直接渲染会留下
+                 一个悬空的「· 周」。整段不渲染才是干净的做法。 -->
+            <span v-if="weekdayOf(form.date)" class="bf-suffix">· 周{{ weekdayOf(form.date) }}</span>
           </div>
         </div>
 
@@ -68,6 +77,7 @@
 <script setup>
 import { reactive, ref } from 'vue/dist/vue.esm-bundler.js'
 import { relatedExperiments, DEFAULT_APPROVER, ymd, TODAY, WEEKDAY_CN } from '../../data/equipment.js'
+import DateField from '../DateField.vue'
 
 const emit = defineEmits(['submit'])
 
@@ -178,15 +188,13 @@ function reset() {
   gap: 6px;
   padding: 0 10px;
 }
-.bf-bare {
+/* 🔴 2026-10-11 ticket 03：预定日期换成 <DateField size="sm" bare> 后，
+   原 .bf-bare 已无引用，直接删掉 —— 留着会让人以为还有第二处裸输入。
+   裸输入外观由 DateField 的 .date-field--bare 接管；这里只负责让它
+   在 .bf-affix 这个 flex 容器里占满剩余宽度（scoped 父组件能选中子组件根元素）。 */
+.bf-date-field {
   flex: 1;
   min-width: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  font-family: var(--font-en);
-  color: var(--color-text);
 }
 .bf-suffix {
   flex-shrink: 0;

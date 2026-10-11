@@ -14,11 +14,11 @@
         <div class="field-row">
           <div class="field">
             <label class="field-label">开始日期</label>
-            <input v-model="form.start" type="date" class="field-input" />
+            <DateField v-model="form.start" placeholder="开始日期" data-e2e="np-start" />
           </div>
           <div class="field">
             <label class="field-label">截止日期</label>
-            <input v-model="form.due" type="date" class="field-input" />
+            <DateField v-model="form.due" placeholder="截止日期" data-e2e="np-due" />
           </div>
         </div>
         <div class="field">
@@ -73,6 +73,7 @@
 import { computed, reactive, ref } from 'vue/dist/vue.esm-bundler.js'
 import { ui, closeNewProject, createProject } from '../../store/ui'
 import AppIcon from '../AppIcon.vue'
+import DateField from '../DateField.vue'
 
 // 原型独立跑时 payload 没给选项 → 这两个下拉退化成原型那四个字符串常量，
 // 组件照样能打开、能点，只是 create() 里发现没有 createUrls 就只关弹窗不发包。

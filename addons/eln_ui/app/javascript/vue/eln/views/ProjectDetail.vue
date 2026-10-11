@@ -13,14 +13,22 @@
       subtitle="项目 Project → 实验 Experiment → 任务 MyModule · 项目管理入口即本页页签（DEC-008）"
     >
       <template #title-extra>
-        <span class="eln-badge" :class="pb.status === '已归档' ? 'eln-badge-grey' : 'eln-badge-green'">{{ pb.status }}</span>
+        <!-- ⚠ 不再拿中文文案做相等比较：宿主要是把「已结题」改个说法，配色就静默错了。
+             判据换成后端下发的 statusKey。 -->
+        <span class="eln-badge" :class="pb.statusKey === 'closed' ? 'eln-badge-grey' : 'eln-badge-green'">{{ pb.status }}</span>
         <span class="eln-badge eln-badge-grey badge-metric">{{ pb.metricProgress }}</span>
       </template>
       <template #right>
         <div class="head-actions">
-          <button class="eln-btn-ghost pd14">上传任务书</button>
-          <button class="eln-btn-primary pd14">编辑项目信息</button>
-          <button class="eln-btn-ghost pd14">修改项目状态</button>
+          <input ref="fileInput" type="file" class="pd-file" @change="onTaskBookPicked" />
+          <button
+            v-if="can.canUploadDocs"
+            class="eln-btn-ghost pd14"
+            :disabled="uploading"
+            @click="pickTaskBook"
+          >{{ uploading ? '上传中…' : '上传任务书' }}</button>
+          <button v-if="can.canEditBasic" class="eln-btn-primary pd14" @click="openEdit">编辑项目信息</button>
+          <button v-if="can.canChangeStatus" class="eln-btn-ghost pd14" @click="confirmClose">修改项目状态</button>
         </div>
       </template>
     </PageHeader>
@@ -48,36 +56,19 @@
             <span class="block-note">共 {{ experiments.length }} 个实验 · 任务只挂在实验下（DEC-006）</span>
             <button class="eln-btn-primary pd14 sm">新建实验</button>
           </div>
-          <table class="doc-table">
-            <thead>
-              <tr>
-                <th class="eln-th th-check"><span class="checkbox"></span></th>
-                <th class="eln-th">实验名称</th>
-                <th class="eln-th">状态</th>
-                <th class="eln-th">负责人</th>
-                <th class="eln-th">任务进度</th>
-                <th class="eln-th">截止日期</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="e in experiments" :key="e.id">
-                <td class="eln-td td-check"><span class="checkbox"></span></td>
-                <td class="eln-td">
-                  <router-link :to="drillTo(e, 'experiment')" class="table-link strong">{{ e.fullName }}</router-link>
-                </td>
-                <td class="eln-td">
-                  <span class="status-dot" :style="{ background: statusColor[e.status] }"></span>{{ statusLabel[e.status] }}
-                </td>
-                <td class="eln-td">
-                  <span class="member-cell">
-                    <span class="avatar" :style="avatarStyle(e.owner.color)">{{ e.owner.initial }}</span>{{ e.owner.name }}
-                  </span>
-                </td>
-                <td class="eln-td num">{{ e.progress.done }}/{{ e.progress.total }} 任务</td>
-                <td class="eln-td num">{{ e.due }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <!-- 2026-10-11 换栈：自研 <table> → 宿主 shared/datatable（AG Grid v32.3.9）薄封装。
+               与资源中心 5 张表、项目列表同一引擎：列宽可调 / 表头点击排序走服务端 / 分页条在表下。
+               行数据由服务端网格端点下发（gridUrl('experiments')），不再从 payload 内联渲染。 -->
+          <ResGrid
+            v-if="gridUrl('experiments')"
+            :data-url="gridUrl('experiments')"
+            table-id="pd_experiments"
+            :column-defs="experimentsCols"
+            height="320px"
+          />
+          <div v-else class="empty-pane">
+            未接入宿主数据端点，暂不渲染表格（原型态）
+          </div>
           <p class="src-note">
             ⓘ 画布 4:464 该卡片为 hidden 态；列结构与行数据沿用项目详情「实验列表」同款表格口径，实验名取画布面包屑真值。
           </p>
@@ -104,7 +95,7 @@
               <div class="block-head">
                 <h2 class="block-title">项目基础信息</h2>
                 <span class="block-note">项目主数据 · 任何变更写入操作日志（DEC-002）</span>
-                <button class="eln-btn-primary pd14 sm">编辑</button>
+                <button v-if="can.canEditBasic" class="eln-btn-primary pd14 sm" @click="openEdit">编辑</button>
               </div>
               <div class="field-grid">
                 <div class="field-col">
@@ -131,37 +122,23 @@
               <div class="block-head">
                 <h2 class="block-title">项目指标</h2>
                 <span class="block-note">实验级 DOE 结果在此对齐回写（DEC-002）</span>
-                <button class="eln-btn-primary pd14 sm">添加指标</button>
+                <button v-if="can.canEditBasic" class="eln-btn-primary pd14 sm" @click="openMetricModal(null)">添加指标</button>
               </div>
-              <table class="doc-table">
-                <thead>
-                  <tr>
-                    <th class="eln-th">指标名称</th>
-                    <th class="eln-th th-target">目标值</th>
-                    <th class="eln-th th-current">当前值</th>
-                    <th class="eln-th th-status">状态</th>
-                  </tr>
-                </thead>
-                <tbody v-if="projectMetrics.length">
-                  <tr v-for="m in projectMetrics" :key="m.name">
-                    <td class="eln-td">{{ m.name }}</td>
-                    <td class="eln-td num">{{ m.target }}</td>
-                    <td class="eln-td num">{{ m.current }}</td>
-                    <td class="eln-td">
-                      <span class="eln-badge" :class="m.ok ? 'eln-badge-green' : 'eln-badge-red'">
-                        {{ m.ok ? '已达标' : '未达标' }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-                <tbody v-else>
-                  <tr>
-                    <td class="eln-td empty-cell" colspan="4">
-                      暂无指标 —— 原生 SciNote 没有项目级指标模型，取不到就不显示（不回落原型演示值）
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <!-- 2026-10-11 换栈：AG Grid（列宽可调 / 服务端排序 / 分页条）。
+                   空态判定仍走 payload（与网格行同源 metrics_block）：首屏即可定，
+                   不必等端点返回再闪一下空表。 -->
+              <div v-if="!projectMetrics.length" class="empty-cell">
+                <template v-if="can.canEditBasic">暂无指标，点击右上角「添加指标」登记</template>
+                <template v-else>暂无指标</template>
+              </div>
+              <ResGrid
+                v-else-if="gridUrl('metrics')"
+                :data-url="gridUrl('metrics')"
+                table-id="pd_metrics"
+                :column-defs="metricsCols"
+                height="240px"
+              />
+              <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <p class="src-note">
                 ⓘ 画布 4:416 该面板为 hidden 态；条目数（3）与达标数（2）由页头标签锁定（画布 63:4），
                 第 1/2 项取任务成果卡实测值（画布 4:1053/4:1054、4:1056/4:1057），第 3 项取项目描述目标（画布 4:1459）。
@@ -181,24 +158,15 @@
                   指标驱动 {{ taskCloseReview.indicatorDriven ? '已达成' : '未完成' }}
                 </span>
               </div>
-              <table v-if="taskCloseReview.tasks && taskCloseReview.tasks.length" class="doc-table tcr-table">
-                <thead>
-                  <tr>
-                    <th class="eln-th">任务</th>
-                    <th class="eln-th th-status">关闭状态</th>
-                    <th class="eln-th th-op">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="t in taskCloseReview.tasks" :key="t.id">
-                    <td class="eln-td strong">{{ t.name }}</td>
-                    <td class="eln-td">
-                      <span class="eln-badge" :class="tcrBadgeClass(t.state)">{{ t.stateLabel }}</span>
-                    </td>
-                    <td class="eln-td"><a class="table-link" :href="t.detailUrl" target="_blank" rel="noopener">查看任务</a></td>
-                  </tr>
-                </tbody>
-              </table>
+              <!-- 2026-10-11 换栈：AG Grid。下钻链接（查看任务）由渲染器的 href 分支承载，
+                   detailUrl 仍由服务端下发（前端不拼宿主路径）。 -->
+              <ResGrid
+                v-if="taskCloseReview.tasks && taskCloseReview.tasks.length && gridUrl('taskCloseReview')"
+                :data-url="gridUrl('taskCloseReview')"
+                table-id="pd_task_close_review"
+                :column-defs="tcrCols"
+                height="240px"
+              />
               <p v-else class="src-note">
                 ⓘ 暂无任务关闭审核记录 —— 原生 SciNote 没有任务关闭审核模型，取不到就不显示（不回落原型演示值）
               </p>
@@ -215,68 +183,34 @@
                 <span class="docs-subhead-title">必传文档</span>
                 <span class="block-note flex1">{{ requiredUploaded }}/{{ requiredDocs.length }} 已上传 · 缺失将阻断归档流程</span>
               </div>
-              <table class="doc-table">
-                <thead>
-                  <tr>
-                    <th class="eln-th">文档分类</th>
-                    <th class="eln-th th-status">状态</th>
-                    <th class="eln-th th-ver">版本</th>
-                    <th class="eln-th th-date">更新时间</th>
-                    <th class="eln-th th-op">操作</th>
-                  </tr>
-                </thead>
-                <tbody v-if="requiredDocs.length">
-                  <tr v-for="d in requiredDocs" :key="d.name">
-                    <td class="eln-td strong">{{ d.name }}</td>
-                    <td class="eln-td">
-                      <span class="doc-status" :class="d.uploaded ? 'ok' : 'pending'">{{ d.uploaded ? '已上传' : '待上传' }}</span>
-                    </td>
-                    <td class="eln-td num">{{ d.ver }}</td>
-                    <td class="eln-td num">{{ d.date }}</td>
-                    <td class="eln-td"><a role="button" tabindex="0" class="table-link" @click.prevent>预览 · 下载</a></td>
-                  </tr>
-                </tbody>
-                <tbody v-else>
-                  <tr>
-                    <td class="eln-td empty-cell" colspan="5">
-                      暂无必传文档 —— 原生 SciNote 没有项目文档分类模型，取不到就不显示
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div v-if="!requiredDocs.length" class="empty-cell">
+                暂无必传文档 —— 原生 SciNote 没有项目文档分类模型，取不到就不显示
+              </div>
+              <ResGrid
+                v-else-if="gridUrl('requiredDocs')"
+                :data-url="gridUrl('requiredDocs')"
+                table-id="pd_required_docs"
+                :column-defs="requiredDocsCols"
+                height="300px"
+              />
+              <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
 
               <div class="docs-subhead docs-subhead-gap">
                 <span class="docs-subhead-title">其他文档</span>
                 <span class="block-note flex1">过程记录、参考资料等，随时上传归档</span>
                 <button class="eln-btn-primary pd14 sm">上传文档</button>
               </div>
-              <table class="doc-table">
-                <thead>
-                  <tr>
-                    <th class="eln-th">文档名称</th>
-                    <th class="eln-th">类型</th>
-                    <th class="eln-th">上传人</th>
-                    <th class="eln-th">上传时间</th>
-                    <th class="eln-th">操作</th>
-                  </tr>
-                </thead>
-                <tbody v-if="docs.length">
-                  <tr v-for="d in docs" :key="d.name">
-                    <td class="eln-td">{{ d.name }}</td>
-                    <td class="eln-td">{{ d.type }}</td>
-                    <td class="eln-td">{{ d.by }}</td>
-                    <td class="eln-td num">{{ d.date }}</td>
-                    <td class="eln-td"><a role="button" tabindex="0" class="table-link" @click.prevent>下载</a></td>
-                  </tr>
-                </tbody>
-                <tbody v-else>
-                  <tr>
-                    <td class="eln-td empty-cell" colspan="5">
-                      暂无文档 —— 原生 SciNote 没有项目文档台账，取不到就不显示
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div v-if="!docs.length" class="empty-cell">
+                暂无文档 —— 原生 SciNote 没有项目文档台账，取不到就不显示
+              </div>
+              <ResGrid
+                v-else-if="gridUrl('otherDocs')"
+                :data-url="gridUrl('otherDocs')"
+                table-id="pd_other_docs"
+                :column-defs="otherDocsCols"
+                height="300px"
+              />
+              <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <p class="src-note">
                 ⓘ 画布 4:1460 该面板为 hidden 态；必传文档 5 类沿用 REQ-PM-DOCS 立项口径，日期按立项时间（2026-03-02）同源改写。
               </p>
@@ -289,33 +223,14 @@
                 <span class="block-note">共 {{ members.length }} 人 · 角色变更即时生效，历史记录留痕（DEC-002）</span>
                 <button class="eln-btn-primary pd14 sm">添加成员</button>
               </div>
-              <table class="doc-table">
-                <thead>
-                  <tr>
-                    <th class="eln-th">成员</th>
-                    <th class="eln-th">业务称谓</th>
-                    <th class="eln-th">UserRole</th>
-                    <th class="eln-th">加入时间</th>
-                    <th class="eln-th th-op">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="m in members" :key="m.name">
-                    <td class="eln-td">
-                      <span class="member-cell">
-                        <span class="avatar" :style="avatarStyle(m.color)">{{ m.name[0] }}</span>{{ m.name }}
-                      </span>
-                    </td>
-                    <td class="eln-td">{{ m.title }}</td>
-                    <td class="eln-td num">{{ m.role }}</td>
-                    <td class="eln-td num">{{ m.joined }}</td>
-                    <td class="eln-td">
-                      <a v-if="m.role !== 'Owner'" role="button" tabindex="0" class="table-link" @click.prevent>变更角色</a>
-                      <span v-else class="muted-text">—</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <ResGrid
+                v-if="gridUrl('members')"
+                :data-url="gridUrl('members')"
+                table-id="pd_members"
+                :column-defs="membersCols"
+                height="300px"
+              />
+              <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <div class="role-note">
                 <AppIcon name="sparkles" :size="16" />
                 <span>
@@ -362,26 +277,13 @@
                 </div>
               </div>
 
-              <table v-if="hasCostData" class="doc-table">
-                <thead>
-                  <tr>
-                    <th class="eln-th th-cat">类别</th>
-                    <th class="eln-th">数据来源</th>
-                    <th class="eln-th">金额算法</th>
-                    <th class="eln-th th-amt">金额</th>
-                    <th class="eln-th th-amt">占比</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="r in projectCost.rows" :key="r.category">
-                    <td class="eln-td strong">{{ r.category }}</td>
-                    <td class="eln-td">{{ r.source }}</td>
-                    <td class="eln-td">{{ r.basis }}</td>
-                    <td class="eln-td num">{{ r.amount }}</td>
-                    <td class="eln-td num">{{ r.share }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <ResGrid
+                v-if="hasCostData && gridUrl('cost')"
+                :data-url="gridUrl('cost')"
+                table-id="pd_cost"
+                :column-defs="costCols"
+                height="260px"
+              />
 
               <div v-if="hasCostData" class="rule-note">
                 <AppIcon name="shield" :size="15" />
@@ -437,28 +339,119 @@
         </template>
       </div>
     </div>
+
+    <!-- ---------- 编辑项目信息（页头三键之一 · 2026-10-11 接线） ---------- -->
+    <div v-if="editOpen" class="pd-mask" @click.self="editOpen = false">
+      <div class="pd-modal">
+        <h3 class="pd-modal-title">编辑项目信息</h3>
+        <label class="pd-field">
+          <span class="f-label">项目名称</span>
+          <input v-model="form.name" class="pd-input" />
+        </label>
+        <label class="pd-field">
+          <span class="f-label">项目编号（原生无此列，存入二开档案）</span>
+          <input v-model="form.businessCode" class="pd-input" placeholder="留空则回落系统编号" />
+        </label>
+        <label class="pd-field">
+          <span class="f-label">项目来源（原生无此列，存入二开档案）</span>
+          <input v-model="form.source" class="pd-input" placeholder="留空即留白，不编造" />
+        </label>
+        <!--
+          🔴 2026-10-11 ticket 03：这 3 个字段原先是**纯文本** input（placeholder
+          "YYYY-MM-DD"），不是原生 type="date"，所以既没有日历也没有格式校验 ——
+          用户能敲 "2026/3/1" 或 "下周一" 直接发出去。spec 的 17 处清单只数了
+          type="date"，漏了这 3 个；用户报的「eln_project_detail 里点日期框无弹窗」
+          就是这里。
+        -->
+        <label class="pd-field">
+          <span class="f-label">立项时间（项目批准日期，非创建时间）</span>
+          <DateField
+            v-model="form.approvedOn"
+            placeholder="未登记则留白"
+            data-e2e="pd-approved-on"
+          />
+        </label>
+        <div class="pd-field-row">
+          <label class="pd-field">
+            <span class="f-label">开始日期</span>
+            <DateField v-model="form.startDate" placeholder="开始日期" data-e2e="pd-start" />
+          </label>
+          <label class="pd-field">
+            <span class="f-label">截止日期</span>
+            <DateField v-model="form.dueDate" placeholder="截止日期" data-e2e="pd-due" />
+          </label>
+        </div>
+        <label class="pd-field">
+          <span class="f-label">项目描述</span>
+          <textarea v-model="form.description" class="pd-input" rows="3"></textarea>
+        </label>
+        <p v-if="editError" class="pd-error">{{ editError }}</p>
+        <div class="pd-modal-foot">
+          <button class="eln-btn-ghost pd14" @click="editOpen = false">取消</button>
+          <button class="eln-btn-primary pd14" :disabled="saving" @click="submitEdit">
+            {{ saving ? '保存中…' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- 项目指标 添加/编辑（2026-10-11 起） ---------- -->
+    <!-- 承载面 = 二开表 eln_ui_project_metrics；权限复用 canEditBasic（与编辑项目信息同款）。 -->
+    <!-- 创建即未达标，达标只走表格内「切换达标」动作，不进本表单。 -->
+    <div v-if="metricOpen" class="pd-mask" @click.self="metricOpen = false">
+      <div class="pd-modal">
+        <h3 class="pd-modal-title">{{ metricForm.id != null ? '编辑指标' : '添加指标' }}</h3>
+        <label class="pd-field">
+          <span class="f-label">指标名称</span>
+          <input v-model="metricForm.name" class="pd-input" placeholder="必填" />
+        </label>
+        <label class="pd-field">
+          <span class="f-label">目标值</span>
+          <input v-model="metricForm.target" class="pd-input" placeholder="如 ≥ 8.0 MPa" />
+        </label>
+        <label class="pd-field">
+          <span class="f-label">当前值</span>
+          <input v-model="metricForm.current" class="pd-input" placeholder="如 7.4 MPa" />
+        </label>
+        <p v-if="metricError" class="pd-error">{{ metricError }}</p>
+        <div class="pd-modal-foot">
+          <button class="eln-btn-ghost pd14" @click="metricOpen = false">取消</button>
+          <button class="eln-btn-primary pd14" :disabled="metricSaving" @click="submitMetric">
+            {{ metricSaving ? '保存中…' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue/dist/vue.esm-bundler.js'
 import AppIcon from '../components/AppIcon.vue'
+import DateField from '../components/DateField.vue'
 import PageHeader from '../components/PageHeader.vue'
-import { drillTo } from '../utils/drill'
 import { openHostEndpoint } from '../utils/env'
 import { ui } from '../store/ui'
+// 宿主 shared/datatable（AG Grid v32.3.9）薄封装 —— 与资源中心 ResCenter.vue 同一份，
+// 本页 6 张表统一走它（2026-10-11 换栈，此前是自研 <table class="doc-table">）。
+import ResGrid from './ResGrid.vue'
+import ElnLinkRenderer from '../renderers/link_renderer.vue'
+import ElnStateBadgeRenderer from '../renderers/state_badge_renderer.vue'
+import ElnMemberRenderer from '../renderers/member_renderer.vue'
+import ElnRowActionsRenderer from '../renderers/row_actions_renderer.vue'
 import {
   members,
   experiments,
   statusLabel,
-  avatarPalette,
   projectBasic as pb,
   projectMetrics,
   projectCost,
   requiredDocs,
   otherDocs,
   taskCloseReview,
-  projectArchive
+  projectArchive,
+  permissions as can,
+  actions as act
 } from '../data/mock'
 
 // 面包屑「项目列表」的真实地址：payload 注入了就走 /eln_project_list，
@@ -484,11 +477,205 @@ const subTabs = [
 const activeSub = ref('basic')
 const costScope = ref('project')
 
-const statusColor = {
-  active: 'var(--status-active)',
-  notstarted: 'var(--status-notstarted)',
-  done: 'var(--status-done)'
+// 状态 → 徽章配色（2026-10-11 换栈后统一用 .eln-badge；此前自研表格用的是 .status-dot 色点）。
+// tone 名对应 tokens.css 的 .eln-badge-<tone>。
+const experimentBadgeTone = (row) => ({ active: 'blue', done: 'green', notstarted: 'grey' }[row.status] || 'grey')
+const metricsBadgeTone = (row) => (row.ok ? 'green' : 'red')
+const docsBadgeTone = (row) => (row.uploaded ? 'green' : 'grey')
+
+function tcrBadgeTone(row) {
+  switch (row.state) {
+    case 'approved': return 'green'
+    case 'rejected': return 'red'
+    case 'pending': return 'orange'
+    default: return 'grey'
+  }
 }
+
+// ---------- 服务端网格接线（2026-10-11：本页 6 张表换用宿主 AG Grid） ----------
+// dataUrl 一律用宿主下发的**完整 URL**（含 ?dataset=），前端零拼接 —— paths 铁律。
+// 原型态（无宿主会话）act.grids 不存在 ⇒ gridUrl() 给 null ⇒ 对应表保持原有空态文案，
+// 而不是渲染一个永远拉不到数据的空表格。
+const grids = computed(() => act.grids || {})
+
+function gridUrl(name) {
+  const url = grids.value[name]
+  return typeof url === 'string' && url.length > 0 ? url : null
+}
+
+// 任务下钻链接（原自研表格是 <a :href="t.detailUrl" target="_blank">）：
+// 由渲染器的 href 分支承载，detailUrl 仍来自服务端（不前端拼宿主路径）。
+const taskLink = (row) => (row.detailUrl ? [{ label: '查看任务', href: row.detailUrl }] : [])
+
+// 各表列定义。field / valueGetter 取值一律对齐 payload attributes 的键
+// （宿主 formatData 会把 attributes 摊平成行对象，故 columnDefs 的键必须与之同名）。
+// 纯文本列用 field；需要加工的（状态文案、进度文案）用 colId + valueGetter。
+const experimentsCols = computed(() => [
+  {
+    field: 'fullName',
+    headerName: '实验名称',
+    minWidth: 220,
+    cellRenderer: ElnLinkRenderer,
+    cellRendererParams: { urlField: 'detailUrl' }
+  },
+  {
+    colId: 'statusText',
+    headerName: '状态',
+    width: 120,
+    minWidth: 100,
+    valueGetter: (p) => statusLabel[p.data.status] || p.data.status,
+    cellRenderer: ElnStateBadgeRenderer,
+    cellRendererParams: { toneOf: experimentBadgeTone }
+  },
+  {
+    colId: 'ownerName',
+    headerName: '负责人',
+    minWidth: 150,
+    cellRenderer: ElnMemberRenderer,
+    cellRendererParams: { sourceField: 'owner' }
+  },
+  {
+    colId: 'progressText',
+    headerName: '任务进度',
+    width: 130,
+    minWidth: 110,
+    valueGetter: (p) => {
+      const pr = p.data.progress || {}
+      return `${pr.done || 0}/${pr.total || 0} 任务`
+    }
+  },
+  { field: 'due', headerName: '截止日期', width: 130, minWidth: 110 }
+])
+
+const metricsCols = computed(() => {
+  const cols = [
+    { field: 'name', headerName: '指标名称', minWidth: 200 },
+    { field: 'target', headerName: '目标值', width: 150, minWidth: 110 },
+    { field: 'current', headerName: '当前值', width: 150, minWidth: 110 },
+    {
+      colId: 'statusText',
+      headerName: '状态',
+      width: 120,
+      minWidth: 100,
+      valueGetter: (p) => (p.data.ok ? '已达标' : '未达标'),
+      cellRenderer: ElnStateBadgeRenderer,
+      cellRendererParams: { toneOf: metricsBadgeTone }
+    }
+  ]
+  // 操作列只在有编辑权限时出现（与「添加指标」按钮同一判据 can.canEditBasic）。
+  if (can.canEditBasic) {
+    cols.push({
+      colId: 'actions',
+      headerName: '操作',
+      sortable: false,
+      resizable: false,
+      width: 190,
+      minWidth: 170,
+      cellRenderer: ElnRowActionsRenderer,
+      cellRendererParams: {
+        actions: [
+          { label: '编辑', handler: (row) => openMetricModal(row) },
+          { label: '切换达标', handler: (row) => toggleMetric(row) },
+          { label: '删除', tone: 'danger', handler: (row) => removeMetric(row) }
+        ]
+      }
+    })
+  }
+  return cols
+})
+
+const requiredDocsCols = computed(() => [
+  { field: 'name', headerName: '文档分类', minWidth: 180 },
+  {
+    colId: 'statusText',
+    headerName: '状态',
+    width: 120,
+    minWidth: 100,
+    valueGetter: (p) => (p.data.uploaded ? '已上传' : '待上传'),
+    cellRenderer: ElnStateBadgeRenderer,
+    cellRendererParams: { toneOf: docsBadgeTone }
+  },
+  { field: 'ver', headerName: '版本', width: 110, minWidth: 90 },
+  { field: 'date', headerName: '更新时间', width: 140, minWidth: 120 },
+  {
+    colId: 'actions',
+    headerName: '操作',
+    sortable: false,
+    resizable: false,
+    width: 140,
+    minWidth: 120,
+    cellRenderer: ElnRowActionsRenderer,
+    // 原页面此处就是 `@click.prevent` 的占位（下载链路未接线）——保持占位语义，不假装能下载。
+    cellRendererParams: { actions: [{ label: '预览 · 下载' }] }
+  }
+])
+
+const otherDocsCols = computed(() => [
+  { field: 'name', headerName: '文档名称', minWidth: 200 },
+  { field: 'type', headerName: '类型', width: 120, minWidth: 100 },
+  { field: 'by', headerName: '上传人', minWidth: 130 },
+  { field: 'date', headerName: '上传时间', width: 140, minWidth: 120 },
+  {
+    colId: 'actions',
+    headerName: '操作',
+    sortable: false,
+    resizable: false,
+    width: 110,
+    minWidth: 90,
+    cellRenderer: ElnRowActionsRenderer,
+    cellRendererParams: { actions: [{ label: '下载' }] }
+  }
+])
+
+const membersCols = computed(() => [
+  { field: 'name', headerName: '成员', minWidth: 180, cellRenderer: ElnMemberRenderer },
+  { field: 'title', headerName: '业务称谓', minWidth: 130 },
+  { field: 'role', headerName: 'UserRole', minWidth: 130 },
+  { field: 'joined', headerName: '加入时间', width: 140, minWidth: 120 },
+  {
+    colId: 'actions',
+    headerName: '操作',
+    sortable: false,
+    resizable: false,
+    width: 120,
+    minWidth: 100,
+    cellRenderer: ElnRowActionsRenderer,
+    cellRendererParams: {
+      // 原型行为：Owner 不给「变更角色」，显示 —
+      actions: (row) => (row.role === 'Owner' ? [{ label: '—', disabled: true }] : [{ label: '变更角色' }])
+    }
+  }
+])
+
+const costCols = computed(() => [
+  { field: 'category', headerName: '类别', minWidth: 150 },
+  { field: 'source', headerName: '数据来源', minWidth: 260 },
+  { field: 'basis', headerName: '金额算法', minWidth: 240 },
+  { field: 'amount', headerName: '金额', width: 130, minWidth: 110 },
+  { field: 'share', headerName: '占比', width: 110, minWidth: 90 }
+])
+
+const tcrCols = computed(() => [
+  { field: 'name', headerName: '任务', minWidth: 240 },
+  {
+    field: 'stateLabel',
+    headerName: '关闭状态',
+    width: 150,
+    minWidth: 120,
+    cellRenderer: ElnStateBadgeRenderer,
+    cellRendererParams: { toneOf: tcrBadgeTone }
+  },
+  {
+    colId: 'actions',
+    headerName: '操作',
+    sortable: false,
+    resizable: false,
+    width: 120,
+    minWidth: 100,
+    cellRenderer: ElnRowActionsRenderer,
+    cellRendererParams: { actions: taskLink }
+  }
+])
 
 // ⚠ 必传文档 / 其他文档**不再写死在本组件**：原先是组件内常量，嵌入态覆盖不掉，
 //   真机上就一直显示「李组员 / 底涂剂选型对比测试报告」这类原型演示值。
@@ -502,25 +689,226 @@ const missingDocs = computed(() => requiredDocs.filter((d) => !d.uploaded).map((
 // （原型独立跑时 mock.projectCost.rows 有 2 条，面板照原样显示。）
 const hasCostData = computed(() => Array.isArray(projectCost.rows) && projectCost.rows.length > 0)
 
-// 任务关闭审核状态 → 徽章配色（spec SCN-PM-IND-3/4/5 状态语义）
-function tcrBadgeClass(state) {
-  switch (state) {
-    case 'approved': return 'eln-badge-green'
-    case 'rejected': return 'eln-badge-red'
-    case 'pending': return 'eln-badge-grey'
-    default: return 'eln-badge-grey'
-  }
-}
-
 // 项目归档导出（报告 §5 第 6 项 #10 · spec SCN-PM-ARCH-1/2/3）：复用原生 archived 态 + 后端导出端点
 function exportArchive() {
   // 宿主端点（SPA 态不存在）：模式判定走 env.js，不再靠 pathname 猜。
   openHostEndpoint(projectArchive.exportUrl)
 }
 
-function avatarStyle(color) {
-  const c = avatarPalette[color] || avatarPalette.blue
-  return { background: c.bg, color: c.fg }
+// ---------- 页头三键（2026-10-11 接线） ----------
+// 三条纪律：① 端点 URL 一律来自宿主下发（act.*），不自己拼；
+//          ② CSRF 与 credentials 沿用 addon 既有写法（ResCenter.vue / ui.js 同款）；
+//          ③ 原型独立跑时 act.* 是空串 —— 明说是原型态，不做任何假装的请求。
+const fileInput = ref(null)
+const editOpen = ref(false)
+const saving = ref(false)
+const uploading = ref(false)
+const editError = ref('')
+const form = ref({
+  name: pb.name,
+  businessCode: pb.code,
+  source: pb.source || '',
+  // ⚠ 立项时间是**批准日期**，不是 created_at；未登记就留空，由后端留白。
+  approvedOn: '',
+  startDate: '',
+  dueDate: '',
+  description: pb.description || ''
+})
+
+function hasEndpoint(url) {
+  return typeof url === 'string' && url.length > 0
+}
+
+function csrfHeader() {
+  const token = (document.querySelector('meta[name="csrf-token"]') || {}).content || ''
+  return token ? { 'X-CSRF-Token': token } : {}
+}
+
+// 宿主返回的非 2xx 通常带 { error: '...' }；也可能是 HTML 错误页 —— 两种都要能读成一句话。
+async function failureText(res) {
+  const text = await res.text()
+  try {
+    const parsed = JSON.parse(text)
+    return parsed.error || parsed.message || `HTTP ${res.status}`
+  } catch (e) {
+    return `HTTP ${res.status}`
+  }
+}
+
+function openEdit() {
+  editError.value = hasEndpoint(act.updateProject) ? '' : '原型态未接入宿主端点，编辑不可用'
+  editOpen.value = true
+}
+
+async function submitEdit() {
+  if (!hasEndpoint(act.updateProject)) return
+
+  saving.value = true
+  editError.value = ''
+  try {
+    const res = await fetch(act.updateProject, {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+      body: JSON.stringify({
+        project: {
+          name: form.value.name,
+          business_code: form.value.businessCode,
+          source: form.value.source,
+          approved_on: form.value.approvedOn,
+          start_date: form.value.startDate,
+          due_date: form.value.dueDate,
+          description: form.value.description
+        }
+      })
+    })
+    if (!res.ok) {
+      editError.value = await failureText(res)
+      return
+    }
+    editOpen.value = false
+    // 本页没有独立的数据重拉端点 —— 重载是最诚实的刷新（不多造一层假清理逻辑）。
+    window.location.reload()
+  } catch (e) {
+    editError.value = e.message
+  } finally {
+    saving.value = false
+  }
+}
+
+// 「修改项目状态」本轮唯一真实的一档是置已结题（= 原生归档）。
+// ⚠ 归档后宿主的项目集只认 active，本页不再可读 → 成功就回列表，不让用户停在 404 上。
+async function confirmClose() {
+  if (!hasEndpoint(act.changeStatus)) return
+  if (!window.confirm('置为「已结题」将归档该项目（禁止再新建任务），确定继续？')) return
+
+  const res = await fetch(act.changeStatus, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+    body: JSON.stringify({ status: 'closed' })
+  })
+  if (!res.ok) {
+    window.alert(`操作失败：${await failureText(res)}`)
+    return
+  }
+  window.location.href = listUrl.value
+}
+
+function pickTaskBook() {
+  if (fileInput.value) fileInput.value.click()
+}
+
+async function onTaskBookPicked(ev) {
+  const file = ev.target.files && ev.target.files[0]
+  ev.target.value = ''
+  if (!file) return
+  if (!hasEndpoint(act.uploadTaskBook)) return
+
+  uploading.value = true
+  try {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(act.uploadTaskBook, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: csrfHeader(),
+      body
+    })
+    if (!res.ok) {
+      window.alert(`上传失败：${await failureText(res)}`)
+      return
+    }
+    window.location.reload()
+  } catch (e) {
+    window.alert(`上传失败：${e.message}`)
+  } finally {
+    uploading.value = false
+  }
+}
+
+// ---------- 项目指标 CRUD + 达标切换（2026-10-11 起） ----------
+// 承载面 = 二开表 eln_ui_project_metrics（原生 projects 无项目级指标模型，与文档/任务审核同属
+// 「原生无承载面 → addon 自有表」）。权限复用 canEditBasic（与「编辑项目信息」同款），不另立权限档。
+// 创建即未达标（ok 默认 false），达标只走「切换达标」动作，不进创建/编辑表单。
+const metricOpen = ref(false)
+const metricSaving = ref(false)
+const metricError = ref('')
+const metricForm = ref({ id: null, name: '', target: '', current: '', actions: null })
+
+function openMetricModal(m) {
+  if (!m) {
+    metricError.value = hasEndpoint(act.addMetric) ? '' : '原型态未接入宿主端点，添加不可用'
+    metricForm.value = { id: null, name: '', target: '', current: '', actions: null }
+  } else {
+    metricError.value = ''
+    metricForm.value = { id: m.id, name: m.name, target: m.target, current: m.current, actions: m.actions }
+  }
+  metricOpen.value = true
+}
+
+async function submitMetric() {
+  const isEdit = metricForm.value.id != null
+  const url = isEdit ? metricForm.value.actions && metricForm.value.actions.update : act.addMetric
+  if (!hasEndpoint(url)) return
+
+  metricSaving.value = true
+  metricError.value = ''
+  try {
+    const res = await fetch(url, {
+      method: isEdit ? 'PATCH' : 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...csrfHeader() },
+      body: JSON.stringify({
+        metric: {
+          name: metricForm.value.name,
+          target: metricForm.value.target,
+          current: metricForm.value.current
+        }
+      })
+    })
+    if (!res.ok) {
+      metricError.value = await failureText(res)
+      return
+    }
+    metricOpen.value = false
+    // 重载是最诚实的刷新（payload 全量重算，不多造一层假清理逻辑）。
+    window.location.reload()
+  } catch (e) {
+    metricError.value = e.message
+  } finally {
+    metricSaving.value = false
+  }
+}
+
+async function removeMetric(m) {
+  if (!hasEndpoint(m.actions && m.actions.destroy)) return
+  if (!window.confirm(`确定删除指标「${m.name}」？删除后不可恢复。`)) return
+
+  const res = await fetch(m.actions.destroy, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+    headers: csrfHeader()
+  })
+  if (!res.ok) {
+    window.alert(`删除失败：${await failureText(res)}`)
+    return
+  }
+  window.location.reload()
+}
+
+async function toggleMetric(m) {
+  if (!hasEndpoint(m.actions && m.actions.toggle)) return
+  const res = await fetch(m.actions.toggle, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: csrfHeader()
+  })
+  if (!res.ok) {
+    window.alert(`操作失败：${await failureText(res)}`)
+    return
+  }
+  window.location.reload()
 }
 </script>
 
@@ -777,6 +1165,15 @@ function avatarStyle(color) {
 }
 .table-link.strong:hover {
   color: var(--color-primary);
+}
+.table-link.danger {
+  color: var(--color-danger, #dc2626);
+}
+.th-op .table-link {
+  margin-right: 8px;
+}
+.th-op .table-link:last-child {
+  margin-right: 0;
 }
 .muted-text {
   color: var(--color-placeholder);
@@ -1068,5 +1465,84 @@ function avatarStyle(color) {
 .role-note svg {
   flex-shrink: 0;
   margin-top: 2px;
+}
+
+/* ---------- 编辑项目信息弹层（页头三键接线，2026-10-11） ---------- */
+.pd-file {
+  display: none;
+}
+.pd-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.pd-modal {
+  width: 520px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow: auto;
+  padding: 20px;
+  background: var(--color-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pd-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.pd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pd-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+/* 🔴 2026-10-11 ticket 03：详情页这三个日期换成了 DateField，
+   而 DateField 的 lg 默认是 36px / radius 8px，本页 .pd-input 是 34px / 6px ——
+   不对齐就会在同一个弹窗里出现「输入框比旁边的框高 2px」的错位。
+   必须用 :deep()：DateField 的 .date-field__input 带的是**它自己**的 data-v，
+   本组件的 scoped 属性不会落到那个 input 上。 */
+.pd-field :deep(.date-field__input) {
+  height: 34px !important;
+  border-radius: 6px !important;
+  padding-left: 30px !important;
+  padding-right: 30px !important;
+}
+.pd-input {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-card);
+}
+textarea.pd-input {
+  height: auto;
+  padding: 8px 10px;
+  line-height: 1.6;
+  font-family: inherit;
+}
+.pd-error {
+  margin: 0;
+  font-size: 12px;
+  color: #DC2626;
+}
+.pd-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

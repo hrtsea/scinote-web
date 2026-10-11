@@ -37,11 +37,11 @@
             <div class="field-row">
               <div class="field">
                 <label class="field-label">开始日期</label>
-                <input v-model="form.start" type="date" class="field-input" />
+                <DateField v-model="form.start" placeholder="开始日期" data-e2e="ra-edit-start" />
               </div>
               <div class="field">
                 <label class="field-label">截止日期</label>
-                <input v-model="form.due" type="date" class="field-input" />
+                <DateField v-model="form.due" placeholder="截止日期" data-e2e="ra-edit-due" />
               </div>
             </div>
             <div class="field">
@@ -177,6 +177,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue/dist/vue.esm-bundler.js'
 import { ui, closeRowAction, sendForm, showToast, refreshList } from '../../store/ui'
 import AppIcon from '../AppIcon.vue'
+import DateField from '../DateField.vue'
 
 // 标题按「动作 + 行类型」两个维度定 —— V1.32 起同一个 kind（edit/move）在项目行
 // 与文件夹行上是两件事（PATCH /projects/:id vs PATCH /project_folders/:id），
