@@ -114,5 +114,5 @@
 
 ## 关联
 - 运行时验证证据：`F:/elnapply_tmp/vue3_runtime_verification_report.html`（2 页 500 根因段）
-- 日常记录：`F:/eln开发/.workbuddy/memory/2026-10-08.md`
+- 日常记录：`F:/elndev/.workbuddy/memory/2026-10-08.md`
 - 既有守卫参考：`app/models/asset.rb#can_perform_action`（:292，已正确使用 `WOPI_ENABLED`）

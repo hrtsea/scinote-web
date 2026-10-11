@@ -101,7 +101,7 @@ spec 硬性验收条款却仍未落地的一项**（其余如页头工作台入�
 ## 关联
 
 - ADR-0035（AG Grid 栈选型）｜ADR-0037（批次一判据硬伤）｜ADR-0038（批次二收藏/文件夹视觉/批量/主题）
-- spec：`规格/ELN系统/spec.md`（SCN-PROJ-LIST-7；V1.32 变更摘要 / 待确认 H 面包屑分隔符）
+- spec：`规格/eln-system/spec.md`（SCN-PROJ-LIST-7；V1.32 变更摘要 / 待确认 H 面包屑分隔符）
 - 代码真源：`addons/eln_ui/app/javascript/vue/eln_project_list/{list.vue,styles/eln_project_list.scss}`
   ｜`addons/eln_ui/app/services/scinote/eln_ui/{project_list_payload.rb,project_list_rows.rb}`
   ｜`addons/eln_ui/app/controllers/scinote/eln_ui/project_list_controller.rb`

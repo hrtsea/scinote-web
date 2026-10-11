@@ -3,7 +3,7 @@
 - 日期：2026-10-06
 - 状态：已采纳（grill 结论，用户拍板）—— ⚠️ **「验货人」一处已被 `ADR-0032` 修正**（见下）
 - 相关：`REQ-RES-APPLY` · `REQ-RES-APPROVE` · `SCN-RES-APPROVE-3`（**措辞需改写**）· `REQ-RESOURCE-COST` · `REQ-RES-TEST`（材料类末条）· `REQ-LOC-AUDIT`（「申请领用」）
-- 影响面：`addons/eln_ui`（后端）· `ELN系统-Vue3/src/views/ResCenter.vue` / `ResApplyDetail.vue`（前端）· `规格/ELN系统/spec.md`
+- 影响面：`addons/eln_ui`（后端）· `ELN系统-Vue3/src/views/ResCenter.vue` / `ResApplyDetail.vue`（前端）· `规格/eln-system/spec.md`
 
 > ⚠️ **本 ADR 已被部分修正（2026-10-06，ADR-0032）**
 > 下文「验收人 = 终审人（沿用终审名单）」**不再成立**：验货人改为**独立可配置的第三阶段 `receipt`**

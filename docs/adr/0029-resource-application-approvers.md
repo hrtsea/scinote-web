@@ -49,4 +49,4 @@
 
 ## 落地状态
 
-实现工作见 ticket：`产品交付/ELN系统/协作记录/issues/res-approver/ISSUES.md`（I1~I7）。
+实现工作见 ticket：`产品交付/eln-system/协作记录/issues/res-approver/ISSUES.md`（I1~I7）。

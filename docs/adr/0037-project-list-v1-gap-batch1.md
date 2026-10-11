@@ -4,12 +4,12 @@
 Accepted
 
 ## Context
-用户要求「根据 V1 版本（`F:\eln开发\ELN系统-Vue3`）恢复 eln_project_list 缺失功能，并对照 spec/PRD」。
+用户要求「根据 V1 版本（`F:\elndev\ELN系统-Vue3`）恢复 eln_project_list 缺失功能，并对照 spec/PRD」。
 查证后发现：
 
 - V1 原型仓 `src/views/ProjectList.vue` 是 **1930 行手写 flex 表格**，带 `pinned[]` 钉列、
   `useColumnResize`、分页条、卡片视图等。
-- spec `规格/ELN系统/spec.md`（SCN-PROJ-LIST-7~13）与 PRD（V1.31）对分页档位、操作列列名、
+- spec `规格/eln-system/spec.md`（SCN-PROJ-LIST-7~13）与 PRD（V1.31）对分页档位、操作列列名、
   评论/描述就地可点、文件夹面包屑有硬性验收条款。
 - **🔴 与 ADR-0035 冲突**：ADR-0035 的 V2.0 修订已由用户拍板「线上真源 = 引用原生 AG Grid 栈」，
   并明写「原型仓 V1 的 `pinned[]` 实现**非线上真源**」。
