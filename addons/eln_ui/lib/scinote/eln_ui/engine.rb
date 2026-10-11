@@ -6,6 +6,123 @@ module Scinote
       engine_name 'scinote_eln_ui'
       isolate_namespace Scinote::ElnUi
 
+      # ------------------------------------------------------------------
+      # 路由自注册骨架（ticket 01 · .scratch/eln-ui-route-self-registration）
+      #
+      # 本段只「装能力」，**一条路由都还没搬**——30 条路由此刻仍在宿主
+      # config/routes.rb（ticket 02 才迁走）。目的是先把契约与守卫立起来：
+      #
+      # · ADR-0022 已 Accepted：addon 路由一律由各 engine initializer 自注册，
+      #   宿主 config/routes.rb 零 addon 路由；启用/禁用只由 Gemfile 一行决定。
+      # · 迁移后若仍是"路由挂宿主"，则注释 Gemfile 行会让宿主路由表指向一个
+      #   不再被 Bundler 加载的 controller ⇒ 优雅禁用（宿主照常启动、该 addon 路由 404）
+      #   这条保证被打破。这就是本段存在的理由。
+      #
+      # ⚠️ 为什么必须 `after: :add_routes`：ADR-0022 明确要求显式声明。
+      #   Rails 7.2.3.2 下不声明也能工作，但显式声明规避时序坑。
+      #
+      # ⚠️ 为什么用 `append` 而非 `prepend`：append 保证 addon 路由排在宿主之后，
+      #   addon 无法用同名路径覆盖核心路由（ADR-0022 的安全取舍）。代价是 addon 路由
+      #   优先级最低 —— 新增路由时必须校验路径不与既有冲突，否则静默 404。
+      #
+      # 🔴 helper 转发（本段最容易踩的坑，坑 2 已踩过）：
+      #   路由搬进 engine 后，`as:` 具名 helper **不会**自动出现在宿主 url_helpers 上。
+      #   宿主页面的既有调用点会立刻 NoMethodError。
+      #   正解=下面 install_route_helpers!：把转发方法 define 进宿主自己的模块。
+      #   **绝不** `include` 引擎那个 url_helpers 模块 —— 它自带 included 钩子
+      #   （route_set.rb 的 UrlHelper 模块 included 时 self.dup 再 include 一次），
+      #   会自套自直到爆栈，日志里只留一行 "Exiting"，看不出是哪个 addon。
+      #
+      #   转发而非复制实现：路由形状改了，两边不用各改一遍。
+      # ------------------------------------------------------------------
+      # 宿主页面上被直接调用的具名路由 helper（迁移后它们只活在 Engine.routes.url_helpers 上，
+#   需要在这里留一份转发，否则宿主一渲染就 NoMethodError）。
+      #
+      # 🔴 清单**从基线读，不手写**。手抄过一次，实测立刻抄错 5 个
+      #   （eln_notification_read / eln_project_approver / eln_task_close_action …）
+      #   —— 而漏一个/错一个的代价是：只在访问某个页面时才炸，且极难回溯到"路由迁移"。
+      #   基线由 test/dump_eln_ui_route_baseline.rb 从真实路由表取样生成。
+      BASELINE_PATH = Scinote::ElnUi::Engine.root.join(
+        'test', 'fixtures', 'eln_ui_routes_baseline.json'
+      ).freeze
+
+      # 只有具名 helper 需要转发；基线里的 ANON 条目（同名路径不同动词，Rails 只命名一次）
+      # 没有 helper 可转发，跳过。
+      def self.host_route_helpers
+        @host_route_helpers ||= begin
+          require 'json'
+          data = JSON.parse(File.read(BASELINE_PATH))
+          data.fetch('routes').filter_map do |r|
+            key = r['key']
+            key.start_with?('ANON:') ? nil : key.to_sym
+          end.uniq.freeze
+        rescue StandardError => e
+          # 基线读不到时**大声失败**，不要静默变成"不转发"——静默会让迁移后的
+          # 宿主页面在运行期才炸 NoMethodError，而那时已经很难定位到基线。
+          raise "ELN UI 路由基线读取失败（#{BASELINE_PATH}）：#{e.class}: #{e.message}"
+        end
+      end
+
+      HOST_ROUTE_HELPERS = host_route_helpers
+
+      initializer 'scinote_eln_ui.routes', after: :add_routes do |app|
+        app.routes.append do
+          mount Scinote::ElnUi::Engine => '/'
+        end
+
+        Scinote::ElnUi::Engine.install_route_helpers!(app)
+      end
+
+      # 只 define_method 转发一层，**绝不** include 引擎那个 url_helpers 模块（见上「坑 2」）。
+      #
+      # 转发清单必须由基线生成而非手写：漏一个，只在访问对应页面时才炸 NoMethodError，
+      # 而那种错误极难回溯到"路由迁移"这件事上。
+      # 基线见 test/fixtures/eln_ui_routes_baseline.json，守卫见 test/eln_ui_route_baseline_test.rb。
+      #
+      # ⚠ 清单必须在 module_eval **块外**取出再传参：`module_eval` 里的常量查找走词法作用域，
+      #   看不见 `class Engine` 上定义的 HOST_ROUTE_HELPERS。
+      #
+      # 🔴🔴 **只在该helper 真的存在于引擎侧时才转发**（`engine_helpers.respond_to?` 守卫）。
+      #   为什么必须这样：迁移分两步走（ticket 01 只装骨架、路由仍挂宿主；ticket 02 才搬）。
+      #   在第 01 步里引擎侧没有任何路由，此时若强行转发：
+      #     · 转发体调用 engine_helpers.public_send(...) ⇒ 一旦被调用就 NoMethodError；
+      #     · 更隐蔽的是**宿主会用自己的同名 helper 覆盖掉这个转发**（宿主路由表已经
+      #       有这些名字，生成的定义在后、优先级更高），于是转发静默失效——
+      #       实测 helper 的 owner 仍是宿主的 ::ROUTES，看起来"装好了"其实没生效。
+      #   守卫让 01 阶段明确跳过（此时宿主原生 helper 就是权威，不需要转发），
+      #   02 迁完路由后引擎侧 helper 就位，转发生效。幂等、可重复执行。
+      def self.install_route_helpers!(app)
+        engine_helpers = Scinote::ElnUi::Engine.routes.url_helpers
+        helper_names = HOST_ROUTE_HELPERS
+
+        forwarded = []
+        skipped  = []
+
+        app.routes.url_helpers.module_eval do
+          helper_names.each do |helper_name|
+            unless engine_helpers.respond_to?(helper_name)
+              skipped << helper_name
+              next
+            end
+
+            define_method(helper_name) do |*args, **kwargs, &block|
+              engine_helpers.public_send(helper_name, *args, **kwargs, &block)
+            end
+            forwarded << helper_name
+          end
+        end
+
+        # 只在有实际动作时打日志，避免每次启动刷屏；启动期日志噪音会掩盖真异常。
+        if forwarded.any?
+          Rails.logger&.info(
+            "[eln_ui] 路由 helper 转发已安装：#{forwarded.size} 个" \
+            "#{skipped.any? ? "（跳过 #{skipped.size} 个引擎侧尚未定义）" : ''}"
+          )
+        end
+
+        { forwarded: forwarded, skipped: skipped }
+      end
+
       # 装饰器自动加载（照抄 access_control / esignatures 的先例）：
       # app/decorators/**/*_decorator.rb 里对原生模型做 prepend 扩展
       # （如任务消耗快照单价 —— SCN-RES-COST-2）。

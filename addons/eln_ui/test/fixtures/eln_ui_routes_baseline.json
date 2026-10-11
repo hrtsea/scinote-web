@@ -1,0 +1,189 @@
+{
+  "generated_for": "eln_ui 路由自注册迁移（.scratch/eln-ui-route-self-registration）",
+  "controller_prefix": "scinote/eln_ui/",
+  "count": 30,
+  "named_count": 29,
+  "anonymous_count": 1,
+  "routes": [
+    {
+      "verb": "GET",
+      "path": "/eln_notifications",
+      "key": "eln_notifications",
+      "controller": "scinote/eln_ui/notifications#index"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/eln_notifications/:id/read",
+      "key": "eln_notification_read",
+      "controller": "scinote/eln_ui/notifications#read"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_project_approvers",
+      "key": "eln_project_approvers",
+      "controller": "scinote/eln_ui/project_approvers#index"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_project_approvers",
+      "key": "ANON:POST:/eln_project_approvers:scinote/eln_ui/project_approvers#create",
+      "controller": "scinote/eln_ui/project_approvers#create"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/eln_project_approvers/:id",
+      "key": "eln_project_approver",
+      "controller": "scinote/eln_ui/project_approvers#destroy"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_project_approvers/init",
+      "key": "eln_project_approvers_init",
+      "controller": "scinote/eln_ui/project_approvers#init"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_project_approvers/receipt_policy",
+      "key": "eln_project_approver_receipt_policy",
+      "controller": "scinote/eln_ui/project_approvers#update_receipt_policy"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_project_list",
+      "key": "eln_project_list",
+      "controller": "scinote/eln_ui/project_list#index"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_project_list/actions",
+      "key": "eln_project_list_actions",
+      "controller": "scinote/eln_ui/project_list#actions"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_project_list/grid",
+      "key": "eln_project_list_grid",
+      "controller": "scinote/eln_ui/project_list#grid"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_project_list_v1",
+      "key": "eln_project_list_v1",
+      "controller": "scinote/eln_ui/project_list#v1"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_res_applications",
+      "key": "eln_res_applications",
+      "controller": "scinote/eln_ui/res_apply_create#create"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_res_apply/:no",
+      "key": "eln_res_apply_detail",
+      "controller": "scinote/eln_ui/res_apply_detail#show"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_res_apply/:no/actions",
+      "key": "eln_res_apply_action",
+      "controller": "scinote/eln_ui/res_apply_action#create"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_res_center",
+      "key": "eln_res_center",
+      "controller": "scinote/eln_ui/res_center#index"
+    },
+    {
+      "verb": "GET",
+      "path": "/eln_res_center/export",
+      "key": "eln_res_center_export",
+      "controller": "scinote/eln_ui/res_center#export"
+    },
+    {
+      "verb": "GET,POST",
+      "path": "/eln_res_center/grid",
+      "key": "eln_res_center_grid",
+      "controller": "scinote/eln_ui/res_center#grid"
+    },
+    {
+      "verb": "POST",
+      "path": "/eln_task_close/:my_module_id/actions",
+      "key": "eln_task_close_action",
+      "controller": "scinote/eln_ui/task_close_action#create"
+    },
+    {
+      "verb": "GET",
+      "path": "/experiments/:experiment_id/my_modules/:id/eln_task_detail",
+      "key": "eln_task_detail",
+      "controller": "scinote/eln_ui/my_module_detail#index"
+    },
+    {
+      "verb": "GET",
+      "path": "/experiments/:id/eln_exp_detail",
+      "key": "eln_exp_detail",
+      "controller": "scinote/eln_ui/exp_detail#index"
+    },
+    {
+      "verb": "GET",
+      "path": "/projects/:project_id/eln_project_detail",
+      "key": "project_eln_detail",
+      "controller": "scinote/eln_ui/project_detail#show"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/projects/:project_id/eln_project_detail",
+      "key": "project_eln_detail_update",
+      "controller": "scinote/eln_ui/project_detail#update"
+    },
+    {
+      "verb": "GET",
+      "path": "/projects/:project_id/eln_project_detail/export",
+      "key": "project_eln_detail_export",
+      "controller": "scinote/eln_ui/project_detail#export"
+    },
+    {
+      "verb": "GET,POST",
+      "path": "/projects/:project_id/eln_project_detail/grid",
+      "key": "project_eln_detail_grid",
+      "controller": "scinote/eln_ui/project_detail#grid"
+    },
+    {
+      "verb": "POST",
+      "path": "/projects/:project_id/eln_project_detail/metrics",
+      "key": "project_eln_detail_metrics",
+      "controller": "scinote/eln_ui/project_detail#create_metric"
+    },
+    {
+      "verb": "DELETE",
+      "path": "/projects/:project_id/eln_project_detail/metrics/:id",
+      "key": "project_eln_detail_metric_destroy",
+      "controller": "scinote/eln_ui/project_detail#destroy_metric"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/projects/:project_id/eln_project_detail/metrics/:id",
+      "key": "project_eln_detail_metric_update",
+      "controller": "scinote/eln_ui/project_detail#update_metric"
+    },
+    {
+      "verb": "POST",
+      "path": "/projects/:project_id/eln_project_detail/metrics/:id/toggle",
+      "key": "project_eln_detail_metric_toggle",
+      "controller": "scinote/eln_ui/project_detail#toggle_metric"
+    },
+    {
+      "verb": "POST",
+      "path": "/projects/:project_id/eln_project_detail/status",
+      "key": "project_eln_detail_status",
+      "controller": "scinote/eln_ui/project_detail#change_status"
+    },
+    {
+      "verb": "POST",
+      "path": "/projects/:project_id/eln_project_detail/task_book",
+      "key": "project_eln_detail_task_book",
+      "controller": "scinote/eln_ui/project_detail#upload_task_book"
+    }
+  ]
+}
