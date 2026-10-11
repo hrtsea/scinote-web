@@ -6,3 +6,6 @@ PreCommit:
   ScssLint:
     enabled: true
     problem_on_unmodified_line: ignore
+  ForbiddenDocsTeamAddonPaths:
+    enabled: true
+    command: ['bash', 'script/overcommit/check_docs_team_addon_paths.sh']

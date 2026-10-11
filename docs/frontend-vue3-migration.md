@@ -454,7 +454,7 @@ modal **保持服务端渲染的 ERB 不动**（前者含 `html_safe` 的运营�
 > **本轮不是 Gen-1 → Vue**，而是**已 Vue 化页面**的「交付路径」修正：把 6 个 addon 页面违反 ADR-0034 的
 > **预打包 blob**（`addons/*/app/assets/{javascripts,stylesheets}/{eln_vue3,workbench_vue3}/*`，~726 KB 构建产物进仓库）
 > 改成**宿主 webpack entry**正路。真源此前「裂两半」——仓库里只有 minified blob，SFC 真源在**仓库外**
-> 独立工程 `F:/eln开发/ELN系统-Vue3/src/`。
+> 独立工程 `F:/elndev/ELN系统-Vue3/src/`。
 
 ### 9.1 改了什么
 
@@ -488,7 +488,7 @@ Sprockets::Rails::Helper::AssetNotFound:
 1. **登记**（未来出镜像稳）：6 entry 的 js+css 写进 `config.assets.precompile`（eln_ui engine 10 条 + workbench engine 2 条）；
    出镜像时 `yarn build`（Dockerfile.production L112）先于 `rails assets:precompile`（L121）⇒ 下次镜像必带。
 2. **手工预编译**（运行容器立即生效）：用 `tools/precompile_entry.rb` 的**多 entry 版**
-   （`F:/eln开发/_precompile_addon_entries.rb`）以 **root** 跑，把 12 个目标 fingerprint 进 manifest：
+   （`F:/elndev/_precompile_addon_entries.rb`）以 **root** 跑，把 12 个目标 fingerprint 进 manifest：
    ```
    docker cp _precompile_addon_entries.rb scinote_web_production:/tmp/precompile_multi.rb
    docker exec -u 0 scinote_web_production bash -c \
@@ -542,7 +542,7 @@ Sprockets::Rails::Helper::AssetNotFound:
 
 **(A) webpack 产物必须登记进 `config.assets.precompile`。** 生产 `assets.compile=false` ⇒
 `javascript_include_tag` / `stylesheet_link_tag` **只走 Sprockets manifest**；未登记 ⇒ `AssetNotFound` ⇒ **整页 500**。
-本轮顺带补齐历史缺口：`eln_ui` engine 的 `precompile` 列表补入 `vue_teams_table.js` 等。
+本轮曾补 `eln_ui` engine 的 `precompile` 列表（含 `vue_teams_table.js`）；**rev 2026-10-10** `vue_teams_table.js` 的登记已迁回宿主 `config/initializers/assets.rb`（与 `vue_team_new` 等一致），`eln_project_list.js` 仍留 engine.rb。
 
 **(B) 客户端 i18n 在本检出不可靠 ⇒ 文案由服务端 ERB `t(...)` 注入为 prop（单一真源）。**
 根因链：
@@ -563,14 +563,14 @@ Sprockets::Rails::Helper::AssetNotFound:
 | `config/routes.rb` | 恢复 `POST users/settings/teams/datatable`（`as: teams_datatable`） |
 | `app/controllers/users/settings/teams_controller.rb` | 新增 `datatable` action；`index` 去掉 `@teams_payload` 只留 `@member_of`；新增私有 `workspace_scope` / `datatable_per_page` / `sort_workspaces` / `workspace_row` 等 |
 | `app/views/users/settings/teams/index.html.erb` | 还原原生页头结构（描述 + `member_of` 计数 + `#new-team-button`）+ `#teams-table-vue` 挂载点 + `labels` prop + `stylesheet_link_tag 'datatables'` |
-| `addons/eln_ui/app/javascript/vue/teams/table.vue` | 由 AG Grid **完全重写**为「复刻原生」Bootstrap 表格（4 列 / 无搜索 / 原生弹窗 / 服务端分页排序） |
-| `addons/eln_ui/app/javascript/packs/vue_teams_table.js` | 移除 `window.__ELN_TEAMS__` 根 data 桥接 |
-| `addons/eln_ui/lib/scinote/eln_ui/engine.rb` | `precompile` 补登记（含 `vue_teams_table.js`、`eln_project_list.js`） |
+| `app/javascript/vue/teams/table.vue` | 由 AG Grid **完全重写**为「复刻原生」Bootstrap 表格（4 列 / 无搜索 / 原生弹窗 / 服务端分页排序） |
+| `app/javascript/packs/vue/teams_table.js` | 移除 `window.__ELN_TEAMS__` 根 data 桥接 |
+| `config/initializers/assets.rb` | `precompile` 补登记 `vue_teams_table.js`（与 `vue_team_new` 等宿主 team 页一致；rev 2026-10-10 从 eln_ui engine 迁回）；`eln_project_list.js` 仍登记于 `addons/eln_ui/lib/scinote/eln_ui/engine.rb` |
 | `config/locales/{en,zh-CN}.yml` | `teams.index` 下新增 `showing` / `loading`；`previous`/`next` 复用既有 `views.pagination.*` |
 
 ### 10.4 验证记录（2026-10-08，生产容器 + 真浏览器）
 
-`F:/eln开发/_prod_shots/_verify_teams_page.js` —— **20/20 PASS**：
+`F:/elndev/work/shots/_prod_shots/_verify_teams_page.js` —— **20/20 PASS**：
 
 ```
 thead        = ["Workspace","Role","Members",""]
@@ -594,7 +594,7 @@ thead 4 列 / **无搜索框** / `#new-team-button` 存在 / 退出按钮列完�
 ```
 
 - 定向构建配置：临时 `config/webpack/_tmp_builds_teams.config.js`（`require` 主配置后覆写 `entry`），**构建完删除**。
-- 手工预编译：`F:/eln开发/_precompile_addon_entries.rb`（`ENTRIES=vue_teams_table.js`），
+- 手工预编译：`F:/elndev/_precompile_addon_entries.rb`（`ENTRIES=vue_teams_table.js`），
   manifest filename **必须绝对路径**；预编译后**必须 restart**。
 - 会话现签：`mksession.rb`（`USERS=hpxing@localhost`），写 TSV 后由 playwright 注入 cookie。
 

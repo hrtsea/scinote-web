@@ -1,12 +1,12 @@
-# ADR-0034：工作区列表 Vue 化（Vue3 + AG Grid，源码归 eln_ui，构建走宿主 webpack）
+# ADR-0034：工作区列表 Vue 化（Vue3 + AG Grid，源码归宿主 app，构建走宿主 webpack）
 
-- 状态：**Accepted**（2026-10-07，用户拍板）→ **局部修订**（见文末「修订 rev 2026-10-08」：由 AG Grid 改为「复刻原生」）
+- 状态：**Accepted**（2026-10-07，用户拍板）→ **局部修订**（见文末「修订 rev 2026-10-08」：由 AG Grid 改为「复刻原生」）→ **rev 2026-10-10**：源码从 `addons/eln_ui/app/javascript` 迁回宿主 `app/javascript`（详见 §影响面 / §决策）
 - 决策人：用户
 - 相关：ADR-0031（原生库存列表 Vue3 + AG Grid）
 - 取代：本文早先版本的「预打包单体 `.js` + Sprockets（对齐 addon blob）」方向——该版本曾落地过，后经实测比对被否决并改用本方案。
 - 影响面
-  - `addons/eln_ui/app/javascript/packs/vue_teams_table.js`（新增，webpack entry）
-  - `addons/eln_ui/app/javascript/vue/teams/table.vue`（新增，AG Grid SFC）
+  - `app/javascript/packs/vue/teams_table.js`（新增，webpack entry）
+  - `app/javascript/vue/teams/table.vue`（新增，AG Grid SFC）
   - `config/webpack/webpack.config.js`（注册 entry）
   - `app/views/users/settings/teams/index.html.erb`（改挂 `#teams-table-vue` + props）
   - `app/controllers/users/settings/teams_controller.rb`（注入 `@teams_payload`）
@@ -21,14 +21,14 @@
 
 ## 决策
 
-**源码放在 eln_ui addon，构建挂在宿主 webpack。** 即 eln_ui 拥有 Vue 源码，但不自带构建管线，
+**源码放在宿主 app（已从 eln_ui addon 迁回），构建挂在宿主 webpack。** 即宿主拥有 Vue 源码，但不自带构建管线，
 与 `addons/project_insights` 一样把源码交给宿主 `config/webpack/webpack.config.js` 注册 entry。
 
 1. **源码位置**（可审阅、可 diff、可 review，这是本方案的核心收益）
-   - entry：`addons/eln_ui/app/javascript/packs/vue_teams_table.js`
-   - 组件 SFC：`addons/eln_ui/app/javascript/vue/teams/table.vue`
+   - entry：`app/javascript/packs/vue/teams_table.js`
+   - 组件 SFC：`app/javascript/vue/teams/table.vue`
 2. **注册方式**：在 `webpack.config.js` 的 `entryList` 手动追加一条
-   `vue_teams_table: './addons/eln_ui/app/javascript/packs/vue_teams_table.js'`。
+   `vue_teams_table: './app/javascript/packs/vue/teams_table.js'`。
    （addon 自动扫描只认顶层 `packs/*.js`，手动登记最稳。）
 3. **数据契约**：仍随页面 SSR 注入，由 controller 的 `teams_payload` 产出，经 ERB 绑成组件 props
    （`:teams` / `:can-create` / `:new-team-url`）。**不新增 JSON 端点**。
@@ -163,7 +163,7 @@
 
 ### 验证（真浏览器，生产容器）
 
-`F:/eln开发/_prod_shots/_verify_teams_page.js` —— **20/20 PASS**：thead = `["Workspace","Role","Members",""]`、
+`F:/elndev/work/shots/_prod_shots/_verify_teams_page.js` —— **20/20 PASS**：thead = `["Workspace","Role","Members",""]`、
 `.ag-theme-alpine` 消失、无搜索框、`#new-team-button` 存在、`infoText` 已解析（无 missing 翻译）、
 点表头触发新请求、退出弹窗可见且含表单、`datatable` 端点全 200、0 console error / 0 pageerror。
 
@@ -215,8 +215,8 @@
   列宽可以调整，把分页放到表格下方」）。本修订取代 rev/rev2 的「复刻原生 Bootstrap 表格」形态；
   rev2 的**列集（7 列）不变**，仅交付形态变更。
 - 落地：复用宿主原生 AG Grid 栈 `app/javascript/vue/shared/datatable/table.vue`
-  （ADR-0035 V2.0 拍板、/projects 同款），addon 侧只写薄封装
-  `addons/eln_ui/app/javascript/vue/teams/table.vue` + 两个 cellRenderer
+  （ADR-0035 V2.0 拍板、/projects 同款），宿主侧只写薄封装
+  `app/javascript/vue/teams/table.vue` + 两个 cellRenderer
   （name_renderer / leave_renderer，以**直接组件引用**挂 columnDefs，同 /projects 的
   FavoriteRenderer 用法）。
 - 关键配置：`scrollMode='pages'`（表格下方分页条：Show N rows + 条目计数 + 页码）、
@@ -363,7 +363,7 @@ Rails 7.2.3.2。手段：`warden test_mode` + `ActionDispatch::Integration::Sess
    `npm install playwright-core --no-save --no-package-lock`，并依赖已下载的 chromium 可执行文件。
 
 **本地开发机（Windows）无法验证的原因**（与本次改造无关，属环境限制）：
-1. bootsnap ISeq 缓存在中文路径 `F:/eln开发/` 下抛 `Errno::E-01` → 需 `DISABLE_BOOTSNAP=1`；
+1. bootsnap ISeq 缓存在中文路径 `F:/elndev/` 下抛 `Errno::E-01` → 需 `DISABLE_BOOTSNAP=1`；
 2. `graphviz (1.2.1)`（`Gemfile:92` 无条件声明）在 Windows 加载失败：
    `Function 'tcgetpgrp' not found in [ucrtbase.dll]`（其 `posix` 依赖需 POSIX 符号）。
    ⇒ 本地任何 Rails 命令都起不来，验证须走容器。
