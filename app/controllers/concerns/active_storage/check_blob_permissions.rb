@@ -32,6 +32,14 @@ module ActiveStorage
         can_read_storage_location?(attachment.record)
       when 'Report'
         can_read_project?(attachment.record.project)
+      # ADR-0050 D2（eln_ui addon）：项目文档台账附件。与 Report 分支同构 ——
+      #   record.project + session 的 permission_team（set_project 已把项目收口在
+      #   current_team 内才可达，故 team 上下文天然一致）。
+      #   必传/其他文档行的预览/下载端点（project_detail#preview_document /
+      #   download_document）redirect 到 rails_blob_path，宿主的这一关是**第二道**：
+      #   端点管「谁能发起」，这里管「URL 本身可验证」——signed_id 即使外溢也会被再查一次。
+      when 'Scinote::ElnUi::ProjectDocument'
+        can_read_project?(attachment.record.project)
       when 'ReportTemplate'
         protocol = attachment.record.subject
         can_read_protocol_in_module?(protocol) || can_read_protocol_in_repository?(protocol)
