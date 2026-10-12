@@ -514,7 +514,7 @@ export const workbenchMeta = {
   statusMachine: '状态机：待接收 / 进行中 / 提交完成申请 / 待审核 / 已关闭'
 }
 
-// ⚠ V1.25：KPI 卡的下钻目标与 addons/workbench 的 payload **同契约**（SCN-DASH-8）：
+// ⚠ V1.25：KPI 卡的下钻目标与 eln_ui 的 WorkbenchPayload（已并入，见 ADR-0045）**同契约**（SCN-DASH-8）：
 //   `to`     = 跳转目标（整页跳转）
 //   `anchor` = 本页内目标卡的 DOM id（页内滚动）
 //   两者都没有 = 原生无承载面 → 显式留白（卡片保持不可点）。
@@ -577,7 +577,7 @@ export const workbenchEntries = [
 //
 // 上面六块 workbench* 是**画布演示默认值**：原型独立跑（npm run dev、无 SciNote
 // 注入）时仍能渲染完整页面，便于离线验收。
-// 真机（/eln_workbench）由 addons/workbench 的 WorkbenchPayload 实时读库下发，
+// 真机（/eln_workbench）由 eln_ui 的 WorkbenchPayload（已并入，见 ADR-0045）实时读库下发，
 // workbench.js 把注入值塞进下面这个容器，组件只读这个容器 —— 组件里再没有任何
 // 写死的宿主路由 / 色值 / 演示文案。
 //

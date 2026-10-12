@@ -198,7 +198,8 @@ module Scinote
       # ELN UI 前端资产登记。
       #
       # 除项目列表页外，其余 5 页（res_center / project_detail / exp_detail / task_detail /
-      # apply_detail；workbench 在 workbench addon 单独登记）的 JS+CSS 已全部改为
+      # apply_detail）与**工作台**（2026-10-12 从 workbench addon 并入，见 ADR-0045）的
+      # JS+CSS 已全部改为
       # **宿主 webpack 构建**：
       #   · 真源在 addons/eln_ui/app/javascript/vue/eln/（与 Vue3 原型 ELN系统-Vue3 同一份组件）；
       #   · 各 entry 在 config/webpack/webpack.config.js 注册为 eln_*；
@@ -261,6 +262,7 @@ module Scinote
           eln_vue3/eln_project_list.js
           eln_vue3/eln_project_list.css
           project_list_v1.js project_list_v1.css
+          eln_workbench.js eln_workbench.css
         ]
       end
     end

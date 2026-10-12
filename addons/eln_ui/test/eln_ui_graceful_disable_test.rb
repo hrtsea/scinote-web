@@ -23,6 +23,9 @@
 #     因为 `workbench_payload.rb` 直接调用 `::Scinote::ElnUi::*` 三处
 #     （NotificationsPayload / ProjectListScope / ResourceApplication）
 #     ⇒ workbench 在役却硬依赖 eln_ui。详见 ADR-0044 §遗留问题。
+#   · 🔧 已解决（2026-10-12，ADR-0045）：workbench 整体并入 eln_ui（后端 controller/payload/
+#     视图/路由 + 资产登记全部迁到 eln_ui），跨 addon 硬依赖消失。此后禁用 eln_ui 会**连同**
+#     `/eln_workbench` 一起 404，契约恢复一致（不再出现"eln_ui 禁了但 workbench 500"）。
 #   · 还原后 Gemfile md5 与禁用前一致、全部端点 200 ⇒ 过程幂等、无残留状态。
 
 require_relative 'test_helper'

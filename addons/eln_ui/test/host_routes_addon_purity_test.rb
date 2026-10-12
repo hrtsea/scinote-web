@@ -10,7 +10,7 @@
 # 契约失效时最典型的症状：`config/routes.rb` 里留了几条 `to: 'scinote/xxx/'`。
 # 这看着只是"多几行"，实际后果是 **注释 Gemfile 行不再能优雅禁用**——
 # 宿主路由表会指向一个不再被 Bundler 加载的 controller。
-# 本仓库历史上 ELN UI（30 条）与 workbench（1 条）都踩过，
+# 本仓库历史上 ELN UI（30 条）与 workbench（1 条，2026-10-12 已并入 ELN UI，见 ADR-0045）都踩过，
 # access_control 还在宿主文件里留了 4 条**早已失效**的死路由。
 #
 # ## 为什么断言的是"文件内容"而不是"运行时路由表"
@@ -19,8 +19,8 @@
 # 在测试环境恒假，只能静态判宿主文件。
 #
 # ## 🔴 带前导斜杠的写法会让 Rails 直接拒绝加载整个 routes.rb
-# 实测：往宿主 routes.rb 里加一条 `to: '/scinote/workbench/a#b'`，Rails 在**加载该文件时**
-# 就抛 ArgumentError（`'/scinote/workbench/a' is not a supported controller name`），
+# 实测：往宿主 routes.rb 里加一条 `to: '/scinote/ai_protocols/a#b'`，Rails 在**加载该文件时**
+# 就抛 ArgumentError（`'/scinote/ai_protocols/a' is not a supported controller name`），
 # 测试进程根本起不来 ⇒ 此时任何 minitest 守卫都"跑不起来"，也就无从报红。
 # 这解释了 access_control 那4 条宿主路由为何是死代码：它们带前导斜杠，在 Rails 7.2 下
 # 根本无法被加载（应是旧 Rails 时代写法留下的）。
@@ -49,7 +49,7 @@ class HostRoutesAddonPurityTest < AcTest::Base
   # 宿主的 addon 路由行长什么样：
   #   to: 'scinote/eln_ui/project_detail#show'         （单引号，无前导斜杠）
   #   to: '/scinote/access_control/visibility_matrix#show'（单引号，有前导斜杠）
-  #   to: "scinote/workbench/x#y"                     （双引号 —— 也可能）
+  #   to: "scinote/ai_protocols/x#y"                   （双引号 —— 也可能）
   # 三种写法都要覆盖。access_control 那批死代码用的是带前导斜杠的单引号，
   # 而自证注入用的是双引号 —— 只认单引号的正则会被双引号绕过，
   # 守卫就成了假绿（实测踩过：注入双引号违规，`filter_map` 返回 0 条，测试仍全绿）。
@@ -86,7 +86,7 @@ class HostRoutesAddonPurityTest < AcTest::Base
     #   这条自证就是为拦住那类漏洞而存在。
     samples = {
       '单引号无前导斜杠' => "get 'x', to: 'scinote/eln_ui/project_detail#show'",
-      '双引号' => 'get "x", to: "scinote/workbench/x#y"'
+      '双引号' => 'get "x", to: "scinote/ai_protocols/x#y"'
       # ⚠ 故意不含「单引号带前导斜杠」样本：那会让 Rails 加载 routes.rb 时就抛
       # ArgumentError（not a supported controller name），测试进程起不来、
       # 无法用来验证检测器。实测结论已记在文件头注释里。
@@ -113,6 +113,7 @@ class HostRoutesAddonPurityTest < AcTest::Base
     # 清单为空 ⇒ 上面的守卫等于没查任何东西（假绿）。守住这个前提。
     refute_empty KNOWN_ADDONS, 'addon 清单为空，守卫失去意义'
     assert_includes KNOWN_ADDONS, 'eln_ui'
-    assert_includes KNOWN_ADDONS, 'workbench'
+    # ⚠ 历史上还有 workbench addon（1 条路由），已于 2026-10-12 并入 eln_ui（ADR-0045），
+    #   故此处不再断言它；KNOWN_ADDONS 由 addons/ 目录实测得出，删目录即自动出清单。
   end
 end

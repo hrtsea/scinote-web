@@ -169,4 +169,3 @@ gem 'scinote_ai_protocols',   path: 'addons/ai_protocols'      # AI Protocol
 gem 'scinote_addon_settings', path: 'addons/addon_settings'
 gem 'scinote_access_control', path: 'addons/access_control'
 gem 'scinote_eln_ui', path: 'addons/eln_ui'
-gem 'scinote_workbench', path: 'addons/workbench'

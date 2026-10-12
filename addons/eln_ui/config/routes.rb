@@ -173,4 +173,14 @@ Scinote::ElnUi::Engine.routes.draw do
       to: 'notifications#read',
       as: :eln_notification_read
 
+  # GET
+  # 工作台（原 workbench addon，2026-10-12 并入 eln_ui —— 见 ADR-0045）。
+  # 其前端（Vue Workbench.vue / entry eln_workbench）本就位于 eln_ui 的
+  # app/javascript/vue/eln/，webpack 入口也在 config/webpack/webpack.config.js
+  # 指向 eln_ui；此路由只补齐后端入口。对外 URL /eln_workbench 与 helper
+  # eln_workbench 逐字不变，宿主侧没有任何代码调该 helper（视图只引 assets）。
+  get 'eln_workbench',
+      to: 'workbench#index',
+      as: :eln_workbench
+
 end

@@ -24,8 +24,9 @@ class ElnUiRouteBaselineTest < AcTest::Base
   ELN_CONTROLLER_PREFIX = 'scinote/eln_ui/'
 
   # ELN UI 的控制器裸名白名单 —— 认定"这条路由属于 ELN UI"的唯一可靠判据。
-  # ⚠ 不能用 "path/name 含 eln_" 捞：`eln_workbench` 是 **workbench addon** 的路由
-  #   （同为 /eln_* 前缀），会被误纳入。
+  # ⚠ 不能用 "path/name 含 eln_" 捞：`eln_workbench` 同为 /eln_* 前缀，会被误纳入。
+  #   （2026-10-12 起 workbench 已并入 eln_ui，其路由迁到本 addon 的 config/routes.rb；
+  #     但因本白名单不含 `workbench`，它不计入这 30 条基线——属有意，见 ADR-0045。）
   ENGINE_CONTROLLERS = %w[
     project_detail project_list res_center res_apply_detail res_apply_action
     res_apply_create exp_detail my_module_detail project_approvers
