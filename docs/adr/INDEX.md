@@ -79,11 +79,17 @@
 | 0041 | `0041-row-action-access-modal-native-contract.md` | 行级「访问权限」弹窗按原生契约修：`user_roles` 是**二维元组**不是对象（角色下拉空的真因）/ 候选池随行下发 `assignable_users_url` / 新增成员走 **collection POST `?id=`** 而非 member 路径（后者无 POST 必 404）；附重复实现债：`vue/eln/` 下另一份 `RowActionModal` 未注册 entryList，后续整车复用原生 `AccessModal`（Accepted） |
 | 0042 | `0042-split-runtime-db-check-from-build-gate.md` | **构建期 CI 门禁与运行期 DB 依赖解耦**：`access_control.verify!` 按外部依赖拆两半，构建期只跳需DB 的表检查（`SKIP_ACCESS_CONTROL_DB_CHECK`），装饰器探测照跑；否决「跳过整个verify!」/「构建期起 db」/「删门禁」三案，含护栏自证记录（Accepted） |
 | 0043 | `0043-i18n-addon-shutdown-dead-reference.md` | 停用 i18n addon 后 `i18n_bundle.js:3` 的 **Sprockets 死引用**导致 `assets:precompile` 整轮构建失败：拆分为宿主 `i18n/locale_sync.js`（保 locale 与服务端对齐，eln_ui/workbench 全部 Vue 页依赖）+ 切换器 UI 随 addon 停用；含 10-07 停用核查漏查Sprockets 资产一路的复盘，与 ADR-0042 适用范围补正（Accepted） |
+| 0044 | `0044-addon-routes-all-self-registered.md` | addon 路由全仓库自注册收口：宿主 `config/routes.rb` 对全部 10 个 addon 零残留，常驻守卫 `host_routes_addon_purity_test.rb`；含「控制器名禁前导斜杠」（Rails 7.2 ArgumentError）与「test/runner 环境 Engine.routes=0 ⇒ 断言须走真机 HTTP」两条实证（Accepted） |
+| 0045 | `0045-merge-workbench-into-eln-ui.md` | workbench addon 整体并入 eln_ui（其前端 Vue / URL 字面量 / 数据口径本就在 eln_ui，只是空壳 addon）；修 workbench↔eln_ui 跨 addon 硬依赖（单独禁用 eln_ui 会让 `/eln_workbench` 500）（Accepted） |
+| 0046 | `0046-addon-settings-helper-forwarding-fix.md` | addon 路由 helper 宿主侧转发修复：Rails route helper 模块**重写 `respond_to?` 且不 consult `respond_to_missing?`** ⇒ method_missing 范本对守卫场景无效；正解 = `config.to_prepare` + 具体 `define_method` 装到 `@path_helpers_module`（Accepted） |
+| 0047 | `0047-resgrid-autoheight.md` | ResGrid 默认不传 height ⇒ 走宿主 autoHeight（AG Grid `domLayout: 'autoHeight'`），网格随行数撑开无内部滚动条；height 留作个别长表 override 旋钮（Accepted） |
+| 0048 | `0048-workbench-personal-action-center.md` | workbench 个人行动中心（并入 eln_ui 后的页面决策）（Accepted） |
+| 0049 | `0049-required-docs-fixed-list.md` | **必传文档固定清单化**：规范清单补种（RequiredDocSeeder + 一次性迁移 + show 懒补种）+ `docs_block` 补稳定 `:id` + 行级上传端点（task_book 退役壳 410）；不建归档闸门（如实记录缺口）（Accepted） |
 
 ---
 
 ## 平铺时序清单（编号即身份，supersede 依据编号）
 
-0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034 · 0035 · 0036 · 0037 · 0038 · 0039 · 0040 · 0041 · 0042 · 0043
+0001 · 0002 · 0003 · 0004 · 0005 · 0006 · 0007 ⚠️(→0023) · 0008 · 0009 · 0010 · 0011 · 0012 · 0013 · 0014 · 0015 · 0016 · 0017 · 0018 · 0019 · 0020 · 0021 · 0022 · 0023 · 0024 · 0025 · 0026 · 0027 · 0028 · 0029 · 0030 · 0031 · 0032 · 0033 · 0034 · 0035 · 0036 · 0037 · 0038 · 0039 · 0040 · 0041 · 0042 · 0043 · 0044 · 0045 · 0046 · 0047 · 0048 · 0049
 
-共 43 篇。新增 ADR 继续顺延编号（`0044-...`），并补一行到对应主题分组与本清单。
+共 49 篇。新增 ADR 继续顺延编号（`0050-...`），并补一行到对应主题分组与本清单。

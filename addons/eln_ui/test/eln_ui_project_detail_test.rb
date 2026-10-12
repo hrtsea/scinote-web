@@ -183,10 +183,21 @@ class ElnUiProjectDetailTest < AcTest::Base
 
     req = body[:requiredDocs]
     assert_equal 2, req.size
-    assert_equal({ name: '项目任务书', ver: 'v2', date: '2026-03-02', uploaded: true }, req.first,
+    # ADR-0049 D7：docs_block 下发台账主键 :id（grid 行 id / 前端 per-row 上传靠它定位）。
+    # 先钉 id 归属，再逐字段比对其余四键 —— 精确哈希相等会把 id 钉死成字面量，
+    # 台账主键随造数漂移，那是另一种空转断言。
+    task_book = Scinote::ElnUi::ProjectDocument.find_by!(project: project, name: '项目任务书')
+    assert_equal task_book.id, req.first[:id], '必传文档行必须带台账主键 id'
+    assert_equal({ name: '项目任务书', ver: 'v2', date: '2026-03-02', uploaded: true },
+                 { name: req.first[:name], ver: req.first[:ver],
+                   date: req.first[:date], uploaded: req.first[:uploaded] },
                  '必传文档映射 name/ver/date/uploaded')
-    assert_equal({ name: '结题报告', ver: '—', date: '—', uploaded: false }, req.last,
+    assert_equal({ name: '结题报告', ver: '—', date: '—', uploaded: false },
+                 { name: req.last[:name], ver: req.last[:ver],
+                   date: req.last[:date], uploaded: req.last[:uploaded] },
                  '未上传文档显式留白（—），不编日期')
+    other_doc = Scinote::ElnUi::ProjectDocument.find_by!(project: project, name: '对比测试报告.pdf')
+    assert_equal other_doc.id, body[:otherDocs].first[:id], '其他文档行同样带台账主键 id'
 
     other = body[:otherDocs].first
     assert_equal '执行', other[:type]

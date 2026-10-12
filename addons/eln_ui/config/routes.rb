@@ -40,6 +40,15 @@ Scinote::ElnUi::Engine.routes.draw do
       as: :project_eln_detail_status
 
   # POST
+  # 必传文档行内上传（ADR-0049 D7/D8）：取代原「上传任务书」专用端点 ——
+  # 必传清单固定为 5 类后，任何一行都要能传，端点不再绑定「项目任务书」这个名字。
+  post 'projects/:project_id/eln_project_detail/document',
+      to: 'project_detail#upload_document',
+      as: :project_eln_detail_document
+
+  # POST
+  # 退役壳（ADR-0049 D8）：原「上传任务书」端点。410 Gone + 指路新端点，
+  # 不静默删除 —— 前端旧包可能还在打这个 URL（陈年 bundle 缓存）。
   post 'projects/:project_id/eln_project_detail/task_book',
       to: 'project_detail#upload_task_book',
       as: :project_eln_detail_task_book

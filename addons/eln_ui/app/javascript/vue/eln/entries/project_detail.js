@@ -63,7 +63,7 @@ patchObject(mock.projectArchive, injected.projectArchive || { archived: false, a
 // 页头三键：权限位与动作端点都必须来自宿主。缺了就维持 mock 的全 false / 空串，
 // 组件据此不渲染按钮（而不是渲染一个点了没反应的按钮）。
 patchObject(mock.permissions, injected.permissions || { canEditBasic: false, canUploadDocs: false, canChangeStatus: false })
-patchObject(mock.actions, injected.actions || { updateProject: '', changeStatus: '', uploadTaskBook: '', addMetric: '' })
+patchObject(mock.actions, injected.actions || { updateProject: '', changeStatus: '', uploadDocument: '', addMetric: '' })
 
 // ---------- 面包屑下钻地址（宿主注入真实URL；不给就null → 组件回落原型路径）----------
 // 铁律：前端不写死宿主路由。这两段以前在模板里写死 /projects，

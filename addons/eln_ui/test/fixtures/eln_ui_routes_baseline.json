@@ -1,8 +1,20 @@
 {
-  "generated_for": "eln_ui 路由自注册迁移（.scratch/eln-ui-route-self-registration）",
-  "controller_prefix": "scinote/eln_ui/",
-  "count": 30,
-  "named_count": 29,
+  "generated_for": "eln_ui 路由自注册迁移（.scratch/eln-ui-route-self-registration）；2026-10-13 重生成：新增必传文档上传端点（ADR-0049）+ 修复 isolate_namespace 后取样失效",
+  "controller_whitelist": [
+    "project_detail",
+    "project_list",
+    "res_center",
+    "res_apply_detail",
+    "res_apply_action",
+    "res_apply_create",
+    "exp_detail",
+    "my_module_detail",
+    "project_approvers",
+    "task_close_action",
+    "notifications"
+  ],
+  "count": 31,
+  "named_count": 30,
   "anonymous_count": 1,
   "routes": [
     {
@@ -136,6 +148,12 @@
       "path": "/projects/:project_id/eln_project_detail",
       "key": "project_eln_detail_update",
       "controller": "scinote/eln_ui/project_detail#update"
+    },
+    {
+      "verb": "POST",
+      "path": "/projects/:project_id/eln_project_detail/document",
+      "key": "project_eln_detail_document",
+      "controller": "scinote/eln_ui/project_detail#upload_document"
     },
     {
       "verb": "GET",

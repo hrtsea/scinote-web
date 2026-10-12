@@ -60,3 +60,24 @@ addon 之间通过运行期裸常量引用（如 `Scinote::ElnUi::Xxx`）耦合�
 （ADR-0044 §遗留问题，已于 ADR-0045 通过**并入 eln_ui** 消解，仓库无跨 addon 运行期裸耦合残留）。
 ⚠ 仓库根 `elncp/` 是被 `.gitignore` 排除、**运行期零引用**的迁移前快照副本（见 ADR-0045 §核实），
 **非在役控制面板**，不构成宿主耦合，随时可删；勿将其误记为"宿主硬依赖 eln_ui 的既有债"。
+
+## 必传文档固定清单（ADR-0049）
+项目结题归档前必须齐备的 5 类文档（**立项申请材料 / 项目任务书 / 年度计划 / 年度报告 /
+结题报告**）。用户已撤回「负责人可增删」需求 ⇒ **固定清单**。清单定义住服务端
+（`RequiredDocSeeder::REQUIRED_DOC_NAMES`，定序即 position），**展示真源永远是 DB 行**
+（`eln_ui_project_documents`，category='required'）——页面渲染的行、计数的分子分母、
+上传的目标行，三处同源。与「可配置清单」相对：宿主无可复用的文档分类模型，自建字典表
+是纯新增复杂度。
+
+## RequiredDocSeeder（补种器）
+必传文档 5 类是固定清单，但台账行是**数据**不会凭空出现 ⇒ `RequiredDocSeeder.seed!(project)`
+把 canonical 5 类幂等补种进 `eln_ui_project_documents`（find_or_initialize + position 归一，
+非规范名旧行不碰）。**闸门 = 已纳管**：无 `ProjectProfile` 行的项目不补种（文档面板维持空态，
+不拿固定清单顶）。挂 `ProjectDetailController#show`（读路径，幂等）而非 payload
+（export/测试共用的纯读装配器）或项目创建钩子（「纳管」是事后状态，无创建事件可挂）。
+
+## 已纳管（managed）
+项目已进入 ELN 二开台账的状态，判据 = `eln_ui_project_profiles` 有行。由
+`ProjectDetailController#update / update_status` 的 `ProjectProfile.upsert_for!` 事后建立，
+**不是**项目创建钩子 ⇒ 懒补种只能挂读路径。与「未纳管」相对：后者从没进过 ELN 项目台账，
+必传文档面板为空态。

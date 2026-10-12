@@ -3,9 +3,9 @@
 # ELN UI —— 路由基线与迁移契约守卫（ticket 01 建立，ticket 02 用于验证迁移）
 #
 # ## 背景
-# ELN UI 的 30 条路由当前寄生在宿主 `config/routes.rb`（违反零入侵铁律，见 ADR-0022）。
+# ELN UI 的 31 条路由当前寄生在宿主 `config/routes.rb`（违反零入侵铁律，见 ADR-0022）。
 # 本文件在**任何路由被搬动之前**先把它们的「动词 + 路径 + helper 名」冻结成基线，
-# 使"迁移有没有改坏东西"成为机器断言，而不是靠人工数 30 条路由。
+# 使"迁移有没有改坏东西"成为机器断言，而不是靠人工数 31 条路由。
 #
 # ## 为什么基线要记录 controller#action
 # 路由"匹配得上"不等于"能用"：路由引用了不存在的 controller 时，请求会走到 500
@@ -26,7 +26,7 @@ class ElnUiRouteBaselineTest < AcTest::Base
   # ELN UI 的控制器裸名白名单 —— 认定"这条路由属于 ELN UI"的唯一可靠判据。
   # ⚠ 不能用 "path/name 含 eln_" 捞：`eln_workbench` 同为 /eln_* 前缀，会被误纳入。
   #   （2026-10-12 起 workbench 已并入 eln_ui，其路由迁到本 addon 的 config/routes.rb；
-  #     但因本白名单不含 `workbench`，它不计入这 30 条基线——属有意，见 ADR-0045。）
+  #     但因本白名单不含 `workbench`，它不计入这 31 条基线——属有意，见 ADR-0045。）
   ENGINE_CONTROLLERS = %w[
     project_detail project_list res_center res_apply_detail res_apply_action
     res_apply_create exp_detail my_module_detail project_approvers
@@ -40,9 +40,9 @@ class ElnUiRouteBaselineTest < AcTest::Base
   # 迁移后 ELN UI 路由应落在 addon 自己的路由定义里；宿主 routes.rb 不得再出现。
   HOST_ROUTES_PATH = Rails.root.join('config/routes.rb')
 
-  EXPECTED_COUNT = 30
+  EXPECTED_COUNT = 31
 
-  # 收集 ELN UI 的 30 条路由 —— **迁移前后都要能用同一段代码取到**。
+  # 收集 ELN UI 的 31 条路由 —— **迁移前后都要能用同一段代码取到**。
   #
   # ⚠ 迁移后（ticket 02）的坑：路由进了引擎，引擎声明了 `isolate_namespace`，
   #   其 route set 的 `defaults[:controller]` 是**不带** `scinote/eln_ui/` 前缀的
@@ -55,15 +55,20 @@ class ElnUiRouteBaselineTest < AcTest::Base
   def eln_routes
     # ⚠🔴 **测试环境（RAILS_ENV=test）下引擎路由数为 0** —— addon 的 routes initializer
     #   在 test 环境不执行，`Engine.routes` 是空的。实测 TEST_ENGINE_ROUTES=0。
-    #   ⇒ 迁移后的三元组比对**不能在 test 环境做**，否则恒报"缺失 30 条"（假红）。
+    #   ⇒ 迁移后的三元组比对**不能在 test 环境做**，否则恒报"缺失 31 条"（假红）。
     #   正确分工：
     #     · test 环境：只校验「宿主 config/routes.rb 已零残留」+ 基线文件自身完整性
     #       （这两条不依赖运行时路由表，任何环境都成立）。
     #     · 生产/开发环境：三元组比对 + 逐条 recognition（路由真实存在时才做）。
     #   判定用引擎路由是否真的挂上，而不是靠 Rails.env 猜。
+    # 🔴 坑（2026-10-13 修）：`RouteSet#routes` 返回 ActionDispatch::Journey::Routes
+    #   （**不是 Array**）⇒ `is_a?(Array)` 恒 false ⇒ engine_routes 恒 []。
+    #    silently 只剩 app routes 一路；test 环境 app routes 也没有展开的引擎路由，
+    #   于是 routes_available? 恒 false、三元组比对被整体跳过（守卫静默失效）。
+    #   必须 `.to_a`。
     engine_routes = begin
       r = Scinote::ElnUi::Engine.routes
-      (r.respond_to?(:routes) && r.routes.is_a?(Array)) ? r.routes : []
+      r.respond_to?(:routes) ? r.routes.to_a : []
     rescue StandardError
       []
     end
@@ -152,7 +157,7 @@ class ElnUiRouteBaselineTest < AcTest::Base
   # 铁律守卫：宿主 routes.rb 不得再出现 ELN UI 路由
   # ------------------------------------------------------------
   #
-  # ⚠ 迁移已完成（ticket 02，2026-10-12）：30 条路由已整块搬进
+  # ⚠ 迁移已完成（ticket 02，2026-10-12）：31 条路由已整块搬进
   # addons/eln_ui/config/routes.rb，由引擎自注册。宿主 routes.rb 应为零残留，
   # 本断言自此从"钉住现状"变为"强制清零"——将来谁把路由挂回宿主，它就变红。
   MIGRATED = true

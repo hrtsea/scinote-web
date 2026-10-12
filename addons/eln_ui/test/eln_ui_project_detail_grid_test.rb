@@ -114,9 +114,13 @@ class ElnUiProjectDetailGridTest < AcTest::Base
 
   def test_required_docs_dataset_reads_real_documents
     scene = build_scene!
-    Scinote::ElnUi::ProjectDocument.create!(
+    task_book = Scinote::ElnUi::ProjectDocument.create!(
       project_id: scene[:project].id, category: 'required',
       name: '项目任务书', version: 2, uploaded: true
+    )
+    closing = Scinote::ElnUi::ProjectDocument.create!(
+      project_id: scene[:project].id, category: 'required',
+      name: '结题报告', uploaded: false
     )
 
     _status, body = get_grid(scene[:creator], scene[:project], dataset: 'required_docs')
@@ -124,6 +128,10 @@ class ElnUiProjectDetailGridTest < AcTest::Base
     attrs = body['data'].first['attributes']
     assert_equal '项目任务书', attrs['name']
     assert attrs['uploaded'], 'uploaded 必须来自真表 —— 前端据此渲染「已上传/待上传」'
+    # ADR-0049 D7：docs_block 下发 :id 后，grid 行 id = 台账主键（不再是 row-N 伪位）——
+    # 前端 per-row 上传（T4）靠这个 id 回传定位。
+    assert_equal [task_book.id.to_s, closing.id.to_s], body['data'].map { |r| r['id'] },
+                 '网格行 id 必须等于台账主键（paginate 的 row-N 兜底不许生效）'
   end
 
   # ------------------------------------------------------------

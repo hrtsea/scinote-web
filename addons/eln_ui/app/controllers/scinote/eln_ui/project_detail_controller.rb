@@ -19,6 +19,11 @@ module Scinote
       before_action :check_project_read_permissions
 
       def show
+        # 懒补种（ADR-0049 D9）：必传 5 类是固定清单，但台账行是数据不会凭空出现。
+        # 「已纳管」是事后状态（upsert 只在 update/update_status 调），没有创建钩子可挂 ⇒
+        # 挂读路径。幂等（find_or_initialize + position 归一），每次 show 调一次成本 = 一次 COUNT。
+        # ⚠ 不放 payload：那是 export/测试共用的纯读装配器，写副作用会扩散。
+        Scinote::ElnUi::RequiredDocSeeder.seed!(@project)
         payload = Scinote::ElnUi::ProjectDetailPayload.call(@project, user: current_user)
         # </script> 会提前闭合注入块；< 一律转码，JSON 语义不变。
         @payload_json = JSON.generate(payload).gsub('<', '\\u003c')
@@ -101,20 +106,32 @@ module Scinote
         render json: Scinote::ElnUi::ProjectDetailPayload.call(@project, user: current_user)
       end
 
-      # ③ 上传项目任务书。文件本体走宿主 ActiveStorage（先例：ReceiptVerification#photos），
-      #    登记信息仍写 eln_ui_project_documents —— 「必传文档已上传」这条才真的能推动归档校验通过。
+      # ③ 上传项目任务书 —— **退役壳**（ADR-0049 D8/Q11=C）。
+      #    原端点写死 name=TASK_BOOK_NAME，必传清单固定为 5 类后这个绑定作废：
+      #    任何一行都要能传。新端点 = upload_document（收行 id + file）。
+      #    为什么不静默删路由：前端陈年 bundle 缓存可能还在打这个 URL，
+      #    410 + 指路新端点让旧包fail-fast 而不是 500 或静默 404。
       def upload_task_book
+        render json: { error: '「上传任务书」端点已退役，请改用必传文档行内「上传」（document 端点）' },
+               status: :gone
+      end
+
+      # ③' 必传文档行内上传（ADR-0049 D7/D8，2026-10-13）。
+      #     文件本体走宿主 ActiveStorage（先例：ReceiptVerification#photos），
+      #     登记信息写 eln_ui_project_documents 原行 —— 「必传文档已上传」推动归档校验。
+      #     id 必须落在**本项目**的 required 行上：跨项目 id 一律 404（不泄漏存在性）。
+      def upload_document
         return render_403 unless current_permissions[:canUploadDocs]
         return render json: { error: '未收到文件' }, status: :unprocessable_entity if params[:file].blank?
 
-        doc = ::Scinote::ElnUi::ProjectDocument.find_or_create_by!(
-          project_id: @project.id, category: 'required', name: TASK_BOOK_NAME
-        )
+        doc = Scinote::ElnUi::ProjectDocument.find_by!(project_id: @project.id, id: params[:id],
+                                                       category: 'required')
         doc.file.attach(params[:file])
         doc.update!(uploaded: true, uploaded_on: Time.zone.today, uploader: current_user)
 
-        render json: { ok: true, id: doc.id, name: doc.name, version: doc.version,
-                       uploadedOn: doc.uploaded_on, uploaded: doc.uploaded }
+        render json: Scinote::ElnUi::ProjectDetailPayload.call(@project, user: current_user)
+      rescue ActiveRecord::RecordNotFound
+        render_404
       rescue ActiveRecord::RecordInvalid => e
         render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
       end
@@ -180,9 +197,6 @@ module Scinote
 
         order.is_a?(Array) ? order : [order]
       end
-
-      # 必传文档 5 类里「项目任务书」这一类的固定台账名（REQ-PM-DOCS）。
-      TASK_BOOK_NAME = '项目任务书'.freeze
 
       # 写判据与前端渲染**同源**：两边问的都是 ProjectDetailPayload.permissions_for。
       def current_permissions

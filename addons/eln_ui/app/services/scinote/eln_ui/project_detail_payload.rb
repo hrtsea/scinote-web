@@ -325,7 +325,9 @@ module Scinote
         {
           updateProject: routes.project_eln_detail_update_path(project_id: @project.id),
           changeStatus: routes.project_eln_detail_status_path(project_id: @project.id),
-          uploadTaskBook: routes.project_eln_detail_task_book_path(project_id: @project.id),
+          # 必传文档行内上传（ADR-0049 D7/D8，取代原 uploadTaskBook 专用端点：
+          # 清单固定 5 类后任何一行都可传，端点不绑定「项目任务书」这个名字）。
+          uploadDocument: routes.project_eln_detail_document_path(project_id: @project.id),
           # 指标新增端点（与指标表 per-row 动作同源，前端不许拼宿主路径）。
           addMetric: routes.project_eln_detail_metrics_path(project_id: @project.id),
           # 6 张表共用的服务端网格端点。**逐条下发完整 URL（含 ?dataset=）**：
@@ -374,6 +376,9 @@ module Scinote
         scope.map do |d|
           if category == 'required'
             {
+              # 台账主键：grid_support 的 r[:id] 与前端 per-row 上传（ADR-0049 D7）
+              # 都靠它定位行 —— 没有它网格行 id 只能是 row-N 伪位。
+              id: d.id,
               name: d.name.to_s,
               ver: d.version.presence || '—',
               date: d.uploaded_on.present? ? date(d.uploaded_on) : '—',
@@ -381,6 +386,7 @@ module Scinote
             }
           else
             {
+              id: d.id,
               name: d.name.to_s,
               type: d.doc_type.presence || '—',
               by: d.uploader.present? ? user_full_name(d.uploader) : '—',

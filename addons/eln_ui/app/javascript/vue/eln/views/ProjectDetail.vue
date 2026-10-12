@@ -20,13 +20,6 @@
       </template>
       <template #right>
         <div class="head-actions">
-          <input ref="fileInput" type="file" class="pd-file" @change="onTaskBookPicked" />
-          <button
-            v-if="can.canUploadDocs"
-            class="eln-btn-ghost pd14"
-            :disabled="uploading"
-            @click="pickTaskBook"
-          >{{ uploading ? '上传中…' : '上传任务书' }}</button>
           <button v-if="can.canEditBasic" class="eln-btn-primary pd14" @click="openEdit">编辑项目信息</button>
           <button v-if="can.canChangeStatus" class="eln-btn-ghost pd14" @click="confirmClose">修改项目状态</button>
         </div>
@@ -173,15 +166,20 @@
             <section v-else-if="activeSub === 'docs'" class="pane">
               <div class="block-head">
                 <h2 class="block-title">项目文档</h2>
-                <span class="block-note">立项申请材料、项目任务书、年度计划、年度报告、结题报告为必传，结题归档前必须齐备</span>
+                <!-- ADR-0049 D1：5 类清单 = 服务端规范清单补种进台账，展示真源是 DB 行 ——
+                     文案从数据动态生成，不写死枚举（写死的那份与台账漂移是迟早的事）。 -->
+                <span v-if="requiredDocs.length" class="block-note">
+                  {{ requiredDocs.map((d) => d.name).join('、') }}为必传，结题归档前应齐备
+                </span>
+                <span v-else class="block-note">必传文档清单由项目档案驱动，项目纳管后自动出现</span>
               </div>
 
               <div class="docs-subhead">
                 <span class="docs-subhead-title">必传文档</span>
-                <span class="block-note flex1">{{ requiredUploaded }}/{{ requiredDocs.length }} 已上传 · 缺失将阻断归档流程</span>
+                <span class="block-note flex1">{{ requiredUploaded }}/{{ requiredDocs.length }} 已上传 · 归档前应齐备</span>
               </div>
               <div v-if="!requiredDocs.length" class="empty-cell">
-                暂无必传文档 —— 原生 SciNote 没有项目文档分类模型，取不到就不显示
+                暂无必传文档 —— 项目未纳管（无二开项目档案）时不补种固定清单
               </div>
               <ResGrid
                 v-else-if="gridUrl('requiredDocs')"
@@ -190,7 +188,9 @@
                 :column-defs="requiredDocsCols"
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
-
+              <!-- 行级上传的隐藏文件选择器（ADR-0049 D7/D8）：放在 docs pane 内而非页头 ——
+                   上传动作归属「某一行」而不是整个页面。pendingDoc 记住点的是哪行。 -->
+              <input ref="docFileInput" type="file" class="pd-file" @change="onDocPicked" />
               <div class="docs-subhead docs-subhead-gap">
                 <span class="docs-subhead-title">其他文档</span>
                 <span class="block-note flex1">过程记录、参考资料等，随时上传归档</span>
@@ -207,7 +207,7 @@
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <p class="src-note">
-                ⓘ 画布 4:1460 该面板为 hidden 态；必传文档 5 类沿用 REQ-PM-DOCS 立项口径，日期按立项时间（2026-03-02）同源改写。
+                ⓘ 必传文档 5 类为固定清单（ADR-0049）：服务端规范清单补种进 eln_ui_project_documents 台账，页面渲染即台账行；行内「上传」走 document 端点（收行 id + 文件）。
               </p>
             </section>
 
@@ -298,10 +298,10 @@
               <div class="archive-check" :class="{ warn: missingDocs.length > 0 }">
                 <AppIcon :name="missingDocs.length > 0 ? 'clock' : 'check'" :size="15" />
                 <span v-if="!requiredDocs.length">
-                  完整性校验不可用：暂无必传文档配置（原生 SciNote 没有项目文档分类模型，不拿原型 5 类文档顶）。
+                  完整性校验不可用：暂无必传文档行（项目未纳管时不补种固定清单）。
                 </span>
                 <span v-else-if="missingDocs.length > 0">
-                  完整性校验未通过：必传文档 {{ requiredUploaded }}/{{ requiredDocs.length }} 已上传，{{ missingDocs.join('') }}待上传，补齐前归档导出不可用。
+                  完整性校验未通过：必传文档 {{ requiredUploaded }}/{{ requiredDocs.length }} 已上传，{{ missingDocs.join('') }}待上传，归档前应齐备。
                 </span>
                 <span v-else>
                   完整性校验通过：必传文档 {{ requiredDocs.length }}/{{ requiredDocs.length }} 已上传 · 实验记录完整率 100% · 指标已闭环 · 审批链完备
@@ -325,7 +325,7 @@
                 <span>归档包生成后保留 90 天可下载，之后自动转入长期存储（DEC-005）</span>
               </div>
               <p class="src-note">
-                ⓘ 画布 4:1517 该面板为 hidden 态；完整性校验联动「项目文档」必传文档与 REQ-PM-ARCHIVE 归档前置条件。
+                ⓘ 完整性校验仅供自查（缺必传文档不阻断导出 —— 归档闸门未建，ADR-0049 如实记录）；必传文档 5 类由服务端固定清单补种。
               </p>
             </section>
           </div>
@@ -647,8 +647,18 @@ const requiredDocsCols = computed(() => [
     width: 140,
     minWidth: 120,
     cellRenderer: ElnRowActionsRenderer,
-    // 原页面此处就是 `@click.prevent` 的占位（下载链路未接线）——保持占位语义，不假装能下载。
-    cellRendererParams: { actions: [{ label: '预览 · 下载' }] }
+    // ADR-0049 D7/D8：行级上传（收行 id + 文件到 document 端点）。actions 走函数形态
+    //   （ElnRowActionsRenderer 支持 (row)=>[]，成员列先例）—— 权限与端点在**渲染期**
+    //   求值，can/act 是 mock 对象引用（非响应式），放进 computed 外层就冻结在首次求值。
+    //   「预览 · 下载」保持占位语义（下载链路未接线），不假装能下载。
+    cellRendererParams: {
+      actions: (row) => [
+        ...(can.canUploadDocs && hasEndpoint(act.uploadDocument)
+          ? [{ label: row.uploaded ? '重新上传' : '上传', handler: () => pickDocFile(row) }]
+          : []),
+        { label: '预览 · 下载' }
+      ]
+    }
   }
 ])
 
@@ -741,10 +751,12 @@ function exportArchive() {
 // 三条纪律：① 端点 URL 一律来自宿主下发（act.*），不自己拼；
 //          ② CSRF 与 credentials 沿用 addon 既有写法（ResCenter.vue / ui.js 同款）；
 //          ③ 原型独立跑时 act.* 是空串 —— 明说是原型态，不做任何假装的请求。
-const fileInput = ref(null)
+const docFileInput = ref(null)
+// pendingDoc：点「上传」时记住是哪一行（隐藏 file input 的 @change 只有 files，没有行上下文）。
+const pendingDoc = ref(null)
+const docUploading = ref(false)
 const editOpen = ref(false)
 const saving = ref(false)
-const uploading = ref(false)
 const editError = ref('')
 const form = ref({
   name: pb.name,
@@ -837,21 +849,30 @@ async function confirmClose() {
   window.location.href = listUrl.value
 }
 
-function pickTaskBook() {
-  if (fileInput.value) fileInput.value.click()
+// ---------- 必传文档行级上传（2026-10-13 · ADR-0049 D7/D8） ----------
+// 原页头「上传任务书」按钮退役：端点写死 name='项目任务书'，必传清单固定为 5 类后
+// 这个绑定作废 —— 任何一行都要能传。上传入口挪到必传文档表格行内。
+// 成功走 window.location.reload()：payload 全量重算（与指标 CRUD 同款，不多造一层假清理逻辑）。
+function pickDocFile(row) {
+  if (!hasEndpoint(act.uploadDocument)) return
+  pendingDoc.value = row
+  if (docFileInput.value) docFileInput.value.click()
 }
 
-async function onTaskBookPicked(ev) {
+async function onDocPicked(ev) {
   const file = ev.target.files && ev.target.files[0]
   ev.target.value = ''
-  if (!file) return
-  if (!hasEndpoint(act.uploadTaskBook)) return
+  const row = pendingDoc.value
+  pendingDoc.value = null
+  if (!file || !row) return
+  if (!hasEndpoint(act.uploadDocument)) return
 
-  uploading.value = true
+  docUploading.value = true
   try {
     const body = new FormData()
+    body.append('id', row.id)
     body.append('file', file)
-    const res = await fetch(act.uploadTaskBook, {
+    const res = await fetch(act.uploadDocument, {
       method: 'POST',
       credentials: 'same-origin',
       headers: csrfHeader(),
@@ -865,7 +886,7 @@ async function onTaskBookPicked(ev) {
   } catch (e) {
     window.alert(`上传失败：${e.message}`)
   } finally {
-    uploading.value = false
+    docUploading.value = false
   }
 }
 

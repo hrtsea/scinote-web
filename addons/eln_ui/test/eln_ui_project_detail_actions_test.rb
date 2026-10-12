@@ -100,7 +100,8 @@ class ElnUiProjectDetailActionsTest < AcTest::Base
 
     assert_equal "/projects/#{pid}/eln_project_detail", acts[:updateProject]
     assert_equal "/projects/#{pid}/eln_project_detail/status", acts[:changeStatus]
-    assert_equal "/projects/#{pid}/eln_project_detail/task_book", acts[:uploadTaskBook]
+    # ADR-0049 D8：原 uploadTaskBook（写死「项目任务书」）退役，改为行级 document 端点。
+    assert_equal "/projects/#{pid}/eln_project_detail/document", acts[:uploadDocument]
   end
 
   # ------------------------------------------------------------
