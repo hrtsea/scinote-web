@@ -65,5 +65,7 @@ label_printers 重定向永远回退到自身。
 
 ## 遗留
 
-- 宿主 `elncp` 仍硬依赖 `Scinote::ElnUi::*`（既有债，见下一条待处理项），"独立禁用
-  eln_ui"在 host 层本就不成立——与本次 addon_settings 修复正交，另行评估。
+- 核实更正：本节原称「宿主 `elncp` 硬依赖 `Scinote::ElnUi::*`、独立禁用 eln_ui 在 host 层不成立」——
+  **此结论不成立**。详见 ADR-0045 §核实：`elncp/` 是被 `.gitignore` 排除、运行期零引用的迁移前快照副本，
+  非在役控制面板，不构成宿主耦合；宿主运行期对 eln_ui 的真耦合面仅 `_db/seed_*.rb` 数据脚本（非 boot 路径）。
+  ⇒ **无 elncp 遗留债需另行评估**，本节"待处理项"取消。

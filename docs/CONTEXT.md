@@ -32,8 +32,10 @@ payload / view / route / test）迁到 eln_ui 并改命名空间。与「解耦�
 engine 的 initializer 自注册（`app.routes.append { mount Engine => '/' }`）。启用/禁用只由
 Gemfile 一行决定。rebase 上游时宿主 `config/routes.rb` 是干净的。
 
-## 跨 addon 硬依赖（本 fork 既有债）
+## 跨 addon 硬依赖（本 fork 约束；既有债已消解）
 addon 之间通过运行期裸常量引用（如 `Scinote::ElnUi::Xxx`）耦合，而非 gemspec 声明依赖。
 停用某 addon 前必须查三路引用：① Ruby 命名空间常量 ② Sprockets `//= require` / engine
 `assets.precompile` ③ 路由与 webpack entryList。曾因此导致「禁用 eln_ui 时 workbench 500」
-（ADR-0044 §遗留问题，已于 ADR-0045 通过并入消解）。宿主 `elncp` 仍有同类耦合，未解。
+（ADR-0044 §遗留问题，已于 ADR-0045 通过**并入 eln_ui** 消解，仓库无跨 addon 运行期裸耦合残留）。
+⚠ 仓库根 `elncp/` 是被 `.gitignore` 排除、**运行期零引用**的迁移前快照副本（见 ADR-0045 §核实），
+**非在役控制面板**，不构成宿主耦合，随时可删；勿将其误记为"宿主硬依赖 eln_ui 的既有债"。

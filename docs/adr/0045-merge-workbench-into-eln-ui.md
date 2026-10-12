@@ -29,7 +29,7 @@ ADR-0044 的优雅禁用实验暴露：注释 `gem 'scinote_eln_ui'` 后宿主�
 |---|---|
 | workbench 体量 | 整个 addon 仅 5 个 Ruby 文件（controller / payload / view / route / gemspec+engine）+ 1 个测试。不持有任何业务模型。 |
 | workbench 前端 | 工作台 Vue 应用（Workbench.vue / entries/workbench.js）**早已在 eln_ui**：`config/webpack/webpack.config.js:145` 的入口 `eln_workbench: './addons/eln_ui/app/javascript/packs/eln_workbench.js'`。workbench 的 ERB 只是挂载 eln_ui 打出来的 `eln_workbench.{js,css}`。 |
-| 路由 URL | `/eln_workbench` 被 eln_ui 与宿主**硬编码**：`eln_ui/project_list_controller.rb:431`、`eln_ui/project_list_payload.rb:185`、`elncp/controller.rb:358`、`elncp/payload.rb:184`。 |
+| 路由 URL | `/eln_workbench` 真源在 eln_ui：`eln_ui/project_list_controller.rb` / `eln_ui/project_list_payload.rb` 内部引用；`elncp/controller.rb` / `elncp/payload.rb` 是被 `.gitignore` 排除的**迁移前快照副本**（运行期零引用，非宿主硬编码，详见下方「核实」章节）。 |
 | 数据口径 | workbench_payload 三处调用 + 注释反复声明这些 eln_ui 类是「**单一真源**」「用户拍板，勿改」；测试也直接 `assert Scinote::ElnUi::ProjectListScope`。 |
 | 反向依赖 | 全仓搜 `Scinote::Workbench` 只在 workbench 自身 + 测试注释出现；**没有任何 addon / 宿主反向依赖 workbench**——它是叶子。 |
 | 跨 addon 依赖声明 | 所有 addon 的 gemspec 都**不**声明相互依赖；跨 addon 依赖全是运行期裸常量引用（这正是本问题的成因）。 |
@@ -40,7 +40,7 @@ ADR-0044 的优雅禁用实验暴露：注释 `gem 'scinote_eln_ui'` 后宿主�
 D0 根决策：workbench ↔ eln_ui 硬耦合如何处置
 ├─ B  并入 eln_ui（推荐，已采纳）
 │    ├─ D1 控制器命名空间改名 Scinote::ElnUi::WorkbenchController（路由才能落在 eln_ui engine 下）
-│    ├─ D2 路由/path 保留 '/eln_workbench' 逐字不变（eln_ui+elncp 已写死，无选择）
+│    ├─ D2 路由/path 保留 '/eln_workbench' 逐字不变（生产真机已验证该 path 在用，改动风险高，无选择）
 │    ├─ D3 文件搬移 + 删 addon + Gemfile 去行
 │    └─ D5 优雅禁用契约：禁用 eln_ui 同时禁掉 workbench（无独立场景，见下）
 └─ A  解耦（保持独立 addon）
@@ -114,9 +114,32 @@ D0 根决策：workbench ↔ eln_ui 硬耦合如何处置
 - **路由基线测试不受影响**：`eln_ui_route_baseline_test.rb` 用 `ENGINE_CONTROLLERS` 白名单（不含
   `workbench`）收集路由，且 `EXPECTED_COUNT=30` 比对的是基线**文件**，迁入 workbench 路由不会让它变红。
   workbench 路由的识别由生产环境 `routes_available?` 路径 + 真机 HTTP 验收覆盖。
-- ⚠ **未解决、超出本决策范围**：宿主 `elncp`（controller.rb / payload.rb）同样硬依赖 eln_ui
-  （直引 `Scinote::ElnUi::*`）。即「独立禁用 eln_ui」在 host 层本就不成立——这是更大的既有债，
-  本篇不碰，留待后续评估是否把 elncp 也收口进 eln_ui 或抽内核。
+- ✅ **核实更正（推翻原 §遗留）**：本节原称「宿主 `elncp` 硬依赖 eln_ui，独立禁用 eln_ui 在 host 层不成立」——
+  **此结论不成立**。`elncp/`（仓库根）是被 `.gitignore` 排除、运行期**零引用**的迁移前快照副本（其
+  `class`/`module` 定义与 `addons/eln_ui` 同名同类，仅作迁移参考；不在任何 autoload 路径、未注册路由、
+  不参与任何请求）。`git log --all -- '*elncp*'` 路径全历史为空，pickaxe `-S 'elncp'` 仅命中我写文档的
+  两次 commit。
+  ⇒ 它**不构成在役耦合**，"独立禁用 eln_ui"在 host 层**成立**（宿主运行期对 eln_ui 的真耦合面仅
+  `_db/seed_*.rb` 手工数据脚本，非 boot 路径）。elncp 随时可删，**无遗留债**，本篇不碰属正确处置。
+  详见下方「核实」章节。
+
+## 核实（elncp 真身）
+
+2026-10-12 后续排查推翻了上文原 §遗留 结论，记录于此，供后人避坑：
+
+- **`elncp/` 真实存在，但是死代码**：仓库根 `elncp/`，6 文件（controller.rb / payload.rb / erb.html.erb /
+  old_index.erb / list.css / list.js）。`.gitignore` 显式排除（`/elncp/`，commit `808c00fe7` 注释：
+  "被 addons/eln_ui 取代的旧版项目列表控制器…保留作迁移参考，不入版本库避免双源并存"）。
+- **排查坑（重要）**：Grep/Glob 工具默认尊重 `.gitignore`，首次全仓搜索把整个 `elncp/` 漏掉（假阴性）。
+  **"全仓搜不到" ≠ "不存在"**——查被忽略/未跟踪路径必须走 Bash `ls/find/grep` 绕开 ignore。
+- **运行期零耦合证据**：
+  - `config/` 搜 `elncp` 全空（不在 autoload/eager_load 路径）；
+  - `app|config|lib|addons` 对 `Scinote::ElnUi` 的宿主运行期引用为空（唯一沾边是 `_db/seed_*.rb` 数据脚本）；
+  - `/eln_workbench` 现在只在 eln_ui 内部硬编码；
+  - `git log --all -- '*elncp*'` 路径全历史为空；`-S 'elncp'` 仅命中写文档的两次 commit。
+- **对应页面**：`/eln_project_list_v1` 实际由 `addons/eln_ui/config/routes.rb` 提供（非 elncp）。
+- **结论**：elncp = 迁移前快照副本，**非在役控制面板**，不构成宿主对 eln_ui 的硬依赖；"独立禁用 eln_ui"
+  在 host 层成立。仓库无 elncp 遗留债，该目录可随时删除。
 
 ## 关联
 
