@@ -1,34 +1,32 @@
 # frozen_string_literal: true
 
-# 工作台（Workbench）—— 六块数据装配（REQ-DASHBOARD / SCN-DASH-1~7）
+# 个人行动工作台（Workbench）—— 「每天从这里开始：只显示需要处理的事」（ADR-0048）
 #
-# 形状（严格对齐原型 ELN系统-Vue3/src/views/Workbench.vue + src/data/mock.js）：
-#   meta:   { greeting, role, updatedAt, notice, statusMachine }
-#   kpis:   [{ label, value, trend, to? / anchor?, tone? }]
-#   todos:  [{ type, title, due, status, tone? }]
-#   dist:   [{ label, num, color }]
-#   groups: [{ name, leader, rate, tone? }]
-#   entries:[{ label, to }]
+# 形状（grilling Q1~Q15 定型，2026-10-12）：
+#   meta:    { greeting, role, updatedAt, notice }
+#   todos:   [{ kind:'task'|'receipt_pending', type, title, due, overdue, status, tone, to }]
+#   approvals:[{ kind:'resource_application'|'task_close'|'receipt', type, title, due, status, tone, to }]
+#   projects:[{ name, status, statusLabel, role, taskSummary, to }]
+#   links:   { projectsAll, resourceApplicationsAll }   # 无承载面 ⇒ nil（显式留白）
+#   totals:  { todos, approvals, projects }             # 真实总数（超 20 时「共 M 条」用）
 #
-# 五条口径：
-#   1. **全部实时读库**：不做缓存快照、不建中间表。
-#   2. **状态一律用数据库真名**：MyModule 走原生动态状态流 `my_module_statuses`。
-#      颜色由本服务下发（组件内不硬编色值）。
-#   3. **取不到就显式留白**：原生无承载面的概念给空数组 / '—'，不编演示值。
-#   4. **链接由本服务下发**：`entries[].to` 从宿主 `Rails.application.routes`
-#      的真实 path helper 取（项目铁律：前端不写死宿主路由）。
-#   5. **四角色差异化本轮不做**：原型画布只承载「项目负责人」单视图（OPEN-WORKBENCH-4）。
+# 与旧版（ADR-0045 合并时的六块仪表盘）的本质区别：旧版回答「有多少」（KPI/分布/小组），
+# 本版回答「我现在该做什么」。统计块已全删（Q1=A）——工作台不复述别处已有的数字。
 #
-# 权限模型（access_control D8 同源同层）：沿用原生 Canaid，不新建权限位。
-#   「当前用户能读的 project」= ::Project.readable_by_user(user) ∩ 当前 team。
+# 六条口径（全部来自 grilling 裁决，勿改）：
+#   1. 「你能看到」= readable_by_user ∩ current_team（Q5=A，team 闸门不变）。
+#   2. 待办只收**未完成**任务（state=uncompleted ∧ 状态非 final），逾期置顶红标（Q2=B）。
+#   3. 审批收四条真源（Q3=A）：资源申请初审/终审、任务关闭、到货验收（「待我审」）
+#      + 我的申请待验货（申请人侧，入待办区）。判定一律问名单真源，工作台不自己推断。
+#   4. 「正在进行的项目」= ProjectListScope.participated（Q4=A）——与「参与项目」KPI
+#      同一真源，两侧数字必须逐位相等。
+#   5. 全链路排除归档（Q14=A）：项目 ∩ 实验 ∩ 任务 均未归档。
+#   6. 每条都必须点进去能动（Q11=A/Q15=A）：工作台是「发现器」，动作在详情页做。
+#      URL 全部由本服务用宿主/引擎真实 path helper 下发（前端不写死宿主路由）。
 #
-# ⚠ 未决项：OPEN-WORKBENCH-1（UserGroup 无 leader 承载列 → `leader` 恒 '—'）、
-#           OPEN-WORKBENCH-2（Notification 无细粒度触发源 → notice 只报条数）。
-# ✅ 已闭环：OPEN-1（项目负责人双轨）—— 2026-10-05 落成 `project_lead?`：
-#           supervised_by 或 Project 级 Owner 命中任一即算（生产实测两条轨道各有一半人）。
-# ✅ 已闭环（V1.27）：第三张 KPI 卡由「项目总花费」改为「参与项目」。参与/负责口径与
-#           项目列表页**共用单一真源** `Scinote::ElnUi::ProjectListScope` —— 卡片数字必须
-#           逐位等于点进去列表页筛出来的条数，两侧同一段可变代码才守得住该不变式。
+# 权限模型（access_control D8 同源同层，不新建权限位）：
+#   任务/项目面 = 原生 Canaid（Project.readable_by_user）；审批面 = 名单真源
+#   （ResourceApprovalPolicy / TaskCloseWorkflow.reviewable_project_ids）。
 module Scinote
   module ElnUi
     class WorkbenchPayload
@@ -45,46 +43,17 @@ module Scinote
       TEAM_ASSIGNABLE_TYPE = 'Team'
       PROJECT_ASSIGNABLE_TYPE = 'Project'
 
-      # 条形图色降级：原生「Not started」的色是 #FFFFFF，画在白底卡片上等于隐形。
-      NEUTRAL_BAR_COLOR = '#B0B0B0'
-      # 小组完成率达标线（≥80% = done，<80% = warn）
-      RATE_DONE_THRESHOLD = 80
-
-      # 个人待办上限（画布只给了 3 条的高度，超过会让版式塌）
-      TODO_LIMIT = 6
-      TODO_APPROVAL_SLOTS = 3
-
-      # dist 条形图最多画几条 + kpis[项目任务].trend 最多列几个分项（口径同一处取数）。
-      DIST_LIMIT = 6
-      TASK_TREND_LIMIT = 3
+      # 三区上限（Q10=B：与宿主 AG Grid 默认页大小一致）。
+      TODO_LIMIT = 20
+      APPROVAL_LIMIT = 20
+      PROJECT_LIMIT = 20
 
       # 无真源时的显式留白（不是演示文案）
       DASH = '—'
 
-      # 「小组数」卡页内锚点的目标 DOM id（= 右列「小组汇总」卡的 id，Q2 裁决）。
-      #   ⚠ 由 **payload 下发**，不在组件里硬编 —— 与「前端不写死宿主路由」同一条铁律：
-      #   跳转目标属于「服务端知道、前端不该猜」的信息。
-      #   ⚠ 原型 `ELN系统-prototype.html` 里同一张卡的 id 必须与这个值一致
-      #   （改这里要同步改原型，否则三方对齐断链）。
-      GROUPS_ANCHOR_ID = 'eln-wb-groups'
-
-      # ------------------------------------------------------------
-      # 🔴 V1.27：本类**不再输出任何花费卡**（第三张 KPI 卡已由「项目总花费」改为「参与项目」）。
-      #
-      #   历史（V1.25）：这里原先持有两条花费口径常量（`COSTABLE_WHERE` / `CONSUME_ONLY_WHERE`），
-      #   它们是 eln_ui 侧同一件事的**第二份定义**（漏了设备模板剔除、范围也不同），故被删除，
-      #   统一改调 `Scinote::ElnUi::ProjectCosts`（单一真源）。
-      #   V1.27 又把「项目总花费」整张卡连同其取数私有方法一并删除 —— 花费展示完整地留在资源中心
-      #   花费页签，工作台不再复述。
-      #
-      #   🔴🔴 但**千万别顺手把下面这些也删了**（删了当场 500 或破坏别处）：
-      #     · `WorkbenchPayload#pct` —— 本文件**小组完成率**在用（group_row），与花费无关；
-      #     · `Scinote::ElnUi::ProjectCosts` / `Scinote::ElnUi::MoneyFormat` —— 资源中心
-      #       花费页签（res_center_payload）、项目详情花费面板（project_detail_payload#cost_block）、
-      #       `Scinote::ElnUi::EquipmentTemplateFilter` 都还在用；
-      #     · 前端 mock.js 里资源中心/项目详情用的花费数据。
-      #   「工作台不再用」≠「没人用」—— 删之前先 grep 全仓。
-      # ------------------------------------------------------------
+      # 项目三态标签（status 值复用 project_list_payload#status_of 的推导：
+      #   done_at 有值=done / started_at 空=notstarted / 否则 active）
+      PROJECT_STATUS_LABELS = { 'notstarted' => '未开始', 'active' => '进行中', 'done' => '已完成' }.freeze
 
       class << self
         def call(user:, team:)
@@ -99,53 +68,62 @@ module Scinote
 
       def call
         {
-          meta: {
-            greeting: greeting_value,
-            role: role_value,
-            updatedAt: "数据更新于 #{Time.current.strftime('%H:%M')}",
-            notice: notice_value,
-            statusMachine: status_machine_value
-          },
-          kpis: kpis_block,
+          meta: meta_block,
           todos: todos_block,
-          dist: dist_block,
-          groups: groups_block,
-          entries: entries_block
+          approvals: approvals_block,
+          projects: projects_block,
+          links: links_block,
+          totals: totals_block
         }
       end
 
       private
 
-      # 宿主真实 path helper 的入口（entries 快捷入口 + kpis 下钻目标共用）。
+      # 宿主真实 path helper 的唯一入口（本服务所有链接都走它）。
       #   ⚠ 必须真的存在：写错 helper 名 = 加载期 NoMethodError，
-      #   这是好事（当场炸），别再包一层 rescue 把它变成静默兜底 ——
-      #   隔壁 notifications_payload 就因为这么干，把 `eln_res_apply_path`
-      #   这个错误名字藏了很久（见该文件 subject_url 的注释）。
+      #   这是好事（当场炸），别再包一层 rescue 把它变成静默兜底。
       def host_routes
         @host_routes ||= ::Rails.application.routes.url_helpers
       end
 
       # ------------------------------------------------------------
-      # 共用：当前 team 下「我能读」的 project（Canaid 同源同层）
+      # 共用 scope（一次 memo，全类复用）
       # ------------------------------------------------------------
-      # ⚠ 只读**两处**（scope + ids），project_lead? / project_owner? 复用同一个 scope，
-      #   不再各自重算一遍 `readable_by_user ∩ team`。
+      # 当前 team 下「我能读」的 project（Canaid 同源同层）
       def readable_projects
         @readable_projects ||= ::Project.readable_by_user(@user).where(team_id: @team.id)
       end
 
-      def readable_project_ids
-        @readable_project_ids ||= readable_projects.pluck(:id)
+      # Q14=A：三区全链路排除归档 —— 项目级先筛 active
+      def active_readable_projects
+        @active_readable_projects ||= readable_projects.active
       end
 
-      # 该 team 可读范围内的全部 MyModule（工作台所有「任务」口径的底座）
-      def team_my_modules
-        ::MyModule.where(experiment_id: ::Experiment.where(project_id: readable_project_ids).select(:id))
+      def active_readable_project_ids
+        @active_readable_project_ids ||= active_readable_projects.pluck(:id)
+      end
+
+      # 「我负责的项目」ids（双轨，与 ProjectListScope.responsible_condition 同语义）。
+      # ⚠ 用 Arel 条件而不是逐项目问 ORM：20 个项目 = 20 次查询正是本仓禁止的形态。
+      def responsible_project_ids
+        @responsible_project_ids ||= ::Project.where(team_id: @team.id)
+                                              .where(::Scinote::ElnUi::ProjectListScope.responsible_condition(@user))
+                                              .pluck(:id)
       end
 
       # ------------------------------------------------------------
-      # 1. meta
+      # 1. meta（页头：问候 + 角色徽标 + 更新时间 + 未读通知）
+      #    statusMachine 随分布图一并删除（Q1=A）。
       # ------------------------------------------------------------
+      def meta_block
+        {
+          greeting: greeting_value,
+          role: role_value,
+          updatedAt: "数据更新于 #{Time.current.strftime('%H:%M')}",
+          notice: notice_value
+        }
+      end
+
       def greeting_value
         "#{period_word}好，#{@user.full_name}"
       end
@@ -169,14 +147,9 @@ module Scinote
       # 「单位管理员」= 当前**单位（Team）**上的宿主角色是 Owner。
       #
       # 🔴 2026-10-05 修（原实现把三种人混算成一种）：
-      #   原写法是
-      #     UserAssignment.where(user_id:).joins(:user_role).where(user_roles: { name: 'Owner' }).exists?
-      #   —— **不限 assignable_type**，于是「在某个 Project / Experiment / MyModule 上
-      #   挂着 Owner」也被算作单位管理员。
-      #   生产实测（4 个用户的库）：3 个被贴上「单位管理员 · Owner」，
-      #   而全库 **Team 级 Owner 只有 1 条**。
-      #   典型样本 hrtsea@qq.com：Team 级角色是 `User`，Owner 命中全是
-      #   {Experiment: 96, MyModule: 50, Project: 4} —— 他其实是 203 个项目的负责人。
+      #   原写法不限 assignable_type，于是「在某个 Project / Experiment / MyModule 上
+      #   挂着 Owner」也被算作单位管理员。生产实测（4 个用户的库）：3 个被贴上
+      #   「单位管理员 · Owner」，而全库 Team 级 Owner 只有 1 条。
       def team_admin?
         return false if @user.nil? || @team.nil?
 
@@ -192,16 +165,12 @@ module Scinote
       #   生产实据 —— 两条轨道各有一半人，只认一条必然把另一半降级：
       #     dy@qq.com      : Project 级 Owner 283 个 / supervised_by 0 个
       #     hrtsea@qq.com  : supervised_by 203 个 / Project 级 Owner 4 个
-      #   ⚠ 双轨是**并列**不是「Owner 优先」：两者都指向同一档展示文案，
-      #     分优先级只会多一次查询，改变不了任何人的标签。
       def project_lead?
         return false if @user.nil?
 
         readable_projects.where(supervised_by_id: @user.id).exists? || project_owner?
       end
 
-      # ⚠ 用子查询而不是 `assignable_id: readable_project_ids`：
-      #   后者会把全部 id 拼成 IN 列表（生产实测单用户可读项目可达 288 个）。
       def project_owner?
         ::UserAssignment.where(user_id: @user.id, assignable_type: PROJECT_ASSIGNABLE_TYPE)
                         .where(assignable_id: readable_projects.select(:id))
@@ -217,144 +186,233 @@ module Scinote
         count.to_i.zero? ? '暂无未读通知' : "#{count} 条未读通知"
       end
 
-      # 🔴 V1.25：未读数走 **eln_ui 的单一真源**（`NotificationsPayload.scope_for`）——
-      #   宿主顶栏徽标（navigations_controller.rb:103）与通知中心列表用的是同一个
-      #   `notifications.in_app.where(read_at: nil)` 口径。三处必须是同一个数，
-      #   否则「铃铛显示 3、点开只有 1 条」这个 bug 会换个地方复发。
-      #   ⚠ 旧写法用 `recipient_type/recipient_id` 明文条件且不筛 in_app ——
-      #   多态列名写死是脆的（写错静默查空），`in_app` 漏筛会把 hide_in_app 的通知也数进去。
+      # 未读数走 **eln_ui 的单一真源**（NotificationsPayload.unread_count_for）——
+      # 宿主顶栏徽标（navigations_controller.rb:103）与通知中心列表用的是同一个
+      # `notifications.in_app.where(read_at: nil)` 口径。三处必须是同一个数。
       def unread_notification_count
         ::Scinote::ElnUi::NotificationsPayload.unread_count_for(@user)
       end
 
-      def status_machine_value
-        ::MyModuleStatus.order(:id).pluck(:name).join(' / ')
-      end
-
       # ------------------------------------------------------------
-      # 2. kpis（私有化部署不输出云版 Token 卡 → 只出 3 张）
-      #
-      # V1.27 三张卡：小组数（页内锚点）/ 项目任务（项目列表页）/ **参与项目**（成员筛选后的
-      #   项目列表页）。第三张原为「项目总花费」，已删除。
-      #
-      # 🔴 V1.25：每张卡都带**下钻目标**（spec SCN-DASH-8）。两个字段互斥：
-      #   `to`     = 宿主真实路由（整页跳转），由宿主 path helper 生成；
-      #   `anchor` = 本页内目标卡的 DOM id（页内滚动 + 高亮），不下发 '#' 前缀。
-      #   原生没有承载面的概念**一律不给 target**（拿到假 punch 前端照样跳不动），
-      #   前端据此决定「可点 / 不可点」，不再由自己去猜路由。
+      # 2. todos（待办事项：我的未完成任务 + 我的申请待验货）
+      #    Q2=B：未完成（state=uncompleted ∧ 状态非 final），逾期置顶红标
+      #    （due_date 早于今天；今天到期不算逾期但排最前）。
+      #    Q14=A：项目 ∩ 实验 ∩ 任务 均未归档。
       # ------------------------------------------------------------
-      def kpis_block
-        [groups_kpi, tasks_kpi, participation_kpi]
+      def todos_block
+        entries = task_todo_entries + receipt_todo_entries
+        sort_todos(entries).first(TODO_LIMIT).map { |entry| entry[:item] }
       end
 
-      # ① 小组数 = 当前 team 的小组数；trend = 覆盖组员人数（真数）
-      #
-      # 下钻 = **页内锚点**到右下「小组汇总」卡（本轮 Q2 裁决）。
-      #   ⚠ 为什么不是新建「小组列表页」：原生没有跨项目小组清单的承载面，
-      #     而同页右下角本来就有一张小组汇总 —— 跳走反而丢上下文（Q1：只接已存在的承载面）。
-      def groups_kpi
-        groups = team_user_groups
-        { label: '小组数', value: groups.size.to_s,
-          trend: groups.empty? ? '' : "覆盖 #{group_member_count(groups)} 名组员",
-          anchor: GROUPS_ANCHOR_ID }
+      # 排序键（一次算清，避免在 map 里反复问 ORM）：
+      #   ① 逾期（due < 今天）置顶；
+      #   ② 其余按 due 升序，无 due 的排最后；
+      #   ③ 同 due 按创建时间倒序；再同按 id 倒序（确定性，防 sort 不稳定）。
+      def sort_todos(entries)
+        far_future = Date.new(9999, 12, 31)
+        entries.sort_by do |e|
+          due = e[:due_date]
+          [due && due < Time.zone.today ? 0 : 1,
+           due || far_future,
+           -e[:created_at].to_i,
+           -e[:id]]
+        end
       end
 
-      def team_user_groups
-        @team.user_groups
+      def task_todo_entries
+        my_open_tasks.order(TASK_TODO_ORDER).limit(TODO_LIMIT).map do |mod|
+          { due_date: mod.due_date, created_at: mod.created_at, id: mod.id, item: task_todo(mod) }
+        end
       end
 
-      def group_member_count(groups)
-        ::UserGroupMembership.where(user_group_id: groups).distinct.pluck(:user_id).size
+      # 我的申请待验货（申请人侧欠账，Q3=A 并入待办区）。
+      # ⚠ 复用 ReceiptPendingBook.for_applicant（单一真源：project_approved ∧ 材料类 ∧
+      #   未达验货阈值），只在 Ruby 侧补筛 team ∧ 未归档 —— 该类按申请人计数、
+      #   不过 team，而工作台是 team 视角（Q5=A）。申请人侧单子量级小，Ruby 筛不开SQL。
+      def receipt_todo_entries
+        receipt_todo_apps.sort_by { |app| [app.created_at, app.id] }
+                         .reverse
+                         .first(TODO_LIMIT)
+                         .map { |app| receipt_todo_entry(app) }
       end
 
-      # ② 项目任务 = 该 team 可读 project 下的 MyModule 总数
-      #    trend 取**数量最多的前 3 个真实状态名**（不翻译、不猜语义），
-      #    逐条与 dist 的条形标签对得上，不出现靠正则猜出来的「已完成 N」假数。
-      #
-      # 下钻 = 项目列表页（Q3 裁决）：原生任务始终挂在某个实验下，**没有跨项目的
-      #   任务清单页**，所以这里给的是四级链路的入口（REQ-PROJ-LIST：
-      #   项目列表 → 项目详情 → 实验详情 → 任务详情）。
-      #   「跨项目任务列表页」另立 issue（宿主无承载面时不编页面，Q1）。
-      def tasks_kpi
-        { label: '项目任务', value: team_my_modules.count.to_s,
-          trend: status_counts.first(TASK_TREND_LIMIT).map { |status_id, num|
-                   status = status_for(status_id)
-                   next nil if status.nil?
-
-                   "#{status.name} #{num}"
-                 }.compact.join(' · '),
-          to: host_routes.eln_project_list_path.to_s }
+      def receipt_todo_entry(app)
+        { due_date: nil, created_at: app.created_at, id: app.id, item: receipt_todo(app) }
       end
 
-      # ③ 参与项目 = 我在本单位的**参与项目数**；trend = 「其中我负责 M 个」。
-      #
-      # 口径（用户拍板，勿改）单一真源 = `Scinote::ElnUi::ProjectListScope`
-      #   （与项目列表页 controller 同一个类 —— 不再是「两处各写一遍 scope」，
-      #    那正是本项目两次出事的形态）：
-      #     参与 = 项目列表 scope（team ∩ template[false,nil] ∩ readable ∩ active）
-      #            ∩ 我的 Project 级 UserAssignment；
-      #     负责 = projects.supervised_by_id==我 或 我在该项目上有 Project 级 Owner 角色的 UA
-      #            （双轨并集，与 project_lead? / project_owner? 同语义，由真源类复用求值）。
-      #
-      # 下钻 = 宿主项目列表页，**带成员筛选** + **显式 view_mode=active**：
-      #   · 不带成员筛选 → 卡片数字（参与数）与点进去的列表（可读全量）会对不上，
-      #     这正是本卡存在的意义（卡片数字 ≡ 点进去筛出来的条数）。
-      #   · 显式带 view_mode=active：卡片只统计**活动**项目，把口径写进 URL 才自描述 ——
-      #     否则两侧一致就依赖「列表页默认视图恰好是 active」这个隐含约定，将来谁把默认
-      #     改成全量就静默漂开（同一件事两份定义的复发形态）。
-      #   ⚠ URL 由宿主 path helper 生成，**不手写字符串路径**（路由改名自动跟随）。
-      #
-      # 「负责数」**不给下钻**：宿主没有「我负责的项目列表」承载面（列表页只按成员筛，
-      #   没有「负责人=我」这一轴），所以 trend 是**纯文本**、整卡只给一个 to，不给 anchor。
-      #   ⚠ M=0 时 trend 必须是**空串**（不是「其中我负责 0 个」）：0 是噪声，会让副行
-      #     看起来像有信息（用户明确要求）。
-      def participation_kpi
-        stats = ::Scinote::ElnUi::ProjectListScope.participation(team: @team, user: @user)
-        responsible = stats[:responsible].to_i
-
+      def task_todo(mod)
+        status = statuses_by_id[mod.my_module_status_id]
         {
-          label: '参与项目',
-          value: stats[:participated].to_i.to_s,
-          trend: responsible.zero? ? '' : "其中我负责 #{responsible} 个",
-          to: host_routes.eln_project_list_path(
-            filters: { members: [@user.id] }, view_mode: 'active'
-          ).to_s
+          kind: 'task',
+          type: '任务',
+          title: mod.name.to_s,
+          due: due_label(mod),
+          overdue: overdue?(mod),
+          status: status&.name.to_s.presence || DASH,
+          tone: overdue?(mod) ? 'danger' : 'warn',
+          to: task_url(mod)
         }
       end
 
-      # ⚠ 保留下方 `pct`（V1.27 删花费卡时**绝不能跟着删**）：它是**小组完成率**在用的
-      #   百分比算法（见 group_row → rate / tone），与花费无关。删它 = 小组完成率当场 500。
-      def pct(part, total)
-        ((part.to_d * 100) / total.to_d).round
-      end
-
-      # ------------------------------------------------------------
-      # 3. todos（个人待办，最多 6 条）
-      # ------------------------------------------------------------
-      def todos_block
-        approvals = pending_approvals(TODO_APPROVAL_SLOTS).map { |app| approval_todo(app) }
-        room = [TODO_LIMIT - approvals.size, 0].max
-        (approvals + module_todos(room)).first(TODO_LIMIT)
-      end
-
-      # ① 待我审的资源申请：同队 + 非本人（审批口径与 ResourceApplicationWorkflow 同源）。
-      #    ⚠ limit 交给 SQL：先 .to_a 再 .first(N) 会把全队申请全捞进内存再砍。
-      def pending_approvals(limit)
-        ::Scinote::ElnUi::ResourceApplication.for_team(@team)
-                                             .where(status: %w[submitted group_approved])
-                                             .where.not(requestor_id: @user.id)
-                                             .order(created_at: :desc)
-                                             .limit(limit)
-      end
-
-      def approval_todo(app)
+      def receipt_todo(app)
         {
+          kind: 'receipt_pending',
+          type: '资源申请 · 待验货',
+          title: approval_title(app),
+          due: DASH,
+          overdue: false,
+          status: '待验货',
+          tone: 'warn',
+          to: host_routes.eln_res_apply_detail_path(app.no).to_s
+        }
+      end
+
+      # 我的未完成任务（Q2=B + Q14=A）。scope 与总数查询共用（limit 只加在列表侧）。
+      def my_open_tasks
+        scope = ::MyModule.where(experiment_id: unarchived_experiment_ids.select(:id))
+                          .where(archived: false, state: 'uncompleted')
+        # 状态非 final。⚠ final_status_ids 可能为空（没配 flow）——
+        # 空数组进 where.not 会变成 `IS NOT NULL`，把无状态任务误杀，故必须守卫。
+        scope = scope.where.not(my_module_status_id: final_status_ids) if final_status_ids.any?
+        scope.joins(:user_assignments)
+             .where(user_assignments: { user_id: @user.id })
+             .distinct
+      end
+
+      TASK_TODO_ORDER = Arel.sql('my_modules.due_date ASC NULLS LAST, my_modules.created_at DESC').freeze
+
+      def unarchived_experiment_ids
+        ::Experiment.where(project_id: active_readable_project_ids, archived: false)
+      end
+
+      def overdue?(mod)
+        mod.due_date.present? && mod.due_date < Time.zone.today
+      end
+
+      # due_date 是真列（my_modules.due_date），有值才写，没值就 '—'
+      def due_label(mod)
+        return DASH if mod.due_date.blank?
+
+        mod.due_date.strftime('%m-%d')
+      end
+
+      def task_url(mod)
+        return nil if mod.experiment_id.blank?
+
+        host_routes.eln_task_detail_path(mod.experiment_id, mod).to_s
+      end
+
+      # ------------------------------------------------------------
+      # 3. approvals（审批事项：待我审，Q3=A 四条真源之三）
+      #    段序固定（资源申请 → 任务关闭 → 到货验收），段内提交时间倒序（Q8=A）。
+      #    ⚠ 全区上限 APPROVAL_LIMIT：资源申请独占 20 条时后两段会让位
+      #      （极端场景；真实总数见 totals，资源申请段有「查看全部」承载）。
+      # ------------------------------------------------------------
+      def approvals_block
+        (resource_approval_apps.first(APPROVAL_LIMIT).map { |app| resource_approval(app) } +
+         task_close_requests.first(APPROVAL_LIMIT).map { |req| task_close_approval(req) } +
+         receipt_apps.first(APPROVAL_LIMIT).map { |app| receipt_approval(app) }).first(APPROVAL_LIMIT)
+      end
+
+      # ① 资源申请（submitted 待初审 / group_approved 待终审）。
+      #   口径 = ResourceApprovalPolicy.approvable_project_ids（负责人 ∪ Owner UA ∪ 任一阶段
+      #   被指名）∩ 可读活动项目。⚠ 这里**不再**用旧的「同队 + 非本人」推断 —— 真闸门是
+      #   ProjectApprover 显式名单（fail-closed，ADR-0029），两处分歧会出现
+      #   「列了 3 条、点进去 2 条没权限审」。
+      def resource_approval_apps
+        @resource_approval_apps ||= begin
+          pids = ::Scinote::ElnUi::ResourceApprovalPolicy.approvable_project_ids(@user, @team) &
+                 active_readable_project_ids
+          if pids.empty?
+            []
+          else
+            ::Scinote::ElnUi::ResourceApplication
+              .where(project_id: pids, status: %w[submitted group_approved])
+              .order(created_at: :desc)
+              .to_a
+          end
+        end
+      end
+
+      def resource_approval(app)
+        stage = ::Scinote::ElnUi::ResourceApprovalPolicy.pending_stage(app)
+        {
+          kind: 'resource_application',
           type: '资源申请',
           title: approval_title(app),
-          # 资源申请单没有「截止日」列 → 显式留白（OPEN-WORKBENCH-3）
           due: DASH,
-          status: app.submitted? ? '待初审' : '待终审',
-          tone: app.submitted? ? 'primary' : 'purple'
+          status: stage == 'group' ? '待初审' : '待终审',
+          tone: stage == 'group' ? 'primary' : 'purple',
+          to: host_routes.eln_res_apply_detail_path(app.no).to_s
+        }
+      end
+
+      # ② 任务关闭审核（pending）。
+      #   口径 = TaskCloseWorkflow.reviewable_project_ids（Project 级 Owner UA，与
+      #   reviewer? 闸门逐字同源——判一处，页面和后端不各判一次）。
+      #   ⚠ 不放宽到 supervised_by 轨：TaskCloseWorkflow.reviewer? 只认 Owner UA
+      #   （OPEN-1 未裁决前的取法），放宽会让工作台列出点下去被 422 的单。
+      def task_close_requests
+        @task_close_requests ||= begin
+          pids = ::Scinote::ElnUi::TaskCloseWorkflow.reviewable_project_ids(@user) &
+                 active_readable_project_ids
+          if pids.empty?
+            []
+          else
+            ::Scinote::ElnUi::TaskCloseRequest
+              .where(status: 'pending')
+              .where(my_module_id: ::MyModule.where(archived: false,
+                                                    experiment_id: unarchived_experiment_ids.where(project_id: pids).select(:id))
+                                            .select(:id))
+              .order(submitted_at: :desc)
+              .to_a
+          end
+        end
+      end
+
+      def task_close_approval(req)
+        mod = req.my_module
+        {
+          kind: 'task_close',
+          type: '任务关闭',
+          title: mod&.name.to_s.presence || "任务 ##{req.my_module_id}",
+          due: DASH,
+          status: '待审核',
+          tone: 'warn',
+          to: task_url(mod)
+        }
+      end
+
+      # ③ 到货验收（project_approved 的材料单，累计已验未达申请量）。
+      #   口径 = verifiable_project_ids（receipt 阶段名单）∩ 可读活动项目，
+      #   收口判据复用 ReceiptVerification.completed_threshold_reached?
+      #   （与 ReceiptPendingBook 同一条规则——库房数字说话）。
+      #   ⚠ material? 读 item_list JSON（kind=material），只能 Ruby 侧筛。
+      def receipt_apps
+        @receipt_apps ||= begin
+          pids = ::Scinote::ElnUi::ResourceApprovalPolicy.verifiable_project_ids(@user, @team) &
+                 active_readable_project_ids
+          if pids.empty?
+            []
+          else
+            ::Scinote::ElnUi::ResourceApplication
+              .where(project_id: pids, status: 'project_approved')
+              .order(created_at: :desc)
+              .to_a
+              .select { |app| app.material? && !::Scinote::ElnUi::ReceiptVerification.completed_threshold_reached?(app) }
+          end
+        end
+      end
+
+      def receipt_approval(app)
+        {
+          kind: 'receipt',
+          type: '到货验收',
+          title: approval_title(app),
+          due: DASH,
+          status: '待验货',
+          tone: 'purple',
+          to: host_routes.eln_res_apply_detail_path(app.no).to_s
         }
       end
 
@@ -366,156 +424,109 @@ module Scinote
         "#{name}（#{app.no}）"
       end
 
-      # ② 我的任务（MyModule 经 UserAssignment 指向我）
-      #    ⚠ limit 交给 SQL：默认场景我的任务有几十条，而画布只放得下 6 条。
-      def my_open_modules(limit)
-        team_my_modules.joins(:user_assignments)
-                       .where(user_assignments: { user_id: @user.id })
-                       .distinct
-                       .order(created_at: :desc)
-                       .limit(limit)
+      # ------------------------------------------------------------
+      # 4. projects（进行中的项目：参与 ∩ 活动，Q4=A）
+      #    与「参与项目」KPI 同一真源 ProjectListScope.participated —— 卡片/列表条数
+      #    必须逐位相等（本仓铁律：同一事实单一真源）。
+      # ------------------------------------------------------------
+      def projects_block
+        projects = ::Scinote::ElnUi::ProjectListScope
+                   .participated(team: @team, user: @user, view_mode: 'active')
+                   .order(Arel.sql('projects.started_at DESC NULLS LAST, projects.id DESC'))
+                   .limit(PROJECT_LIMIT)
+                   .to_a
+        task_counts = my_open_task_counts(projects)
+        projects.map { |p| project_row(p, task_counts[p.id].to_i) }
       end
 
-      # ⚠ 「次次问 ORM」在这里是纯浪费：`my_module_status` 还好预加载，
-      #   但 `final_status?` 是**查询方法不是关联** —— includes 救不了它，
-      #   实测 72 条任务在这段发 200+ 条 SQL。
-      #   正解：一次性取任务 → 一次性补齐状态 → 拿 id 集合做包含判断。
-      def module_todos(limit)
-        return [] if limit.to_i.zero?
-
-        mods = my_open_modules(limit).to_a
-        return [] if mods.empty?
-
-        statuses = statuses_for(mods.map(&:my_module_status_id).compact.uniq)
-        finals = final_status_ids
-        mods.map { |mod| module_todo(mod, statuses[mod.my_module_status_id],
-                                     finals.include?(mod.my_module_status_id)) }
-      end
-
-      def module_todo(mod, status, final)
+      def project_row(project, task_count)
+        status = status_of(project)
         {
-          type: '任务',
-          title: mod.name.to_s,
-          due: due_label(mod),
-          status: status&.name.to_s.presence || DASH,
-          tone: final ? 'primary' : 'warn'
+          name: project.name.to_s,
+          status: status,
+          statusLabel: PROJECT_STATUS_LABELS[status] || status,
+          role: responsible_project_ids.include?(project.id) ? '负责' : '参与',
+          taskSummary: task_count.positive? ? "#{task_count} 个任务待办" : '',
+          to: host_routes.project_eln_detail_path(project).to_s
         }
       end
 
-      # due_date 是真列（my_modules.due_date），有值才写，没值就 '—'
-      def due_label(mod)
-        return DASH if mod.due_date.blank?
+      # 三态推导与 project_list_payload#status_of 逐字同形（原生无状态列，
+      # 由 started_at / done_at 推导 —— 两处必须同源码，不许各写一遍）。
+      def status_of(project)
+        return 'done' if project.respond_to?(:done_at) && project.done_at.present?
+        return 'notstarted' if project.respond_to?(:started_at) && project.started_at.blank?
 
-        mod.due_date.strftime('%m-%d')
+        'active'
+      end
+
+      # 我在各项目的未完成任务数（Q9=A 的任务摘要）。
+      # ⚠ pluck 后在 Ruby 里 tally：group+count 会被 UA join 放大（同一任务多个角色
+      #   指领会重复计数），而这里要的是「任务数」不是「指派行数」。
+      def my_open_task_counts(projects)
+        return {} if projects.empty?
+
+        ::MyModule
+          .joins(:experiment)
+          .where(experiments: { project_id: projects.map(&:id), archived: false })
+          .where(archived: false, state: 'uncompleted')
+          .joins(:user_assignments)
+          .where(user_assignments: { user_id: @user.id })
+          .distinct
+          .pluck('experiments.project_id', :id)
+          .each_with_object(Hash.new(0)) { |(pid, _id), acc| acc[pid] += 1 }
       end
 
       # ------------------------------------------------------------
-      # 4. dist（任务状态分布：真状态名 + 真色，按数量降序取前 6）
+      # 5. links（「查看全部」：只接已有承载面，Q7=A）
+      #    待办区无跨项目任务清单页 ⇒ 不给链接（前端只显示「共 M 条」）。
       # ------------------------------------------------------------
-      # ⚠ 只有一条 SQL 分组 + 一次取色；不再内部携带 ORM 实例
-      #   （payload 装配不该知道 MyModuleStatus 的内部形状）。
-      def dist_block
-        status_counts.first(DIST_LIMIT).map do |status_id, num|
-          status = status_for(status_id)
-          next nil if status.nil?
-
-          { label: status.name.to_s, num: num, color: bar_color(status) }
-        end.compact
+      def links_block
+        {
+          projectsAll: host_routes.eln_project_list_path(
+            filters: { members: [@user.id] }, view_mode: 'active'
+          ).to_s,
+          resourceApplicationsAll: host_routes.eln_res_center_path(tab: 'apply').to_s
+        }
       end
 
-      # 状态分布：tasks_kpi 的 trend 与 dist_block 是**同一份**分组结果，只查一次。
-      # ⚠ 分组键可能是 nil（任务没挂状态）→ 一律按「查不到」跳过，
-      #   **不能用 find**：find(nil) 直接抛 RecordNotFound，整个 payload 500。
-      def status_counts
-        @status_counts ||= team_my_modules.group(:my_module_status_id).count
-                                          .sort_by { |_, num| -num }
+      # ------------------------------------------------------------
+      # 6. totals（真实总数，超上限时「共 M 条」用；与列表同口径、同一次会话内各查一次）
+      # ------------------------------------------------------------
+      def totals_block
+        {
+          todos: my_open_tasks.count + receipt_todo_apps.size,
+          approvals: resource_approval_apps.size + task_close_requests.size + receipt_apps.size,
+          projects: ::Scinote::ElnUi::ProjectListScope.participation(team: @team, user: @user)[:participated]
+        }
       end
 
-      def status_for(status_id)
-        statuses_by_id[status_id]
+      # receipt_todo_entries 的未截断版（totals 用；memo 防同一请求内跑两遍）
+      def receipt_todo_apps
+        return @receipt_todo_apps if defined?(@receipt_todo_apps)
+
+        @receipt_todo_apps = ::Scinote::ElnUi::ReceiptPendingBook.for_applicant(@user.id)
+                                                                .select { |app| app.project&.team_id == @team.id && !app.project.archived? }
       end
 
-      # dist / tasks_kpi 取的都出自同一份 status_counts → 一次查完。
-      #   ⚠ 别在 map 里逐条 find_by：每多一种状态就多一条 SQL，且两处各雷一遍。
-      def statuses_by_id
-        @statuses_by_id ||= statuses_for(status_counts.map(&:first).compact.uniq)
-      end
-
-      def statuses_for(ids)
-        ::MyModuleStatus.unscoped.where(id: ids).index_by(&:id)
-      end
-
-      # 色值由**本服务**下发（组件内不硬编颜色）；原生浅色（如 Not started 的
-      # #FFFFFF）白底上不可见 → 降级中性灰。
-      def bar_color(status)
-        return NEUTRAL_BAR_COLOR if status.light_color?
-
-        status.color.to_s.strip.presence || NEUTRAL_BAR_COLOR
-      end
-
-      # ⚠ final_status_ids 是小组完成率的判定基准，必须 memo —— 每个小组都要用它。
-      #   原生 MyModuleStatus#final_status? = `my_module_status_flow.final_status == self`，
-      #   而 MyModuleStatusFlow#final_status 又是一次 left_outer_joins + find_by ——
-      #   **每条状态两次查询**；外面套 select(&:final_status?) 就是全表逐条问 ORM。
-      #   改成按 **flow** 问而不是按 **状态** 问：flow 只有恒定的几个，SQL 数从 O(状态数×小组数)
-      #   降到 O(flow 数)。
-      #
-      #   🔴 别下推成「id 不在任何 previous_status_id 里」那种 SQL —— 看着优雅，实际错：
-      #      它成立的前提是状态链线性（一条最多一个后继）。实测不成立：同一个 flow 里可以挂
-      #      多条**互不相连**的状态（本仓库 test 工厂 make_status! 就是这么造的），
-      #      此时「没有后继」的不止一条，而 flow.final_status 只认其中一条
-      #      → 完成率被算高（用例实测：50% 直接变 100%）。
-      #   ⚠ workbench_test 有一条用例盯着「批量版 == 逐条版」，改坏会立刻红。
+      # ------------------------------------------------------------
+      # 状态工具（任务待办的 status 标签用）
+      # ------------------------------------------------------------
+      # ⚠ final_status_ids 按 **flow** 问而不是按 **状态** 问：flow 只有恒定的几个，
+      #   SQL 数从 O(状态数×小组数) 降到 O(flow 数)。
+      #   🔴 别下推成「id 不在任何 previous_status_id 里」那种 SQL —— 状态链不保证线性，
+      #   同一个 flow 可以挂多条互不相连的状态，「没有后继」的不止一条，而
+      #   flow.final_status 只认其中一条 → 完成率被算高（实测 50% 变 100%）。
       def final_status_ids
         @final_status_ids ||= ::MyModuleStatusFlow.all.map { |flow| flow.final_status&.id }.compact.uniq
       end
 
-      # ------------------------------------------------------------
-      # 5. groups（小组汇总；小组为空 → 空数组，绝不回落演示文案）
-      # ------------------------------------------------------------
-      def groups_block
-        team_user_groups.map { |group| group_row(group) }
+      def statuses_by_id
+        @statuses_by_id ||= statuses_for(my_open_tasks.pluck(:my_module_status_id).compact.uniq)
       end
 
-      def group_row(group)
-        user_ids = ::UserGroupMembership.where(user_group_id: group.id).distinct.pluck(:user_id)
-        total, done = member_task_stats(user_ids)
-        rate = total.to_d.zero? ? DASH : "#{pct(done, total)}%"
-        {
-          name: group.name.to_s,
-          # ⚠ 原生 UserGroup 只有 (name/team_id/created_by_id/last_modified_by_id)，
-          #   没有组长承载列（OPEN-WORKBENCH-1）→ 显式 '—'，不猜不编。
-          leader: DASH,
-          rate: rate,
-          tone: rate == DASH ? nil : (pct(done, total) >= RATE_DONE_THRESHOLD ? 'done' : 'warn')
-        }
-      end
-
-      # 组内组员「被指派任务」的完成态占比
-      # ⚠ 两次 pluck 完事，不逐条查：assignment 只需要 id，任务只需要 (id, status_id)。
-      #    分子/分母按**指派行**计（同一任务被多个组员指派算多次），保持原口径。
-      def member_task_stats(user_ids)
-        assignable_ids = ::UserAssignment.where(assignable_type: 'MyModule')
-                                         .where(assignable_id: team_my_modules.select(:id))
-                                         .where(user_id: user_ids)
-                                         .pluck(:assignable_id)
-        return [0, 0] if assignable_ids.empty?
-
-        finals = final_status_ids
-        status_by_mod = team_my_modules.where(id: assignable_ids.uniq).pluck(:id, :my_module_status_id).to_h
-        [assignable_ids.size,
-         assignable_ids.count { |mod_id| finals.include?(status_by_mod[mod_id]) }]
-      end
-
-      # ------------------------------------------------------------
-      # 6. entries（快捷入口：只发真源可达的宿主路由）
-      # ------------------------------------------------------------
-      # ⚠ 原型的「新建实验任务」「报表中心」宿主没有承载面 → **不输出**（显式留白）。
-      def entries_block
-        [
-          { label: '项目管理', to: host_routes.eln_project_list_path.to_s },
-          { label: '资源中心', to: host_routes.eln_res_center_path.to_s }
-        ]
+      def statuses_for(ids)
+        ::MyModuleStatus.unscoped.where(id: ids).index_by(&:id)
       end
     end
   end

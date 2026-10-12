@@ -34,6 +34,20 @@ payload / view / route / test）迁到 eln_ui 并改命名空间。与「解耦�
 **无内部纵向滚动条**（移动端同样友好，见 ADR-0047）。传 `height` 则回退固定高度（override 旋钮）。
 宿主 prop 默认关（`false`）⇒ 原生 `/projects` 等全站表格行为不变。
 
+## 个人行动工作台（eln_workbench）
+`/eln_workbench` 是「每天从这里开始」的个人行动页（ADR-0048）：**只显示需要处理的事**，
+纵排三区 —— 待办事项（我的未完成任务 + 我的申请待验货）/ 审批事项（待我审：资源申请初审终审、
+任务关闭、到货验收，按名单真源判定）/ 进行中的项目（参与 ∩ 活动，与项目列表页同一真源）。
+统计块（KPI 卡/状态分布/小组汇总）已删——工作台不复述别处已有的数字。「你能看到」的边界 =
+当前 team 内可读（`readable_by_user ∩ current_team`）。与「统计仪表盘」相对：后者回答"有多少"，
+前者回答"我现在该做什么"。
+
+## 待我审（审批可见性口径）
+「某条审批该不该出现在我的工作台」不由工作台自己推断，一律问名单真源：
+`ResourceApprovalPolicy`（资源申请/到货验收，`ProjectApprover` 显式名单，fail-closed）与
+`TaskCloseWorkflow.reviewable_project_ids`（任务关闭，Project 级 Owner UA）。工作台列出的每条
+都必须点进去能动——列出去做不了的单就是口径破裂。
+
 ## addon 零入侵契约（ADR-0022）
 宿主 `config/routes.rb` 不得含任何 `to: 'scinote/<addon>/...'` 路由；addon 路由一律由各自
 engine 的 initializer 自注册（`app.routes.append { mount Engine => '/' }`）。启用/禁用只由

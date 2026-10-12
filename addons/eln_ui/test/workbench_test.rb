@@ -1,22 +1,42 @@
 # frozen_string_literal: true
 #
-# 工作台（Workbench）—— 六块数据装配（REQ-DASHBOARD）
+# 个人行动工作台（Workbench）—— ADR-0048 契约测试
 #
-# 守 4 件事（都是「不许编」的铁律落点）：
-#   1. meta.greeting / role / notice 全部来自真源（User 真名 / UserRole —— **按承载面分级**：
-#      Team 级 Owner → 单位管理员；Project 级 Owner 或 supervised_by → 项目负责人 /
+# 守 6 件事（都是「不许编 / 不许漂」的铁律落点）：
+#   1. payload 恰好六块：meta / todos / approvals / projects / links / totals（Q12=A 平铺契约）；
+#   2. meta.greeting / role / notice 全部来自真源（User 真名 / UserRole 按承载面分级 /
 #      原生 Notification 未读数），不落演示文案；
-#   2. dist 用**数据库里真实的 MyModuleStatus 名 + 真色**（不是原型的五个演示标签）；
-#   3. groups / dist 无数据时给**空数组 / '—'**，绝不回落「张负责人」「82%」这类画布值；
-#   4. entries[].to 全部来自宿主路由表真实 helper（前端不写死宿主路由）。
+#   3. todos 只收**未完成**任务（state=uncompleted ∧ 状态非 final）且全链路排除归档（Q2=B/Q14=A），
+#      逾期置顶红标；我的申请待验货（ReceiptPendingBook 真源）并入待办区（Q3=A）；
+#   4. approvals 三条「待我审」真源的判定一律问名单（ResourceApprovalPolicy /
+#      TaskCloseWorkflow.reviewable_project_ids）—— 名单外的人看不到（fail-closed 反例）；
+#   5. projects = ProjectListScope.participated（与「参与项目」KPI 同一真源），
+#      「可读但非成员」的项目不进（Q4=A 口径反例）；
+#   6. 所有 to / links 全部真源可达（recognize_path），前端不写死宿主路由。
 #
 # ⚠ 本文件所有 `def test_*` 必须留在文件末尾的 `private` **之前**，
 #   否则 minitest 静默不执行（runs 数不动就是报警）。
+# ⚠ minitest 用例之间**没有事务回滚**：所有断言必须锚定本场景自建的
+#   user/team/project，别信「全库只有我这条」。
 
 require_relative 'test_helper'
 
 class WorkbenchTest < AcTest::Base
   include Warden::Test::Helpers
+  include ElnUiFactories
+
+  # ============================================================
+  # 契约形状
+  # ============================================================
+
+  # 六块齐全（前端只读这六个 key；旧版 kpis/dist/groups/entries 已删，Q1=A）
+  def test_payload_exposes_exactly_the_six_defined_blocks
+    scene = build_scene!
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+
+    assert_equal %i[meta todos approvals projects links totals], body.keys
+  end
 
   # ============================================================
   # meta：页头 / 角色徽章 / 通知栏
@@ -35,9 +55,6 @@ class WorkbenchTest < AcTest::Base
   end
 
   # ② 普通组员：非 Team 级 Owner、也非任何可读 project 的负责人 → 「普通组员」
-  #    ⚠ 2026-10-04 QA 修：原用例先 make_owner_assignment! 再断言「普通组员」，
-  #      与 payload 的判定优先级（①单位管理员 ②项目负责人 ③普通组员）自相矛盾
-  #      → 实际拿到「单位管理员 · Owner」。这里不再挂 Owner 赋值。
   def test_role_is_plain_member_for_plain_user
     scene = build_scene!
     strip_owner!(scene[:creator])
@@ -48,9 +65,6 @@ class WorkbenchTest < AcTest::Base
   end
 
   # ③ 单位管理员：**Team 级**（单位级）宿主 UserRole = Owner（只认 name，不认 id）
-  #    ⚠ 承载面是这条用例的关键：`make_owner_assignment!` 造的是 Team 级赋值。
-  #      原实现不限 assignable_type，但这里恰好只造 Team 级 ——
-  #      所以源码的宽口径**从未被这条用例触发**，见下面 ③-b 补的那层覆盖。
   def test_role_is_admin_when_owner_assignment_exists
     scene = build_scene!
     make_owner_assignment!(user: scene[:creator], team: scene[:team])
@@ -60,16 +74,7 @@ class WorkbenchTest < AcTest::Base
     assert_equal '单位管理员 · Owner', body[:meta][:role]
   end
 
-  # ③-b 🔴 护栏：Project 级 Owner **不是**单位管理员
-  #
-  # 这是原实现的真实事故形态：`owner_user?` 不限 assignable_type →
-  # 「在某个 Project / Experiment / MyModule 上挂着 Owner」也被算成单位管理员。
-  # 生产实测（4 个用户的库）：**3 个**被贴成「单位管理员 · Owner」，而全库 Team 级 Owner 只有 1 条。
-  # 受害样本 hrtsea@qq.com：Team 级角色是 `User`，Owner 命中全是
-  # {Experiment: 96, MyModule: 50, Project: 4} —— 他其实是 203 个项目的负责人。
-  #
-  # ⚠ 必须先把 **Team 级** Owner 清掉：否则「Team 级命中」与「Project 级误命中」
-  #   两种成因同时为真，用例测不出是哪一条导致的。
+  # ③-b 🔴 护栏：Project 级 Owner **不是**单位管理员（多态表必须限承载面）
   def test_role_is_not_admin_for_project_level_owner_only
     scene = build_scene!(visibility: :visible)
     project = make_project!(team: scene[:team], creator: scene[:creator], visibility: :visible)
@@ -77,10 +82,8 @@ class WorkbenchTest < AcTest::Base
     ensure_team_member!(scene[:creator], scene[:team], role: 'User')
     make_owner_assignment!(user: scene[:creator], team: scene[:team], assignable: project)
 
-    # 前提守卫①：Team 级必须没有 Owner —— 否则测不出「Project Owner 被误算」
     assert_equal false, team_owner_assignment?(scene[:creator], scene[:team]),
                  '前提守卫失败：Team 级仍有 Owner 赋值，两种成因混在一起'
-    # 前提守卫②：Project 级 Owner 必须真的挂上 —— 否则断言恒真（空断言）
     assert_equal true, project_owner_assignment?(scene[:creator], project),
                  '前提守卫失败：Project 级 Owner 没挂上，用例退化成空断言'
 
@@ -88,61 +91,24 @@ class WorkbenchTest < AcTest::Base
 
     refute_equal '单位管理员 · Owner', body[:meta][:role],
                  'Project 级 Owner 被误判成单位管理员 —— 角色判定没限定 assignable_type'
-    assert_equal '项目负责人', body[:meta][:role],
-                 'Project 级 Owner 应落入「项目负责人」（OPEN-1 双轨：supervised_by 或 Project Owner）'
+    assert_equal '项目负责人', body[:meta][:role]
   end
 
-  # ④ 项目负责人：任一**可读** project 的 supervised_by 是自己
-  #    （宽口径，OPEN-1 未决前不收窄）
-  #
-  # ⚠ 语句顺序（2026-10-05 修，别再改回来）：
-  #     supervised_by 赋值 → **strip_owner!** → 以**非 Owner 角色**建可读
-  #   `strip_owner!` 删的是「带 Owner 角色的 UserAssignment」，
-  #   而 `allow_project_read!` 建的那条**本身也是一条 UA**：
-  #     · strip 放最后 → 把刚建的可读赋值一起删掉 → 项目不再 readable
-  #       → project_lead? 落空 → 判成「普通组员」（本用例曾经假红的根因）；
-  #     · strip 放最前但用默认(Owner) 角色建可读 → strip 白清 → team_admin? 又命中。
-  #   所以顺序是「先清、后建」，并且**必须显式传 role: 'User'**。
+  # ④ 项目负责人：任一**可读** project 的 supervised_by 是自己（OPEN-1 双轨）
   def test_role_is_project_lead_when_supervising_readable_project
-    # ⚠ 必须是 visible 项目：build_scene! 默认 visibility=:hidden，
-    #   hidden 项目不进 Project.readable_by_user → project_lead? 落空 → 判成普通组员。
     scene = build_scene!(visibility: :visible)
     project = make_project!(team: scene[:team], creator: scene[:creator], visibility: :visible)
     project.update_column(:supervised_by_id, scene[:creator].id)
     strip_owner!(scene[:creator])
-    # 清 Owner（免 team_admin? 误命中）之后，必须把「人是这个队成员」接回来：
-    # strip_owner! 删的是**带 Owner 角色的 UA**，Team 级那条也在里面 ——
-    # 删完 user.permission_team 变 nil，而 readable_by_user? 是 **team 作用域**
-    # （permission_checkable_model.rb#permission_granted?），前提没了 → 后面白建。
     ensure_team_member!(scene[:creator], scene[:team], role: 'User')
-    # 再以非 Owner 角色建可读（保住 readable_by_user? 这个前提）
     allow_project_read!(project, scene[:creator], role: 'User')
 
-    # 前提守卫①：Owner 必须真的清干净。
-    #   team_admin? 优先级高于 project_lead?，**任意层级**的 Owner 残留都可能让
-    #   role_value 提前返回「单位管理员 · Owner」，把「项目负责人」这条断言掩盖掉。
-    #   ⚠ 口径收窄（2026-10-05）后 team_admin? 只认 Team 级，但本守卫仍按
-    #     「任意层级 Owner = 0」来要求 —— 更严不会错，宽了才会漏。
     still_owner = ::UserAssignment.joins(:user_role)
                                   .where(user_id: scene[:creator].id, user_roles: { name: 'Owner' })
                                   .exists?
-    assert_equal false, still_owner,
-                 '前提守卫失败：Owner 赋值未清干净，不能直接断言项目负责人'
-
-    # 前提守卫②（新增）：strip_owner! 不许把「项目可读」这个前提也带走 ——
-    # 少了这条，守卫①通过 + 业务断言假红 就是同一前提同时造出「假绿 + 假红」的经典坑。
-    # ⚠ 消息里带上诊断（project 的 visibility、角色权限、UA 清单）：
-    #    readable_by_user? 是 **team 作用域**（permission_checkable_model.rb#permission_granted?
-    #    按 user.permission_team 查），这条断言一挂，
-    #    光看「不可读」三字查不出是谁把「人在队里 / 角色有 project_read」这个前提弄没了。
-    ua_desc = ::UserAssignment.where(user_id: scene[:creator].id).map do |a|
-      "#{a.assignable_type}##{a.assignable_id}/#{a.user_role&.name.inspect}"
-    end
+    assert_equal false, still_owner, '前提守卫失败：Owner 赋值未清干净'
     assert project.readable_by_user?(scene[:creator]),
-           "前提守卫失败：项目已不可读（project_lead? 会落空）—— " \
-           "visibility=#{project.visibility.inspect} " \
-           "role=#{(::UserRole.find_by(name: 'User')&.permissions.to_a & ['project_read']).inspect} " \
-           "ua=#{ua_desc.inspect}"
+           "前提守卫失败：项目已不可读（project_lead? 会落空）visibility=#{project.visibility.inspect}"
 
     body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
@@ -152,19 +118,17 @@ class WorkbenchTest < AcTest::Base
   # ⑤ 通知栏：0 条未读 → 「暂无未读通知」（状态描述，不是演示文案）
   def test_notice_reports_empty_state_when_no_unread
     scene = build_scene!
-    allow_project_read!(readable_project(scene), scene[:creator])
+    ::Notification.where(recipient_type: 'User', recipient_id: scene[:creator].id, read_at: nil).delete_all
 
     body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal '暂无未读通知', body[:meta][:notice]
   end
 
-  # ⑥ 通知栏：有未读 → 「N 条未读通知」（只有条数，不编触发源细目 —— OPEN-WB-2）
+  # ⑥ 通知栏：有未读 → 「N 条未读通知」（只有条数，不编触发源细目 —— OPEN-WORKBENCH-2）
   def test_notice_reports_real_unread_count
     scene = build_scene!
     user = scene[:creator]
-    allow_project_read!(readable_project(scene), user)
-    # ⚠ 先把本人历史未读清干净，再放 1 条，断言才不会被别的用例漏进来的行打扰
     ::Notification.where(recipient_type: 'User', recipient_id: user.id, read_at: nil).delete_all
     ::Notification.create!(type: 'GeneralNotification', recipient: user, params: {})
     expected = ::Notification.where(recipient_type: 'User', recipient_id: user.id, read_at: nil).count
@@ -175,414 +139,343 @@ class WorkbenchTest < AcTest::Base
     assert_operator expected, :>=, 1, '用例必须真的造出 1 条未读，否则这条断言是空断言'
   end
 
-  # ⑦ 状态机说明：下发数据库真实状态名，不是原型的五个演示标签
-  def test_meta_status_machine_lists_real_status_names
-    scene = build_scene!
-    status = make_status!(name: 'WB-实测状态')
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    assert_includes body[:meta][:statusMachine], status.name
-  end
-
   # ============================================================
-  # dist：任务状态分布（真状态名 + 真色）
+  # todos：待办事项（我的未完成任务 + 我的申请待验货）
   # ============================================================
 
-  # ① 分组取的是 my_module_statuses 里的真名 + 真色
-  def test_dist_uses_real_database_status_names_and_colors
+  # ① 被指派给我的未完成任务进待办；to 指向任务详情页（真源可达）
+  def test_todo_for_my_assigned_uncompleted_module
     scene = build_scene!
     user = scene[:creator]
-    project = readable_project(scene)
-    allow_project_read!(project, user)
-    status = make_status!(name: 'WB-进行中', color: '#3070ED')
+    project = member_project!(scene)
     exp = make_experiment!(project: project, creator: user)
     mod = make_task!(experiment: exp, creator: user)
-    mod.update!(my_module_status: status)
-    allow_task_read!(mod, user)
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
-
-    dist = body[:dist]
-    refute_nil dist, 'dist 必须有值'
-    assert_equal 1, dist.size, '一个真实状态 → 一行'
-    assert_equal 'WB-进行中', dist.first[:label], '标签必须是数据库里的状态名'
-    assert_equal 1, dist.first[:num]
-    assert_equal '#3070ED', dist.first[:color], '色值由 payload 下发，不能组件硬编'
-  end
-
-  # ② 无任务 → 空数组（绝不回落演示标签）
-  def test_dist_is_empty_array_when_team_has_no_modules
-    scene = build_scene!
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    assert_equal [], body[:dist], '无真实状态数据 → 空数组'
-  end
-
-  # ============================================================
-  # groups：小组汇总
-  # ============================================================
-
-  # ① 小组为空 → 空数组（不回落「一组 · 增韧体系」）
-  def test_groups_is_empty_array_when_team_has_no_user_groups
-    scene = build_scene!
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    assert_equal [], body[:groups], '无小组 → 空数组'
-  end
-
-  # ② 有小组但组员没有任务 → 行存在，组长 '—'、完成率 '—'、不带 tone
-  def test_group_row_shows_dash_when_group_has_no_tasks
-    scene = build_scene!
-    group = make_user_group!(team: scene[:team], name: 'WB-测试小组')
-    allow_project_read!(readable_project(scene), scene[:creator])
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    assert_equal ['WB-测试小组'], body[:groups].map { |g| g[:name] }
-    row = body[:groups].first
-    assert_equal '—', row[:leader], 'UserGroup 无 leader 承载列 → 显式留白（OPEN-WB-1）'
-    assert_equal '—', row[:rate], '无任务 → 完成率留白，不编百分比'
-    assert_nil row[:tone], '无完成率 → 不给 tone'
-  end
-
-  # ③ 完成率是真的：终态任务占多数 → done
-  def test_group_rate_reflects_real_completion_ratio
-    scene = build_scene!
-    user = scene[:creator]
-    project = readable_project(scene)
-    allow_project_read!(project, user)
-    group = make_user_group!(team: scene[:team], name: 'WB-测试小组')
-    ::UserGroupMembership.create!(user_group: group, user: user, created_by: user)
-    final_status = final_status!
-    exp = make_experiment!(project: project, creator: user)
-    done_mod = make_task!(experiment: exp, creator: user)
-    done_mod.update_column(:my_module_status_id, final_status.id)
-    allow_task_read!(done_mod, user)
-    open_mod = make_task!(experiment: exp, creator: user)
-    open_mod.update_column(:my_module_status_id, make_status!(name: 'WB-未开始').id)
-    allow_task_read!(open_mod, user)
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
-
-    row = body[:groups].find { |g| g[:name] == 'WB-测试小组' }
-    refute_nil row, '小组行必须存在'
-    assert_equal '50%', row[:rate], '1/2 完成 → 50%（真算，不写死）'
-    assert_equal 'warn', row[:tone], '50% < 80% → warn'
-  end
-
-  # ============================================================
-  # kpis
-  # ============================================================
-
-  # ① 小组数 = team.user_groups.count，trend 覆盖组员真数
-  def test_groups_kpi_counts_real_user_groups_and_members
-    scene = build_scene!
-    group = make_user_group!(team: scene[:team], name: 'WB-测试小组')
-    ::UserGroupMembership.create!(user_group: group, user: scene[:creator], created_by: scene[:creator])
-    allow_project_read!(readable_project(scene), scene[:creator])
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    kpi = body[:kpis].find { |k| k[:label] == '小组数' }
-    refute_nil kpi, '小组数 KPI 必须存在'
-    assert_equal '1', kpi[:value]
-    assert_includes kpi[:trend], '覆盖 1 名组员'
-  end
-
-  # ② 云版 Token 卡在私有化部署不输出（spec 只在云版要求 Token 项）
-  def test_token_kpi_card_is_not_emitted
-    scene = build_scene!
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    refute body[:kpis].any? { |k| k[:label].include?('Token') }, '私有化部署不输出 Token 卡'
-  end
-
-  # ------------------------------------------------------------
-  # ③ 参与项目卡（V1.27：替换原「项目总花费」卡）
-  #
-  # 口径单一真源 = Scinote::ElnUi::ProjectListScope（列表页与卡片共用）。本组用例守四件事：
-  #   1. **卡片数字 ≡ 点进去列表页筛出来的条数**（走真 HTTP 端点，非循环论证）；
-  #   2. 下钻 URL 带「成员=我」+ view_mode=active 且真能 match 路由；
-  #   3. 负责数**不给下钻**（trend 纯文本、不给 anchor）；
-  #   4. M=0 时 trend 是**空串**（不是「其中我负责 0 个」）。
-  # ------------------------------------------------------------
-
-  # ① 卡片数字 ≡ 列表页筛出条数（逐位一致）—— **本轮第一护栏**
-  #
-  # 🔴 为何非循环：左边走 WorkbenchPayload → ProjectListScope.participation（内联算的），
-  #   右边走**真 controller → 原生 Lists::ProjectsService#filter_project_records**（HTTP）。
-  #   两个数来自两个不同入口，断言里**没有**任何 scope 的二次重抄 —— 这才是它的全部意义。
-  #   ⚠ 特意造一条「**可读但非成员**」的项目（TeamAssignment 给全队只读）：若卡片改用
-  #     readable 范围（绕开成员筛选），卡片会多算这一条 → 立刻红（见对拍 RC-1）。
-  def test_participated_card_equals_list_page_count
-    scene = build_scene!
-    user = scene[:creator]
-    team = scene[:team]
-
-    # 3 个「我参与」的项目（我 = 创建者 → 自动有 Project 级 Owner UA，既是成员也是负责）
-    member_projects = 3.times.map { make_project!(team: team, creator: user) }
-    # 1 个「我可读但**非成员**」的项目（别人建、给全队只读；我没有项目级 UA）
-    foreign = foreign_readable_project!(team: team)
-
-    # 前提守卫：foreign 必须真的「可读」且真的「非成员」，否则这条不变式退化成假绿
-    assert foreign.readable_by_user?(user),
-           '前提守卫失败：foreign 对 user 不可读，则「可读但非成员」这个区分不存在，对拍无效'
-    assert_nil ua_for(foreign, user),
-               '前提守卫失败：foreign 竟有一条 Project 级 UA，则它不是「非成员」，对拍无效'
-
-    card = participated_card(user, team)[:value]
-
-    session = ActionDispatch::Integration::Session.new(Rails.application)
-    Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
-    session.get('/eln_project_list',
-                params: { filters: { members: [user.id] }, view_mode: 'active', format: :json })
-    assert_equal 200, session.response.status, '真端点必须可用（json 出口）'
-    rows = JSON.parse(session.response.body)['projects']
-
-    refute_equal '0', card, '卡片数字非空（防空断言）'
-    refute_empty rows, 'HTTP 列表非空（防空断言）'
-    assert_equal rows.size.to_s, card,
-                 '卡片数字必须 ≡ 点进去列表页筛出来的条数（逐位一致）—— '
-                 'left=WorkbenchPayload，right=真 controller→原生 service'
-    # 顺带对齐已知真值：scene 项目 + 我建的 3 个 = 4（foreign 是非成员，被正确排除）
-    assert_equal (member_projects.size + 1).to_s, card, '参与数 = scene 项目 + 我建的 3 个'
-    assert_equal (member_projects.size + 1), rows.size,
-                 '列表页条数也恰为我参与的项目数（foreign 被成员筛选排除）'
-  end
-
-  # ② 下钻 URL：带成员筛选 + view_mode=active，且真能 match 宿主路由
-  def test_participated_card_carries_member_filtered_drill_url
-    scene = build_scene!
-    user = scene[:creator]
-    card = participated_card(user, scene[:team])
-
-    refute_nil card[:to], '参与项目卡必须给整页下钻目标'
-    assert_includes card[:to], "filters%5Bmembers%5D%5B%5D=#{user.id}",
-                    '下钻必须带「成员=我」筛选（否则卡片数与列表数对不上）'
-    assert_includes card[:to], 'view_mode=active',
-                    '下钻必须显式带 view_mode=active（否则一致依赖默认视图这个隐含约定）'
-    assert_nil card[:anchor], '整页跳转卡不得再给页内锚点（to / anchor 互斥）'
-    assert_routable(card[:to])
-  end
-
-  # ③ 负责数**不给下钻**：trend 是纯文本、无 anchor、不夹带任何地址
-  def test_participated_trend_is_plain_text_without_drill
-    scene = build_scene!
-    user = scene[:creator]
-    card = participated_card(user, scene[:team])
-
-    assert_match(/\A(其中我负责 \d+ 个)?\z/, card[:trend].to_s,
-                 'trend 只能是空串或「其中我负责 M 个」，且 M 为真实数字')
-    refute_match(%r{https?://|/eln_|/projects}, card[:trend].to_s,
-                 '负责数必须纯文本，不夹带任何下钻地址（「负责数不给下钻」的固化）')
-    assert_nil card[:anchor], '负责数不给页内锚点'
-  end
-
-  # ④ M=0 时 trend 留空串 + KPI 行仍是 3 张卡
-  #
-  # 「参与>0 且负责=0」的构造：别人建项目（别人=Owner），我以**非 Owner 角色**被加入。
-  def test_participated_trend_blank_when_zero_responsible
-    scene = build_scene!(visibility: :visible)
-    team = scene[:team]
-    plain = join_team!(make_user!(name: 'wb-plain'), team)
-    owner = join_team!(make_user!(name: 'wb-owner'), team)
-    project = make_project!(team: team, creator: owner)
-    allow_project_read!(project, plain, role: 'User')
-
-    # 前提守卫：plain 必须真的参与（参与>0），否则这条是空断言
-    assert_equal 1, Scinote::ElnUi::ProjectListScope
-                          .participated(team: team, user: plain).distinct.count(:id),
-                 '前提守卫失败：plain 没有参与任何项目'
-    # 前提守卫：plain 负责数必须为 0，否则构造无效（测不到 M=0 分支）
-    assert_equal 0, Scinote::ElnUi::ProjectListScope
-                          .participation(team: team, user: plain)[:responsible],
-                 '前提守卫失败：plain 竟被判为负责'
-
-    card = participated_card(plain, team)
-    assert_equal '参与项目', card[:label]
-    assert_equal '1', card[:value], '参与数应为 1'
-    assert_equal '', card[:trend], 'M=0 时 trend 必须是空串（不是「其中我负责 0 个」）'
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: plain, team: team)
-    assert_equal 3, body[:kpis].size, 'KPI 行仍是 3 张卡'
-    assert_equal %w[小组数 项目任务 参与项目], body[:kpis].map { |k| k[:label] }
-  end
-
-  # ============================================================
-  # todos
-  # ============================================================
-
-  # ① 他人的待审申请进待办；**自己提的不进**（审批口径与 Workflow 同源宽口径）
-  def test_todos_exclude_own_resource_applications
-    scene = build_scene!
-    user = scene[:creator]
-    other = make_user!(name: 'wb-other')
-    project = readable_project(scene)
-    allow_project_read!(project, user)
-    mine = make_resource_application!(project: project, requestor: user, status: 'submitted')
-    theirs = make_resource_application!(project: project, requestor: other, status: 'submitted')
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
-
-    # ⚠ 2026-10-04 QA 修：payload 的 title 是「<物料名>（<编号>）」形状，
-    #   直接拿裸编号断言必然不 include —— 改成「标题里含编号」判定。
-    titles = body[:todos].map { |t| t[:title] }
-    assert titles.any? { |t| t.include?(theirs.no) },
-           "他人提交的待审申请要进「待我审」：titles=#{titles.inspect}"
-    assert titles.none? { |t| t.include?(mine.no) },
-           "自己提的申请不进「待我审」：titles=#{titles.inspect}"
-  end
-
-  # ② 我的任务进待办；due 无真源写 '—'（不编日期）
-  def test_todo_for_my_assigned_module_and_dash_when_no_due_date
-    scene = build_scene!
-    user = scene[:creator]
-    project = readable_project(scene)
-    allow_project_read!(project, user)
-    exp = make_experiment!(project: project, creator: user)
-    mod = make_task!(experiment: exp, creator: user)
-    allow_task_read!(mod, user)
     ua = ua_for(mod, user)
     refute_nil ua, '任务必须有 UserAssignment 才能算「我的任务」'
 
     body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
     todo = body[:todos].find { |t| t[:title] == mod.name }
-    refute_nil todo, '被指派的任务必须出现在待办里'
+    refute_nil todo, '被指派的未完成任务必须出现在待办里'
+    assert_equal 'task', todo[:kind]
     assert_equal '任务', todo[:type]
     assert_equal '—', todo[:due], 'due_date 无值 → 显式留白，不编日期'
+    assert_equal false, todo[:overdue]
     refute_nil todo[:status]
+    assert_includes todo[:to], "/my_modules/#{mod.id}/eln_task_detail", '待办必须带任务详情跳转'
+    assert_routable(todo[:to])
+  end
+
+  # ② 已完成 / 终态 / 已归档任务**不进**待办（Q2=B 只收未完成）
+  def test_completed_and_final_and_archived_modules_are_excluded
+    scene = build_scene!
+    user = scene[:creator]
+    project = member_project!(scene)
+    exp = make_experiment!(project: project, creator: user)
+
+    completed = make_task!(experiment: exp, creator: user, name: 'WB-已完成任务')
+    completed.update_column(:state, 'completed')
+
+    final = make_task!(experiment: exp, creator: user, name: 'WB-终态任务')
+    final.update_column(:my_module_status_id, final_status!.id)
+
+    archived_mod = make_task!(experiment: exp, creator: user, name: 'WB-已归档任务')
+    archived_mod.update_column(:archived, true)
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
+
+    titles = body[:todos].map { |t| t[:title] }
+    refute_includes titles, 'WB-已完成任务', 'state=completed 不是「需要处理的事」'
+    refute_includes titles, 'WB-终态任务', '终态任务不是「需要处理的事」'
+    refute_includes titles, 'WB-已归档任务', '已归档任务不进待办（Q14=A）'
+  end
+
+  # ③ 归档项目 / 归档实验下的未完成任务不进待办（Q14=A 全链路排除归档）
+  def test_modules_under_archived_project_or_experiment_are_excluded
+    scene = build_scene!
+    user = scene[:creator]
+
+    archived_project = member_project!(scene, name: 'WB-归档项目')
+    archived_project.update_column(:archived, true)
+    exp_a = make_experiment!(project: archived_project, creator: user)
+    mod_a = make_task!(experiment: exp_a, creator: user, name: 'WB-归档项目任务')
+
+    live_project = member_project!(scene, name: 'WB-活动项目')
+    exp_b = make_experiment!(project: live_project, creator: user)
+    exp_b.update_column(:archived, true)
+    mod_b = make_task!(experiment: exp_b, creator: user, name: 'WB-归档实验任务')
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
+
+    titles = body[:todos].map { |t| t[:title] }
+    refute_includes titles, 'WB-归档项目任务', '归档项目下的任务不进待办'
+    refute_includes titles, 'WB-归档实验任务', '归档实验下的任务不进待办'
+  end
+
+  # ④ 逾期置顶红标；今天到期不算逾期（Q2=B 边界口径）
+  def test_overdue_todo_is_pinned_first_with_danger_tone
+    scene = build_scene!
+    user = scene[:creator]
+    project = member_project!(scene)
+    exp = make_experiment!(project: project, creator: user)
+
+    overdue_mod = make_task!(experiment: exp, creator: user, name: 'WB-逾期任务')
+    overdue_mod.update_column(:due_date, Time.zone.today - 1)
+
+    today_mod = make_task!(experiment: exp, creator: user, name: 'WB-今天到期任务')
+    today_mod.update_column(:due_date, Time.zone.today)
+
+    future_mod = make_task!(experiment: exp, creator: user, name: 'WB-未来任务')
+    future_mod.update_column(:due_date, Time.zone.today + 5)
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
+
+    titles = body[:todos].map { |t| t[:title] }
+    assert_equal 'WB-逾期任务', titles.first, '逾期任务必须置顶'
+    overdue = body[:todos].find { |t| t[:title] == 'WB-逾期任务' }
+    assert_equal true, overdue[:overdue], 'due_date 早于今天 → overdue'
+    assert_equal 'danger', overdue[:tone], '逾期 → danger 色调（前端渲染红标）'
+    assert_includes overdue[:due], (Time.zone.today - 1).strftime('%m-%d')
+
+    today = body[:todos].find { |t| t[:title] == 'WB-今天到期任务' }
+    assert_equal false, today[:overdue], '今天到期**不算**逾期（边界口径）'
+    assert_equal 'warn', today[:tone]
+
+    assert_operator titles.index('WB-未来任务'), :>, titles.index('WB-今天到期任务'),
+                    '未逾期区按截止日近 → 远'
+  end
+
+  # ⑤ 我的申请待验货进待办（申请人侧欠账，ReceiptPendingBook 单一真源）
+  def test_my_unverified_material_application_appears_in_todos
+    scene = build_scene!
+    user = scene[:creator]
+    project = member_project!(scene)
+    mine = make_resource_application!(project: project, requestor: user, status: 'project_approved')
+    # 服务类**永远不经历货**（SCN-RES-APPROVE-4）→ 不得进待验货
+    service = make_resource_application!(project: project, requestor: user, status: 'project_approved',
+                                         kind: 'service')
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
+
+    todo = body[:todos].find { |t| t[:kind] == 'receipt_pending' && t[:title].include?(mine.no) }
+    refute_nil todo, '我的材料申请已终审未验货 → 进待办（Q3=A）'
+    assert_equal '资源申请 · 待验货', todo[:type]
+    assert_equal '待验货', todo[:status]
+    assert_includes todo[:to], "/eln_res_apply/#{mine.no}"
+    assert_routable(todo[:to])
+    refute body[:todos].any? { |t| t[:title].include?(service.no) },
+           '服务类申请不进待验货（服务不经历货）'
   end
 
   # ============================================================
-  # entries：链接必须来自真实宿主路由（前端不写死宿主路由）
+  # approvals：审批事项（待我审，三条真源）
   # ============================================================
 
-  def test_entries_to_come_from_real_host_routes
+  # ① 资源申请：被配为审批人 → 看得见（submitted=待初审 / group_approved=待终审）
+  def test_resource_application_visible_to_configured_approver
     scene = build_scene!
-    allow_project_read!(readable_project(scene), scene[:creator])
+    team = scene[:team]
+    approver = join_team!(make_user!(name: 'wb-approver'), team)
+    requestor = join_team!(make_user!(name: 'wb-requestor'), team)
+    project = make_project!(team: team, creator: requestor, visibility: :visible)
+    configure_approver!(user: approver, project: project, stages: %w[group project])
+    allow_project_read!(project, approver)
+    submitted = make_resource_application!(project: project, requestor: requestor, status: 'submitted')
+    final_review = make_resource_application!(project: project, requestor: requestor, status: 'group_approved')
 
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: approver, team: team)
 
-    entries = body[:entries]
-    refute_nil entries, 'entries 必须有值'
-    entries.each do |e|
-      refute_nil e[:to]
-      assert e[:to].to_s.start_with?('/'), "宿主路由必须以 / 开头：#{e[:label]} -> #{e[:to]}"
+    first = body[:approvals].find { |a| a[:title].include?(submitted.no) }
+    refute_nil first, '被配为初审人的用户必须看见 submitted 单'
+    assert_equal 'resource_application', first[:kind]
+    assert_equal '待初审', first[:status]
+    second = body[:approvals].find { |a| a[:title].include?(final_review.no) }
+    refute_nil second, '被配为终审人的用户必须看见 group_approved 单'
+    assert_equal '待终审', second[:status]
+  end
+
+  # ② 🔴 fail-closed 反例：不在名单里 → 看不见（哪怕同队、哪怕不是本人提交）
+  def test_resource_application_hidden_from_non_approver
+    scene = build_scene!
+    team = scene[:team]
+    outsider = join_team!(make_user!(name: 'wb-outsider'), team)
+    requestor = join_team!(make_user!(name: 'wb-requestor2'), team)
+    project = make_project!(team: team, creator: requestor, visibility: :visible)
+    clear_approvers!(project)
+    make_resource_application!(project: project, requestor: requestor, status: 'submitted')
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: outsider, team: team)
+
+    refute body[:approvals].any? { |a| a[:kind] == 'resource_application' },
+           '名单外用户不得看见待审申请（fail-closed，ADR-0029）'
+  end
+
+  # ③ 任务关闭审核：项目 Owner（Project 级 Owner UA）看得见 pending 单；
+  #    非 Owner 看不见（与 TaskCloseWorkflow.reviewer? 同口径）
+  def test_task_close_request_visible_to_project_owner_only
+    scene = build_scene!
+    team = scene[:team]
+    owner = join_team!(make_user!(name: 'wb-close-owner'), team)
+    mate = join_team!(make_user!(name: 'wb-close-mate'), team)
+    project = make_project!(team: team, creator: owner, visibility: :visible)
+    make_project_owner!(project, user: owner, team: team)
+    exp = make_experiment!(project: project, creator: owner)
+    mod = make_task!(experiment: exp, creator: owner)
+    make_task_close_request!(my_module: mod, submitted_by: mate)
+
+    owner_body = Scinote::ElnUi::WorkbenchPayload.call(user: owner, team: team)
+    row = owner_body[:approvals].find { |a| a[:kind] == 'task_close' }
+    refute_nil row, '项目 Owner 必须看见任务关闭待审（Q3=A）'
+    assert_equal '任务关闭', row[:type]
+    assert_equal '待审核', row[:status]
+    assert_includes row[:to], "/my_modules/#{mod.id}/eln_task_detail"
+    assert_routable(row[:to])
+
+    mate_body = Scinote::ElnUi::WorkbenchPayload.call(user: mate, team: team)
+    refute mate_body[:approvals].any? { |a| a[:kind] == 'task_close' },
+           '非项目 Owner 不得看见任务关闭待审（与 reviewer? 闸门同口径）'
+  end
+
+  # ④ 到货验收：receipt 阶段名单内的人看得见 project_approved 材料单
+  def test_receipt_verification_visible_to_receipt_stage_approver
+    scene = build_scene!
+    team = scene[:team]
+    verifier = join_team!(make_user!(name: 'wb-verifier'), team)
+    requestor = join_team!(make_user!(name: 'wb-req3'), team)
+    project = make_project!(team: team, creator: requestor, visibility: :visible)
+    configure_approver!(user: verifier, project: project, stages: %w[receipt])
+    allow_project_read!(project, verifier)
+    app = make_resource_application!(project: project, requestor: requestor, status: 'project_approved')
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: verifier, team: team)
+
+    row = body[:approvals].find { |a| a[:kind] == 'receipt' && a[:title].include?(app.no) }
+    refute_nil row, 'receipt 名单内的人必须看见待验货材料单（Q3=A）'
+    assert_equal '到货验收', row[:type]
+    assert_equal '待验货', row[:status]
+    assert_routable(row[:to])
+  end
+
+  # ⑤ 审批事项按来源分小段（前端按 kind 分组；段名取首条 type，不硬编）
+  def test_approvals_carry_kind_and_type_for_frontend_grouping
+    scene = build_scene!
+    team = scene[:team]
+    approver = join_team!(make_user!(name: 'wb-approver2'), team)
+    requestor = join_team!(make_user!(name: 'wb-requestor4'), team)
+    project = make_project!(team: team, creator: requestor, visibility: :visible)
+    configure_approver!(user: approver, project: project, stages: %w[group project receipt])
+    allow_project_read!(project, approver)
+    make_resource_application!(project: project, requestor: requestor, status: 'submitted')
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: approver, team: team)
+
+    body[:approvals].each do |a|
+      refute_nil a[:kind], '每条审批必须带稳定 kind（前端分组用）'
+      refute_nil a[:type], '每条审批必须带展示标签 type（业务命名不下发到组件）'
+      refute_nil a[:status]
+      refute_nil a[:tone]
     end
-    assert_includes entries.map { |e| e[:to] },
-                    '/eln_project_list', '项目管理指向宿主真实列表页'
-  end
-
-  # 原型的「新建实验任务 / 报表中心」宿主无承载面 → 不输出（显式留白）
-  def test_unsupported_prototype_entries_are_not_emitted
-    scene = build_scene!
-
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-
-    labels = body[:entries].map { |e| e[:label] }
-    refute_includes labels, '新建实验任务', '宿主无承载面 → 不输出'
-    refute_includes labels, '报表中心', '宿主无承载面 → 不输出'
   end
 
   # ============================================================
-  # kpis 下钻目标（spec V1.25 · SCN-DASH-8 / SCN-DASH-9）
-  #
-  # 用户报的原 bug：卡片只有数字、点不动。所以目标由**后端下发**（前端不猜路由），
-  # 这里锁三张卡各自的落点，并锁「不给假 target」。
+  # projects：进行中的项目（参与 ∩ 活动，Q4=A）
   # ============================================================
 
-  # 三张卡各自带一个真源可达的下钻目标：
-  #   小组数     → **页内锚点**（右列「小组汇总」卡），值由 GROUPS_ANCHOR_ID 下发；
-  #   项目任务   → 宿主项目列表页（原生没有跨项目任务清单页，只能给四级链路入口）；
-  #   参与项目   → 宿主项目列表页 **带「成员=我」筛选**（V1.27，替换原花费卡）。
-  # ⚠ 同一条卡不允许既给 to 又给 anchor（前端无法判断该跳还是该滚）。
-  def test_kpi_cards_carry_real_drill_targets
+  # ① 我参与的活动项目进列表：三态标签 + 我的角色 + 任务摘要 + 详情跳转
+  def test_participated_active_project_appears_with_status_role_and_summary
     scene = build_scene!
-    allow_project_read!(readable_project(scene), scene[:creator])
+    user = scene[:creator]
+    project = member_project!(scene, name: 'WB-在研项目')
+    project.update_column(:started_at, Time.zone.today)
+    exp = make_experiment!(project: project, creator: user)
+    make_task!(experiment: exp, creator: user)
+    make_task!(experiment: exp, creator: user)
+    done_mod = make_task!(experiment: exp, creator: user)
+    done_mod.update_column(:state, 'completed')
 
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-    kpis = body[:kpis].index_by { |k| k[:label] }
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
-    groups_card = kpis['小组数']
-    refute_nil groups_card
-    assert_equal Scinote::ElnUi::WorkbenchPayload::GROUPS_ANCHOR_ID, groups_card[:anchor],
-                 '小组数卡 → 同页「小组汇总」卡锚点'
-    assert_nil groups_card[:to], '锚点卡不再给整页跳转'
-
-    tasks_card = kpis['项目任务']
-    refute_nil tasks_card
-    assert_equal '/eln_project_list', tasks_card[:to], '项目任务卡 → 项目列表页'
-    assert_nil tasks_card[:anchor], '整页跳转卡不再给锚点'
-
-    participated_card = kpis['参与项目']
-    refute_nil participated_card
-    assert_includes participated_card[:to],
-                    "filters%5Bmembers%5D%5B%5D=#{scene[:creator].id}",
-                    '参与项目卡 → 项目列表页（成员=我）'
-    assert_nil participated_card[:anchor], '整页跳转卡不再给锚点'
+    row = body[:projects].find { |p| p[:name] == 'WB-在研项目' }
+    refute_nil row, '我参与的活动项目必须出现（Q4=A）'
+    assert_equal 'active', row[:status]
+    assert_equal '进行中', row[:statusLabel]
+    assert_equal '负责', row[:role], '创建者 = Project 级 Owner UA → 负责（双轨）'
+    assert_equal '2 个任务待办', row[:taskSummary], '只数未完成任务（完成的那条不算）'
+    assert_includes row[:to], "/projects/#{project.id}/eln_project_detail"
+    assert_routable(row[:to])
   end
 
-  # 下钻目标必须**真能 match 到宿主路由表**才算「真源可达」。
-  #   ⚠ 只断言字符串形状不够：本次修的 notifications_payload 就是「URL 看着像、
-  #     路由里没有」，光比对字符串抓不住。所以这里逐条 recognize_path。
-  def test_kpi_drill_targets_are_routable
+  # ② 归档项目不进；「可读但非成员」的项目不进（Q4=A 口径反例）
+  def test_archived_and_non_member_projects_are_excluded
     scene = build_scene!
-    allow_project_read!(readable_project(scene), scene[:creator])
+    user = scene[:creator]
+    team = scene[:team]
 
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    archived = member_project!(scene, name: 'WB-已结题项目')
+    archived.update_column(:archived, true)
 
-    targets = body[:kpis].filter_map { |k| k[:to] }
-    refute_empty targets, '至少要有两处整页跳转，否则这条是空断言'
-    targets.each { |to| assert_routable(to) }
+    stranger = join_team!(make_user!(name: 'wb-stranger2'), team)
+    foreign = make_project!(team: team, creator: stranger, visibility: :visible)
+    ::TeamAssignment.create!(assignable: foreign, team: team,
+                             user_role: ::UserRole.find_predefined_normal_user_role,
+                             assigned: :manually)
+    assert foreign.readable_by_user?(user), '前提守卫：foreign 必须可读'
+    assert_nil ua_for(foreign, user), '前提守卫：foreign 必须非成员'
+
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: team)
+
+    names = body[:projects].map { |p| p[:name] }
+    refute_includes names, 'WB-已结题项目', '归档项目不进工作台'
+    refute_includes names, foreign.name, '可读但非成员的项目不进（参与口径，Q4=A）'
   end
 
-  # ⚠ 反面：宿主**没有**承载面的概念不许给 target（显式留白）。
-  #   本轮 Q1-A 已裁定：跨项目「小组列表页」/「任务列表页」都不新建，
-  #   所以这张卡只能给锚点/列表页入口，不能凭空给出 /eln_user_groups 之类的假路由。
-  #   这条用例是给未来加卡的人看的：加卡时先问「原生哪张表/哪个页面承载它」。
-  def test_kpi_targets_are_never_invented
+  # ============================================================
+  # links / totals
+  # ============================================================
+
+  # ① 「查看全部」只接已有承载面：项目区带成员筛选 + view_mode=active；
+  #    资源申请段指向资源中心申请单 tab；两者都真源可达
+  def test_links_target_only_existing_surfaces_and_are_routable
     scene = build_scene!
-    allow_project_read!(readable_project(scene), scene[:creator])
+    user = scene[:creator]
 
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
-    body[:kpis].each do |kpi|
-      [kpi[:to], kpi[:anchor]].compact.each do |target|
-        refute_match(/eln_user_groups|\/groups\b|eln_tasks_path|eln_task_list/, target.to_s,
-                     "疑似臆造的目标：#{kpi[:label]} → #{target}（宿主无此承载面）")
-      end
-    end
+    assert_includes body[:links][:projectsAll], "filters%5Bmembers%5D%5B%5D=#{user.id}",
+                    '项目区「查看全部」必须带「成员=我」筛选'
+    assert_includes body[:links][:projectsAll], 'view_mode=active'
+    assert_includes body[:links][:resourceApplicationsAll], 'tab=apply',
+                    '资源申请段指向资源中心申请单页签'
+    assert_routable(body[:links][:projectsAll])
+    assert_routable(body[:links][:resourceApplicationsAll])
   end
 
-  # 🔴 V1.27 已删除 `test_cost_card_value_equals_res_center_cost_tab`（「卡片金额 ≡ 资源中心
-  #   花费页签累计花费」的对账不变式）：第三张 KPI 卡由「项目总花费」改为「参与项目」，
-  #   金额不变式随卡一并退出。花费展示完整地留在资源中心花费页签，工作台不再复述。
-  #   ⚠ 花费本身的护栏（ProjectCosts / MoneyFormat 对账）仍在 eln_ui 侧套件覆盖，
-  #     不是「删了就没人管了」。
-
-  # 六块齐全（前端只读这六个 key）
-  def test_payload_exposes_exactly_the_six_defined_blocks
+  # ② totals 是真实总数（与列表同口径）：待办 = 未完成任务 + 待验货申请
+  def test_totals_report_real_counts
     scene = build_scene!
-    allow_project_read!(readable_project(scene), scene[:creator])
+    user = scene[:creator]
+    project = member_project!(scene)
+    exp = make_experiment!(project: project, creator: user)
+    make_task!(experiment: exp, creator: user)
+    make_task!(experiment: exp, creator: user)
+    done_mod = make_task!(experiment: exp, creator: user)
+    done_mod.update_column(:state, 'completed')
+    make_resource_application!(project: project, requestor: user, status: 'project_approved')
 
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
-    assert_equal %i[meta kpis todos dist groups entries], body.keys
+    assert_equal 3, body[:totals][:todos], '待办总数 = 2 条未完成任务 + 1 条待验货申请'
+    assert_equal 0, body[:totals][:approvals], '本场景没有待我审的单（我没被配进任何名单）'
+    assert_operator body[:totals][:projects], :>=, 1
   end
 
   # ============================================================
   # 完成率基准：final_status_ids 的批量取法必须等价于逐条 final_status?
   # ============================================================
 
-  # payload 为了不再每条状态问两次 ORM，改成按 **flow** 批量取终态。
-  #   ⚠ 这条用例锁的是「口径不变」—— 有人再把它下推成「id 不在任何 previous_status_id 里」
-  #     那种 SQL 会立刻红：同一 flow 里允许挂多条互不相连的状态（本文件 make_status! 就这么造），
-  #     「没有后继」的状态不止一个，而 flow.final_status 只认其中一条 → 完成率被算高。
+  # ⚠ 这条用例锁的是「口径不变」—— 有人再把它下推成「id 不在任何 previous_status_id 里」
+  #   那种 SQL 会立刻红：同一 flow 里允许挂多条互不相连的状态，
+  #   「没有后继」的状态不止一个，而 flow.final_status 只认其中一条 → 完成率被算高。
   def test_final_status_ids_matches_native_predicate
     make_status!(name: 'WB-终态基准') if ::MyModuleStatus.unscoped.count.zero?
 
@@ -600,7 +493,7 @@ class WorkbenchTest < AcTest::Base
 
   private
 
-  # 反向护栏：下钻目标必须真能 match 到宿主路由表（去掉 query 再识别）。
+  # 反向护栏：跳转目标必须真能 match 到宿主路由表（去掉 query 再识别）。
   #   只断言「字符串以 / 开头」抓不住「形状像但路由里没有」这类错 ——
   #   隔壁 notifications_payload 就是手写了一个少一段的 URL，且被写进断言，
   #   套件长期全绿、真机 404。所以这里过一遍真实路由识别。
@@ -608,41 +501,15 @@ class WorkbenchTest < AcTest::Base
     path = to.to_s.split('?').first
     Rails.application.routes.recognize_path(path, method: :get)
   rescue ActionController::RoutingError => e
-    flunk "下钻目标匹配不到任何宿主路由：#{to}（#{e.message}）"
+    flunk "跳转目标匹配不到任何宿主路由：#{to}（#{e.message}）"
   end
 
-  def payload_for(scene)
-    Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
-  end
-
-  # 工作台「参与项目」卡（V1.27 第三张 KPI 卡）。
-  def participated_card(user, team)
-    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: team)
-    card = body[:kpis].find { |k| k[:label] == '参与项目' }
-    refute_nil card, '参与项目 KPI 卡必须存在'
-    card
-  end
-
-  # 造一个「别人建、给全队只读」的项目：被考察的用户对它**可读**（TeamAssignment 携带
-  # project_read → 命中 readable_by_user 的 team_assignments 分支），但**没有 Project 级
-  # UserAssignment**（因此不是成员）。这是「可读 ≠ 参与」的区分载体 ——
-  # 卡片若绕开成员筛选改用它算数，就会多算这一条（对拍 RC-1 因此变红）。
-  #
-  # ⚠ TeamAssignment 必须限 team + 用带 project_read 的真实角色：普通成员角色
-  #   （find_predefined_normal_user_role）的权限里含 ProjectPermissions::READ。
-  def foreign_readable_project!(team:)
-    stranger = join_team!(make_user!(name: 'wb-stranger'), team)
-    project = make_project!(team: team, creator: stranger)
-    ::TeamAssignment.create!(assignable: project, team: team,
-                             user_role: ::UserRole.find_predefined_normal_user_role,
-                             assigned: :manually)
-    project
-  end
-
-  # build_scene! 建的 project 未必对 creator 可读 —— 工作台口径是「可读 project」，
-  # 所以显式补一条可读赋值，避免用例因为「读不到」而全部假红。
-  def readable_project(scene)
-    project = make_project!(team: scene[:team], creator: scene[:creator])
+  # 建一个「creator 可见 + 是成员」的项目。⚠ AcTest 的 make_project! 没有 name 参，
+  # 名字用 update_column 补（可见性不影响 readable_by_user —— 那是纯权限判定，
+  # 但保持 visible 与生产主形态一致）。
+  def member_project!(scene, name: nil)
+    project = make_project!(team: scene[:team], creator: scene[:creator], visibility: :visible)
+    project.update_column(:name, name) if name
     allow_project_read!(project, scene[:creator])
     project
   end
@@ -661,10 +528,8 @@ class WorkbenchTest < AcTest::Base
   end
 
   # strip_owner! 删的是「带 Owner 角色的 UA」，Team 级那条也在其中 ——
-  # 删完 user.permission_team 变 nil，而 readable_by_user? 是 team 作用域
-  # （permission_granted? 先按 (user, permission_team) 查 UA，命中不了就直接落空），
-  # 于是后面再怎么建项目级 UA 都白搭。所以 strip 之后要把「人是队成员」接回来，
-  # 用**非 Owner** 角色（否则 strip 白清，team_admin? 又命中）。
+  # 删完 user.permission_team 变 nil，而 readable_by_user? 是 team 作用域，
+  # 所以 strip 之后要把「人是队成员」接回来，用**非 Owner**角色。
   def ensure_team_member!(user, team, role: 'User')
     role_obj = ::UserRole.find_by(name: role)
     raise "角色 #{role} 不存在（用例前提）" if role_obj.nil?
@@ -675,14 +540,6 @@ class WorkbenchTest < AcTest::Base
     ua.assigned ||= assigned_flag
     ua.save!
     ua
-  end
-
-  def allow_task_read!(mod, user)
-    ua = ::UserAssignment.find_or_initialize_by(assignable: mod, user: user, team: mod.experiment.project.team)
-    ua.user_role ||= read_role!(mod)
-    ua.assigned_by ||= user
-    ua.assigned ||= assigned_flag
-    ua.save!
   end
 
   # user_role 不能为 nil（否则 UserAssignment 校验挂 → 整条用例假红）
@@ -713,11 +570,8 @@ class WorkbenchTest < AcTest::Base
     role
   end
 
-  # 造一条 Owner 赋值。
-  #   assignable 默认 **team** —— 这是「单位管理员」的正确承载面（Team 级）。
-  #   ⚠ 传 project 会造出「**项目级** Owner」，那是**项目负责人**不是单位管理员 ——
-  #     UserAssignment 是多态表，同一条 SQL 换个 assignable_type 就是另一个层级的角色。
-  #     见 test_role_is_not_admin_for_project_level_owner_only。
+  # 造一条 Owner 赋值。assignable 默认 **team**（「单位管理员」的正确承载面）；
+  # 传 project 会造出「项目级 Owner」，那是**项目负责人**不是单位管理员。
   def make_owner_assignment!(user:, team:, assignable: nil)
     target = assignable || team
     role = owner_role!
@@ -745,11 +599,9 @@ class WorkbenchTest < AcTest::Base
   end
 
   # ⚠ MyModuleStatus 是原生动态状态流（my_module_status_id），测试里造一个自己的
-  #   名字来验证「标签来自数据库」这条铁律；校验关掉。
-  #   2026-10-04 QA 修：必须挂 my_module_status_flow —— 原生
-  #   `MyModuleStatus#final_status?` 的实现是 `my_module_status_flow.final_status == self`，
+  #   名字来验证「标签来自数据库」这条铁律；必须挂 my_module_status_flow ——
+  #   原生 `MyModuleStatus#final_status?` 的实现是 `my_module_status_flow.final_status == self`，
   #   flow 为 nil 直接 NoMethodError（payload 的 final_status_ids 也跟着炸）。
-  #   不挂 flow 造出来的「半个状态」是脏数据，不是生产形态。
   def make_status!(name:, color: '#3070ED')
     MyModuleStatus.find_by(name: name) || begin
       flow = MyModuleStatusFlow.order(:id).first ||
@@ -761,9 +613,9 @@ class WorkbenchTest < AcTest::Base
   end
 
   # 前提守卫：用例不该在「已经是 Owner」的前提下断言别的角色。
-  #   ⚠ 2026-10-04 QA 修：minitest 用例之间**没有事务回滚**，上一个用例挂的
-  #     Owner 赋值会留到下一个用例 → 直接 flunk 必挂。改成显式清干净再断言。
-  # ⚠ 必须是 update_all（直接改 role），不能用 destroy_all：
+  #   ⚠ minitest 用例之间**没有事务回滚**，上一个用例挂的 Owner 赋值会留到
+  #     下一个用例 → 直接 flunk 必挂。改成显式清干净再断言。
+  # ⚠ 必须是 delete_all（直接删行），不能用 destroy_all：
   #   destroy Team 级 UserAssignment 会触发 UserAssignments::RemoveTeamUserAssignmentsService，
   #   里面拿不到 assigner/user 就 NoMethodError（已实测）。
   def strip_owner!(user)
@@ -773,7 +625,7 @@ class WorkbenchTest < AcTest::Base
     ids = ::UserAssignment.joins(:user_role)
                           .where(user_id: user.id, user_roles: { name: 'Owner' })
                           .pluck(:id)
-    ::UserAssignment.where(id: ids).delete_all # delete_all 不走回调，避开 RemoveTeamUserAssignmentsService
+    ::UserAssignment.where(id: ids).delete_all
     warn "[strip_owner] user=#{user.id} owner_ids=#{ids.inspect}"
   end
 
@@ -781,37 +633,20 @@ class WorkbenchTest < AcTest::Base
     MyModuleStatus.unscoped.select(&:final_status?).first || make_status!(name: 'WB-已完成')
   end
 
-  # ⚠ 2026-10-04 QA 修：user_groups.last_modified_by_id 是 NOT NULL，
-  #   原工厂只写 created_by → PG::NotNullViolation 7 处连坐。
-  def make_user_group!(team:, name:)
-    group = UserGroup.find_by(name: name, team_id: team.id)
-    if group.nil?
-      group = UserGroup.new(name: name, team_id: team.id,
-                            created_by: team.created_by, last_modified_by: team.created_by)
-      group.save(validate: false)
-    end
-    # ⚠ 兜底：不管上面哪条路径落的行，lmb 都必须是真值（该列 NOT NULL）。
-    #   实测 find_or_create_by! 那条路径在用例里确实会插出 lmb=NULL 的行。
-    group.update_column(:last_modified_by_id, team.created_by_id) if group && group.last_modified_by_id.nil?
-    group
-  rescue StandardError
-    UserGroup.find_by(name: name, team_id: team.id)
-  end
-
-  # ⚠ 2026-10-04 QA 修：编号必须 `\ASQ-\d{4}-\d{4}\z`（ResourceApplication 校验），
-  #   原来的 SQ-2026-<8位hex> 过不了 → RecordInvalid。用递增序号保证本轮唯一。
+  # ⚠ 编号必须 `\ASQ-\d{4}-\d{4}\z`（ResourceApplication 校验）。
+  #   kind: 'material'（默认，经历货）/ 'service'（不经历货）。
   def wb_app_no!
     @@wb_app_no_seq = (defined?(@@wb_app_no_seq) ? @@wb_app_no_seq : 9000) + 1
     format('SQ-2026-%04d', @@wb_app_no_seq)
   end
 
-  def make_resource_application!(project:, requestor:, status: 'submitted')
+  def make_resource_application!(project:, requestor:, status: 'submitted', kind: 'material')
     Scinote::ElnUi::ResourceApplication.create!(
       project: project,
       requestor: requestor,
       no: wb_app_no!,
       status: status,
-      items: [{ kind: 'material', name: 'WB-基料', qty: 20, unit: 'kg', unit_price: 350.0 }]
+      items: [{ kind: kind, name: "WB-#{kind}", qty: 20, unit: 'kg', unit_price: 350.0 }]
     )
   end
 end

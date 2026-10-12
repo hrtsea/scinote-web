@@ -53,6 +53,23 @@ module Scinote
           )
         end
 
+        # 「我能审核关闭任务的项目」ids —— 与 reviewer? 逐字同口径（Project 级 Owner UA），
+        # 供工作台待审区做跨项目查询（ADR-0048）。判定只有这一处：页面来问，不自己推断。
+        # ⚠ 不放宽到 supervised_by 轨：reviewer? 就这一条口径（OPEN-1 未裁决前的取法），
+        #   两处不一致就会「列了单、点下去 422」。
+        def reviewable_project_ids(user)
+          return [] if user.blank?
+
+          owner_role = ::UserRole.find_predefined_owner_role
+          return [] if owner_role.nil?
+          return [] unless defined?(::UserAssignment) && ::UserAssignment.table_exists?
+
+          ::UserAssignment.where(assignable_type: 'Project', user_id: user.id,
+                                 user_role_id: owner_role.id)
+                          .distinct
+                          .pluck(:assignable_id)
+        end
+
         def project_id_of(my_module)
           my_module.experiment&.project_id
         end

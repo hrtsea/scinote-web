@@ -502,75 +502,50 @@ export const iterations = [
 ]
 
 // ------------------------------------------------------------
-// 工作台（画布 4:118）
+// 工作台（个人行动工作台，ADR-0048）—— 只显示需要处理的事
 // ------------------------------------------------------------
+// ⚠ V1.25 起「KPI 卡下钻」整套（anchor/to 双字段）随统计块删除而作废（Q1=A）：
+//   工作台不复述别处已有的数字。跳转目标改为**每条行动项自带 to**（Q11=A），
+//   取值照旧是宿主真实路由（前端不写死宿主路由的铁律不变）。
 export const workbenchMeta = {
   greeting: '下午好，张负责人',
   role: '项目负责人 · Owner',
   updatedAt: '数据更新于 14:32',
-  notice: '3 条未读通知：任务待审核 2 · 资源申请待终审 1 · 云版 Token 余额预警 1',
-  // 状态机说明：原型独立跑用画布演示标签兜底；
-  // 真机由后端下发**数据库里真实的 MyModuleStatus 名**（组件内不硬编，见 panel-sub）
-  statusMachine: '状态机：待接收 / 进行中 / 提交完成申请 / 待审核 / 已关闭'
+  notice: '3 条未读通知：任务待审核 2 · 资源申请待终审 1'
 }
 
-// ⚠ V1.25：KPI 卡的下钻目标与 eln_ui 的 WorkbenchPayload（已并入，见 ADR-0045）**同契约**（SCN-DASH-8）：
-//   `to`     = 跳转目标（整页跳转）
-//   `anchor` = 本页内目标卡的 DOM id（页内滚动）
-//   两者都没有 = 原生无承载面 → 显式留白（卡片保持不可点）。
-//
-//   ★ V1.25 路径词汇表统一：`to` 的**取值两种模式也相同**了 —— 一律是宿主
-//     SciNote 真实路由（`/eln_project_list`、`/eln_res_center?tab=cost`）。
-//     原因：SPA 路由表已改用宿主路径注册（src/router/index.js），所以同一串
-//     路径在 SPA 态能命中页内路由、在内嵌态由 HostRouterLink 透传给 Rails。
-//     ⚠ 别再退回「原型用 /projects、真机用 /eln_project_list」的双词汇表写法：
-//       那个分裂正是「改了一侧忘了另一侧 → 点击静默无反应 / 真机 404」的根因。
-//     宿主**没有**承载面的页面（如报表中心 `/reports`）仍用原型短路径，且在
-//     src/router/index.js 里明确登记为「原型独有」。
-//   真机 payload 不输出「云版 Token」卡（私有化部署），故这里也不给它目标。
-export const workbenchKpis = [
-  { label: '小组数', value: '4', trend: '覆盖 18 名组员', anchor: 'eln-wb-groups' },
-  { label: '项目任务', value: '126', trend: '进行中 38 · 待审核 2', tone: 'warn', to: '/eln_project_list' },
-  // V1.27：第三张卡由「项目总花费」改为「参与项目」。
-  //   · value = 参与项目数；trend = 「其中我负责 M 个」；M=0 时真机留空串（mock 给非 0 演示值）。
-  //   · to = 宿主项目列表页 + 成员筛选 + 显式 view_mode=active（与真机 payload 逐字同形）。
-  //   ⚠ mock 用**宿主路径**是正确的（V1.26 起前端只有一套路径词汇表）；
-  //     HostRouterLink 对含 /eln_ 的 to 原样透传，query 串随之带出。
-  { label: '参与项目', value: '12', trend: '其中我负责 5 个', to: '/eln_project_list?filters%5Bmembers%5D%5B%5D=1&view_mode=active' },
-  { label: '云版 Token 剩余', value: '62%', trend: '按当前用量约 18 天耗尽', tone: 'warn' }
-]
-
+// 待办事项（Q2=B：未完成任务 + 我的申请待验货；逾期置顶红标）
+//   kind 稳定键（前端分组用）/ type 展示标签（payload 下发，组件不硬编）/
+//   due 截止（'—' 显式留白）/ overdue 逾期 / status 状态真名 / tone 色调 / to 跳转目标
 export const workbenchTodos = [
-  { type: '任务审核', title: '低温冲击样条制备与测试 · 等待审核关闭', due: '10-08', status: '待审核', tone: 'warn' },
-  { type: '资源终审', title: 'POE 增韧剂采购申请 · 小组组长已初审', due: '10-12', status: '待终审', tone: 'purple' },
-  { type: '实验设计', title: '冲击韧性 DOE 第三轮推荐条件待验证', due: '09-30', status: '待处理', tone: 'primary' }
+  { kind: 'task', type: '任务', title: '低温冲击样条制备与测试', due: '09-30', overdue: true, status: '进行中', tone: 'danger', to: '/experiments/EX1/my_modules/12/eln_task_detail' },
+  { kind: 'task', type: '任务', title: '冲击韧性 DOE 第三轮推荐条件验证', due: '10-15', overdue: false, status: '待接收', tone: 'warn', to: '/experiments/EX1/my_modules/15/eln_task_detail' },
+  { kind: 'receipt_pending', type: '资源申请 · 待验货', title: 'POE 增韧剂采购申请（SQ-2026-0092）', due: '—', overdue: false, status: '待验货', tone: 'warn', to: '/eln_res_apply/SQ-2026-0092' }
 ]
 
-// 任务状态分布（画布 4:245 条形图，比例按最大值 68 归一）
-export const workbenchDist = [
-  { label: '待接收', num: 12, color: '#A1A1AA' },
-  { label: '进行中', num: 38, color: '#3B82F6' },
-  { label: '提交完成申请', num: 6, color: '#7C3AED' },
-  { label: '待审核', num: 2, color: '#F59E0B' },
-  { label: '已关闭', num: 68, color: '#10B981' }
+// 审批事项（Q3=A：待我审三条真源；段序固定 资源申请 → 任务关闭 → 到货验收）
+export const workbenchApprovals = [
+  { kind: 'resource_application', type: '资源申请', title: '导热油采购申请（SQ-2026-0101）', due: '—', status: '待初审', tone: 'primary', to: '/eln_res_apply/SQ-2026-0101' },
+  { kind: 'resource_application', type: '资源申请', title: '干燥箱校准服务（SQ-2026-0098）', due: '—', status: '待终审', tone: 'purple', to: '/eln_res_apply/SQ-2026-0098' },
+  { kind: 'task_close', type: '任务关闭', title: '样条缺口冲击数据汇总', due: '—', status: '待审核', tone: 'warn', to: '/experiments/EX1/my_modules/12/eln_task_detail' },
+  { kind: 'receipt', type: '到货验收', title: '环氧树脂到货（SQ-2026-0088）', due: '—', status: '待验货', tone: 'purple', to: '/eln_res_apply/SQ-2026-0088' }
 ]
 
-export const workbenchGroups = [
-  { name: '一组 · 增韧体系', leader: '王组长', rate: '82%', tone: 'done' },
-  { name: '二组 · 填料分散', leader: '刘组长', rate: '76%', tone: 'warn' },
-  { name: '三组 · 测试表征', leader: '赵组长', rate: '64%', tone: 'warn' }
+// 进行中的项目（Q4=A：参与 ∩ 活动；status 由 started_at/done_at 推导）
+export const workbenchProjects = [
+  { name: 'EPP 泡沫增韧体系开发', status: 'active', statusLabel: '进行中', role: '负责', taskSummary: '3 个任务待办', to: '/projects/34/eln_project_detail' },
+  { name: '轨道车辆用高分子隔热层', status: 'notstarted', statusLabel: '未开始', role: '参与', taskSummary: '', to: '/projects/36/eln_project_detail' },
+  { name: '汽车轻量化材料选型', status: 'done', statusLabel: '已完成', role: '参与', taskSummary: '', to: '/projects/326/eln_project_detail' }
 ]
 
-//   真机 payload 的 to 同样是宿主真实路由（WorkbenchPayload#entries_block
-//   走 Rails path helper）—— 本轮统一后两侧字面值也一致了。
-//   ⚠ 「报表中心」是**原型独有**页面（宿主无承载面），故保留原型短路径 /reports，
-//     并在 src/router/index.js 登记；真机 payload 不下发这个入口。
-export const workbenchEntries = [
-  { label: '新建实验任务', to: '/experiments/EX1/eln_exp_detail' },
-  { label: '项目管理', to: '/eln_project_list' },
-  { label: '资源中心', to: '/eln_res_center' },
-  { label: '报表中心', to: '/reports' }
-]
+// 「查看全部」：只接已有承载面（Q7=A）。待办区无跨项目任务清单页 ⇒ 不给链接。
+export const workbenchLinks = {
+  projectsAll: '/eln_project_list?filters%5Bmembers%5D%5B%5D=1&view_mode=active',
+  resourceApplicationsAll: '/eln_res_center?tab=apply'
+}
+
+// 真实总数（超 20 条时「共 M 条」用）
+export const workbenchTotals = { todos: 8, approvals: 6, projects: 4 }
 
 // ------------------------------------------------------------
 // 工作台（画布 4:66 / 4:293）—— 真机注入容器
@@ -586,11 +561,11 @@ export const workbenchEntries = [
 // ============================================================
 export const workbenchPayload = {
   meta: { ...workbenchMeta },
-  kpis: [...workbenchKpis],
   todos: [...workbenchTodos],
-  dist: [...workbenchDist],
-  groups: [...workbenchGroups],
-  entries: [...workbenchEntries]
+  approvals: [...workbenchApprovals],
+  projects: [...workbenchProjects],
+  links: { ...workbenchLinks },
+  totals: { ...workbenchTotals }
 }
 
 // ------------------------------------------------------------
