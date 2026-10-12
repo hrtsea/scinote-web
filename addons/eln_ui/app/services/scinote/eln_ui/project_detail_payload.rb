@@ -125,6 +125,13 @@ module Scinote
 
       private
 
+      # 路由 helper 全限定取法（isolate_namespace：engine helper 只活在
+      # Engine.routes.url_helpers；controller/本类里必须走宿主全限定）。
+      # actions_block / docs_block 共用，别再各自定义局部变量。
+      def route_helpers
+        ::Rails.application.routes.url_helpers
+      end
+
       # dataset → 既有 block 的行数组。未知名返回 nil（→ empty_grid）。
       # ⚠ 新增表时这里与前端 columnDefs 必须成对加，否则表空而不报错。
       def grid_dataset_rows(dataset)
@@ -328,6 +335,9 @@ module Scinote
           # 必传文档行内上传（ADR-0049 D7/D8，取代原 uploadTaskBook 专用端点：
           # 清单固定 5 类后任何一行都可传，端点不绑定「项目任务书」这个名字）。
           uploadDocument: routes.project_eln_detail_document_path(project_id: @project.id),
+          # 其他文档上传（ADR-0050 D1/D6）：other 累积语义，每次上传创建新行 ——
+          # 与 uploadDocument（收行 id 覆盖必传行）是 create/update 对。
+          createDocument: routes.project_eln_detail_documents_path(project_id: @project.id),
           # 指标新增端点（与指标表 per-row 动作同源，前端不许拼宿主路径）。
           addMetric: routes.project_eln_detail_metrics_path(project_id: @project.id),
           # 6 张表共用的服务端网格端点。**逐条下发完整 URL（含 ?dataset=）**：
@@ -373,7 +383,21 @@ module Scinote
       # ------------------------------------------------------------
       def docs_block(category)
         scope = Scinote::ElnUi::ProjectDocument.where(project_id: @project.id, category: category).ordered
+        # 路由 helper 全限定（isolate_namespace 坑，见 actions_block 同款取法）——
+        # 2026-10-13 曾误用 actions_block 的局部变量 routes 于此，NameError。
+        routes = route_helpers
         scope.map do |d|
+          # 附件读取 URL（ADR-0050 D4）：仅 file.attached? 时下发，空行不加键。
+          #   ⚠ 不发 signed_id 直链：rails_blob_path 的 signed_id 是永久凭证，
+          #     塞 payload/HTML 等于任何人可下载；显式端点让权限留在 controller。
+          urls = if d.file.attached?
+                   {
+                     previewUrl: routes.project_eln_detail_document_preview_path(project_id: @project.id, id: d.id),
+                     downloadUrl: routes.project_eln_detail_document_download_path(project_id: @project.id, id: d.id)
+                   }
+                 else
+                   {}
+                 end
           if category == 'required'
             {
               # 台账主键：grid_support 的 r[:id] 与前端 per-row 上传（ADR-0049 D7）
@@ -383,7 +407,7 @@ module Scinote
               ver: d.version.presence || '—',
               date: d.uploaded_on.present? ? date(d.uploaded_on) : '—',
               uploaded: d.uploaded
-            }
+            }.merge(urls)
           else
             {
               id: d.id,
@@ -391,7 +415,7 @@ module Scinote
               type: d.doc_type.presence || '—',
               by: d.uploader.present? ? user_full_name(d.uploader) : '—',
               date: d.uploaded_on.present? ? date(d.uploaded_on) : '—'
-            }
+            }.merge(urls)
           end
         end
       end

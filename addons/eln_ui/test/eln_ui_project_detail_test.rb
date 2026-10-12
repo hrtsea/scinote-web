@@ -159,6 +159,11 @@ class ElnUiProjectDetailTest < AcTest::Base
     Scinote::ElnUi::ProjectDocument.create!(project: project, name: '项目任务书',
                                             category: 'required', version: 'v2',
                                             uploaded: true, uploaded_on: Date.new(2026, 3, 2), position: 1)
+    # ADR-0050 D4：任务书行附真文件 —— 只有它该拿到 previewUrl/downloadUrl
+    task_book_with_file = Scinote::ElnUi::ProjectDocument.find_by!(project: project, name: '项目任务书')
+    task_book_with_file.file.attach(
+      io: StringIO.new('%PDF-1.4 fixture'), filename: 'task_book.pdf', content_type: 'application/pdf'
+    )
     Scinote::ElnUi::ProjectDocument.create!(project: project, name: '结题报告',
                                             category: 'required', uploaded: false, position: 2)
     Scinote::ElnUi::ProjectDocument.create!(project: project, name: '对比测试报告.pdf',
@@ -202,6 +207,16 @@ class ElnUiProjectDetailTest < AcTest::Base
     other = body[:otherDocs].first
     assert_equal '执行', other[:type]
     assert_equal creator.full_name.presence.to_s, other[:by], '登记人取真用户全名'
+
+    # ADR-0050 D4：附件读取 URL 仅 attached 行下发（空行不加键，不污染 JSON）。
+    # 显式端点而非 signed_id 直链 —— 永久凭证不外溢，权限留在 controller。
+    assert_match(%r{/eln_project_detail/documents/#{task_book_with_file.id}/preview},
+                 req.first[:previewUrl], '有附件行下发预览 URL')
+    assert_match(%r{/eln_project_detail/documents/#{task_book_with_file.id}/download},
+                 req.first[:downloadUrl], '有附件行下发下载 URL')
+    refute req.last.key?(:previewUrl), '无附件行不加 previewUrl 键'
+    refute req.last.key?(:downloadUrl), '无附件行不加 downloadUrl 键'
+    refute other.key?(:previewUrl), 'other 无附件行同样不加键'
 
     cost = body[:projectCost]
     assert_equal '¥7,000', cost[:total], '总额 = 20 × 350（明细表行 × 快照单价）'

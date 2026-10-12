@@ -81,3 +81,18 @@ addon 之间通过运行期裸常量引用（如 `Scinote::ElnUi::Xxx`）耦合�
 `ProjectDetailController#update / update_status` 的 `ProjectProfile.upsert_for!` 事后建立，
 **不是**项目创建钩子 ⇒ 懒补种只能挂读路径。与「未纳管」相对：后者从没进过 ELN 项目台账，
 必传文档面板为空态。
+
+## 其他文档（other 类台账行）
+`eln_ui_project_documents` 中 category='other' 的行 = **累积型**过程记录（「过程记录、参考资料等，
+随时上传归档」）。与必传 5 类（预置规范行、覆盖式上传）不同构：上传入口在 subhead「上传文档」
+按钮（空表时行内入口无处可点），每次上传**创建新行**（name=文件名原样、doc_type=扩展名
+downcase、uploader/uploaded_on 自动填）；**不提供替换、不提供删除**——「某日交了什么」的过程
+痕迹比「最新版」更重要，传错再传一条。
+
+## 预览/下载端点（附件读取链路）
+项目文档行的附件读取走**显式端点** `GET .../eln_project_detail/documents/:id/preview|download`：
+controller 校验项目读权限后 `redirect_to rails_blob_path(file, disposition: 'inline'|'attachment')`。
+payload 每行下发 `previewUrl/downloadUrl`（仅 file.attached? 时）——**绝不下发 signed_id 直链**
+（rails_blob_path 的 signed_id 是永久下载凭证，外溢即失控）。宿主 `CheckBlobPermissions`
+给 ActiveStorage RedirectController 挂了第二道权限关（record_type 白名单，已加
+Scinote::ElnUi::ProjectDocument 分支）⇒ signed_id 即使外溢也会被再查一次。

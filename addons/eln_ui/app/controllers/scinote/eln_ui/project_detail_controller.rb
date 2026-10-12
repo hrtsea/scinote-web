@@ -136,6 +136,52 @@ module Scinote
         render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
       end
 
+      # ③'' 其他文档上传（ADR-0050 D1/D6，2026-10-13）。
+      #      other 是累积语义（subhead 原文案「过程记录、参考资料等，随时上传归档」）——
+      #      每次上传创建一条新行，与必传行的「覆盖既有行」不同构：空项目 other 表为空，
+      #      行内入口第一个文件永远传不上去，故入口在 subhead 按钮。
+      #      name/type 全自动（Q7=A）：name=文件名原样（含扩展名，同项目 36 历史数据形态），
+      #      doc_type=扩展名 downcase。上传人/时间落 current_user + today，与必传行同口径。
+      #      响应全量 payload：前端 window.location.reload()（与指标 CRUD 同款）。
+      def create_document
+        return render_403 unless current_permissions[:canUploadDocs]
+        return render json: { error: '未收到文件' }, status: :unprocessable_entity if params[:file].blank?
+
+        filename = params[:file].original_filename.to_s
+        doc = Scinote::ElnUi::ProjectDocument.new(
+          project_id: @project.id,
+          category: 'other',
+          name: filename,
+          doc_type: File.extname(filename).delete_prefix('.').downcase.presence,
+          uploaded: true,
+          uploaded_on: Time.zone.today,
+          uploader: current_user,
+          position: next_document_position
+        )
+        doc.file.attach(params[:file])
+        doc.save!
+
+        render json: Scinote::ElnUi::ProjectDetailPayload.call(@project, user: current_user)
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
+      end
+
+      # ③''' 附件预览 / 下载（ADR-0050 D2，2026-10-13）。
+      #       显式端点 redirect 到 ActiveStorage（宿主 7 处先例同款），**不下发 signed_id**
+      #       —— rails_blob_path 的 signed_id 是永久有效的下载凭证，塞进 payload/HTML 等于
+      #       任何能看源码的人（爬虫/日志/分享屏幕）都拿到直链；显式端点让权限留在 controller。
+      #       权限 = 读权限：before_action :check_project_read_permissions 已守
+      #       （Q3=B：面板本已向可读者展示文件名/上传人/日期，附件不额外设限）。
+      #       404 两种：行不在本项目（set_project 的 current_team 域 + find_by! 双守，
+      #       不泄漏存在性）；行无附件（占位行/seed 行只有元数据，没有文件可读）。
+      def preview_document
+        send_document_file(disposition: 'inline')
+      end
+
+      def download_document
+        send_document_file(disposition: 'attachment')
+      end
+
       # ④ 项目指标 CRUD + 达标切换（2026-10-11 起）。承载面 = 二开表 eln_ui_project_metrics
       #   （原生 projects 无项目级指标模型，与文档/任务审核同属「原生无承载面 → addon 自有表」）。
       #   权限复用 canEditBasic（与「编辑项目信息」同款），不另立权限档。
@@ -218,6 +264,27 @@ module Scinote
       # 创建时 append：position = 当前最大+1，不做重排。
       def next_metric_position
         (Scinote::ElnUi::ProjectMetric.where(project_id: @project.id).maximum(:position) || 0) + 1
+      end
+
+      # 其他文档创建时 append（与指标同口径）：required 行的 position 由 seeder 规范序管，
+      # other 行是累积流，最大+1 即「最新在最前/后」由 ordered scope 的 position 升序决定。
+      def next_document_position
+        (Scinote::ElnUi::ProjectDocument.where(project_id: @project.id).maximum(:position) || 0) + 1
+      end
+
+      # 预览/下载共用（ADR-0050 D2）：行域收口到本项目 + attached? 守门。
+      # ⚠ rails_blob_path 必须**全限定**（::Rails.application.routes.url_helpers.）：
+      #   controller 实例上的裸 helper 会把当前请求的 project_id/id 混进 url_for
+      #   （_recall 机制，与 project_list_controller 注释同款坑），blob 路由的
+      #   *filename(.:disposition) 结构吞不下这些 extras ⇒ UrlGenerationError。
+      def send_document_file(disposition:)
+        doc = Scinote::ElnUi::ProjectDocument.find_by!(project_id: @project.id, id: params[:id])
+        render_404 and return unless doc.file.attached?
+
+        blob_path = ::Rails.application.routes.url_helpers.rails_blob_path(doc.file, disposition: disposition)
+        redirect_to blob_path
+      rescue ActiveRecord::RecordNotFound
+        render_404
       end
 
       def metric_params

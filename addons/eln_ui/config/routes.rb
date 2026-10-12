@@ -47,6 +47,25 @@ Scinote::ElnUi::Engine.routes.draw do
       as: :project_eln_detail_document
 
   # POST
+  # 其他文档上传（ADR-0050 D1/D6）：other 是累积语义（「随时上传归档」），
+  #   每次上传创建一条新行 —— 与 document（收行 id 覆盖必传行）是 create/update 对。
+  post 'projects/:project_id/eln_project_detail/documents',
+      to: 'project_detail#create_document',
+      as: :project_eln_detail_documents
+
+  # GET
+  # 附件预览 / 下载（ADR-0050 D2）：显式端点 redirect_to rails_blob_path(disposition:)，
+  #   不下发 signed_id 到 payload（永久凭证不外溢）。权限 = 读权限（before_action 已守）。
+  #   宿主先例：assets_controller.rb:190 等 7 处同款。
+  get 'projects/:project_id/eln_project_detail/documents/:id/preview',
+      to: 'project_detail#preview_document',
+      as: :project_eln_detail_document_preview
+
+  get 'projects/:project_id/eln_project_detail/documents/:id/download',
+      to: 'project_detail#download_document',
+      as: :project_eln_detail_document_download
+
+  # POST
   # 退役壳（ADR-0049 D8）：原「上传任务书」端点。410 Gone + 指路新端点，
   # 不静默删除 —— 前端旧包可能还在打这个 URL（陈年 bundle 缓存）。
   post 'projects/:project_id/eln_project_detail/task_book',

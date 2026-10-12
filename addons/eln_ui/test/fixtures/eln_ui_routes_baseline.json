@@ -13,8 +13,8 @@
     "task_close_action",
     "notifications"
   ],
-  "count": 31,
-  "named_count": 30,
+  "count": 34,
+  "named_count": 33,
   "anonymous_count": 1,
   "routes": [
     {
@@ -154,6 +154,24 @@
       "path": "/projects/:project_id/eln_project_detail/document",
       "key": "project_eln_detail_document",
       "controller": "scinote/eln_ui/project_detail#upload_document"
+    },
+    {
+      "verb": "POST",
+      "path": "/projects/:project_id/eln_project_detail/documents",
+      "key": "project_eln_detail_documents",
+      "controller": "scinote/eln_ui/project_detail#create_document"
+    },
+    {
+      "verb": "GET",
+      "path": "/projects/:project_id/eln_project_detail/documents/:id/download",
+      "key": "project_eln_detail_document_download",
+      "controller": "scinote/eln_ui/project_detail#download_document"
+    },
+    {
+      "verb": "GET",
+      "path": "/projects/:project_id/eln_project_detail/documents/:id/preview",
+      "key": "project_eln_detail_document_preview",
+      "controller": "scinote/eln_ui/project_detail#preview_document"
     },
     {
       "verb": "GET",

@@ -194,10 +194,16 @@
               <div class="docs-subhead docs-subhead-gap">
                 <span class="docs-subhead-title">其他文档</span>
                 <span class="block-note flex1">过程记录、参考资料等，随时上传归档</span>
-                <button class="eln-btn-primary pd14 sm">上传文档</button>
+                <!-- ADR-0050 D1：other 是累积语义（每次上传一条新行），入口在 subhead 而非行内
+                     —— 空项目 other 表为空时，行内入口第一个文件永远传不上去。 -->
+                <button
+                  v-if="can.canUploadDocs && hasEndpoint(act.createDocument)"
+                  class="eln-btn-primary pd14 sm"
+                  @click="pickDocFile({ create: true })"
+                >上传文档</button>
               </div>
               <div v-if="!docs.length" class="empty-cell">
-                暂无文档 —— 原生 SciNote 没有项目文档台账，取不到就不显示
+                暂无其他文档 —— 点上方「上传文档」按钮添加
               </div>
               <ResGrid
                 v-else-if="gridUrl('otherDocs')"
@@ -207,7 +213,7 @@
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <p class="src-note">
-                ⓘ 必传文档 5 类为固定清单（ADR-0049）：服务端规范清单补种进 eln_ui_project_documents 台账，页面渲染即台账行；行内「上传」走 document 端点（收行 id + 文件）。
+                ⓘ 必传文档 5 类为固定清单（ADR-0049）：服务端规范清单补种进 eln_ui_project_documents 台账，页面渲染即台账行；行内「上传」走 document 端点（收行 id + 文件）。其他文档为累积台账（ADR-0050）：「上传文档」建新行（name/type 取文件名），行内「预览/下载」走显式端点 redirect（附件在宿主 ActiveStorage，可读者即可读取）。
               </p>
             </section>
 
@@ -644,19 +650,27 @@ const requiredDocsCols = computed(() => [
     headerName: '操作',
     sortable: false,
     resizable: false,
-    width: 140,
-    minWidth: 120,
+    width: 200,
+    minWidth: 160,
     cellRenderer: ElnRowActionsRenderer,
     // ADR-0049 D7/D8：行级上传（收行 id + 文件到 document 端点）。actions 走函数形态
     //   （ElnRowActionsRenderer 支持 (row)=>[]，成员列先例）—— 权限与端点在**渲染期**
     //   求值，can/act 是 mock 对象引用（非响应式），放进 computed 外层就冻结在首次求值。
-    //   「预览 · 下载」保持占位语义（下载链路未接线），不假装能下载。
+    // ADR-0050 D2/D4：预览/下载拆成两个并接线 —— 行内 URL 由 payload 下发（仅 attached
+    //   行有，服务端生成不拼路径）。预览用 href 分支（新标签 inline，浏览器原生渲染）；
+    //   下载用 handler + location.assign（renderer 的 href 强制 target="_blank"，
+    //   下载会留空标签）。无附件行两个都不出现。
     cellRendererParams: {
       actions: (row) => [
         ...(can.canUploadDocs && hasEndpoint(act.uploadDocument)
           ? [{ label: row.uploaded ? '重新上传' : '上传', handler: () => pickDocFile(row) }]
           : []),
-        { label: '预览 · 下载' }
+        ...(row.previewUrl
+          ? [{ label: '预览', href: row.previewUrl }]
+          : []),
+        ...(row.downloadUrl
+          ? [{ label: '下载', handler: () => window.location.assign(row.downloadUrl) }]
+          : [])
       ]
     }
   }
@@ -672,10 +686,19 @@ const otherDocsCols = computed(() => [
     headerName: '操作',
     sortable: false,
     resizable: false,
-    width: 110,
-    minWidth: 90,
+    // ADR-0050：预览/下载接线（原占位 [{label:'下载'}] 无 handler）。
+    // other 行不提供上传入口（累积语义：传错再传一条，不覆盖历史行，Q5=A）。
+    width: 170,
+    minWidth: 120,
     cellRenderer: ElnRowActionsRenderer,
-    cellRendererParams: { actions: [{ label: '下载' }] }
+    cellRendererParams: {
+      actions: (row) => [
+        ...(row.previewUrl ? [{ label: '预览', href: row.previewUrl }] : []),
+        ...(row.downloadUrl
+          ? [{ label: '下载', handler: () => window.location.assign(row.downloadUrl) }]
+          : [])
+      ]
+    }
   }
 ])
 
@@ -852,9 +875,14 @@ async function confirmClose() {
 // ---------- 必传文档行级上传（2026-10-13 · ADR-0049 D7/D8） ----------
 // 原页头「上传任务书」按钮退役：端点写死 name='项目任务书'，必传清单固定为 5 类后
 // 这个绑定作废 —— 任何一行都要能传。上传入口挪到必传文档表格行内。
+// ADR-0050 D1/D6：参数扩展 —— 传 {create:true} 表示「other 累积上传」（建新行），
+//   走 createDocument 端点；传行对象仍是必传行覆盖（uploadDocument 收行 id）。
+//   隐藏 file input 只有 files 没有行上下文，pendingDoc 记住点的是哪行/哪种上传。
 // 成功走 window.location.reload()：payload 全量重算（与指标 CRUD 同款，不多造一层假清理逻辑）。
 function pickDocFile(row) {
-  if (!hasEndpoint(act.uploadDocument)) return
+  const creating = !!(row && row.create === true)
+  const endpoint = creating ? act.createDocument : act.uploadDocument
+  if (!hasEndpoint(endpoint)) return
   pendingDoc.value = row
   if (docFileInput.value) docFileInput.value.click()
 }
@@ -862,17 +890,21 @@ function pickDocFile(row) {
 async function onDocPicked(ev) {
   const file = ev.target.files && ev.target.files[0]
   ev.target.value = ''
-  const row = pendingDoc.value
+  const target = pendingDoc.value
   pendingDoc.value = null
-  if (!file || !row) return
-  if (!hasEndpoint(act.uploadDocument)) return
+  if (!file || !target) return
+  const creating = target.create === true
+  const endpoint = creating ? act.createDocument : act.uploadDocument
+  if (!hasEndpoint(endpoint)) return
 
   docUploading.value = true
   try {
     const body = new FormData()
-    body.append('id', row.id)
+    // other 建新行：服务端从 original_filename 取 name/type（Q7=A 全自动），不带 id；
+    // 必传覆盖：行 id 定位台账行。
+    if (!creating) body.append('id', target.id)
     body.append('file', file)
-    const res = await fetch(act.uploadDocument, {
+    const res = await fetch(endpoint, {
       method: 'POST',
       credentials: 'same-origin',
       headers: csrfHeader(),

@@ -118,6 +118,9 @@ class ElnUiProjectDetailGridTest < AcTest::Base
       project_id: scene[:project].id, category: 'required',
       name: '项目任务书', version: 2, uploaded: true
     )
+    task_book.file.attach(
+      io: StringIO.new('%PDF-1.4 fixture'), filename: 'task_book.pdf', content_type: 'application/pdf'
+    )
     closing = Scinote::ElnUi::ProjectDocument.create!(
       project_id: scene[:project].id, category: 'required',
       name: '结题报告', uploaded: false
@@ -132,6 +135,14 @@ class ElnUiProjectDetailGridTest < AcTest::Base
     # 前端 per-row 上传（T4）靠这个 id 回传定位。
     assert_equal [task_book.id.to_s, closing.id.to_s], body['data'].map { |r| r['id'] },
                  '网格行 id 必须等于台账主键（paginate 的 row-N 兜底不许生效）'
+    # ADR-0050 D4：附件 URL 随 attributes 摊平到行（前端 row.previewUrl 直读）；
+    # 无附件行不带这两个键（attached? 守门）。
+    assert_match(%r{/documents/#{task_book.id}/preview}, attrs['previewUrl'].to_s,
+                 '有附件行的预览 URL 随网格行下发')
+    assert_match(%r{/documents/#{task_book.id}/download}, attrs['downloadUrl'].to_s,
+                 '有附件行的下载 URL 随网格行下发')
+    refute body['data'].last['attributes'].key?('previewUrl'),
+           '无附件行（结题报告）不带预览 URL 键'
   end
 
   # ------------------------------------------------------------
