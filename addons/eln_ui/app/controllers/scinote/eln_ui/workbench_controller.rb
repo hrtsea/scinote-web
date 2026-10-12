@@ -17,7 +17,7 @@
 # ⚠ 本轮只做「负责人单视图」一档（原型画布 4:66~4:293 只承载这一形态）；
 #   SCN-DASH-1/2/4 的组员 / 组长 / 管理员差异化布局记 OPEN-WORKBENCH-4。
 module Scinote
-  module Workbench
+  module ElnUi
     class WorkbenchController < ApplicationController
       before_action :check_team_membership
 
@@ -34,7 +34,7 @@ module Scinote
       end
 
       def payload
-        Scinote::Workbench::WorkbenchPayload.call(
+        Scinote::ElnUi::WorkbenchPayload.call(
           user: current_user,
           team: current_team
         )

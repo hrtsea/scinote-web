@@ -26,7 +26,7 @@ class WorkbenchTest < AcTest::Base
   def test_meta_greeting_uses_real_user_full_name
     scene = build_scene!
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     greeting = body[:meta][:greeting]
     refute_nil greeting, '问候语必须有值'
@@ -42,7 +42,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     strip_owner!(scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal '普通组员', body[:meta][:role]
   end
@@ -55,7 +55,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     make_owner_assignment!(user: scene[:creator], team: scene[:team])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal '单位管理员 · Owner', body[:meta][:role]
   end
@@ -84,7 +84,7 @@ class WorkbenchTest < AcTest::Base
     assert_equal true, project_owner_assignment?(scene[:creator], project),
                  '前提守卫失败：Project 级 Owner 没挂上，用例退化成空断言'
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     refute_equal '单位管理员 · Owner', body[:meta][:role],
                  'Project 级 Owner 被误判成单位管理员 —— 角色判定没限定 assignable_type'
@@ -144,7 +144,7 @@ class WorkbenchTest < AcTest::Base
            "role=#{(::UserRole.find_by(name: 'User')&.permissions.to_a & ['project_read']).inspect} " \
            "ua=#{ua_desc.inspect}"
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal '项目负责人', body[:meta][:role]
   end
@@ -154,7 +154,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal '暂无未读通知', body[:meta][:notice]
   end
@@ -169,7 +169,7 @@ class WorkbenchTest < AcTest::Base
     ::Notification.create!(type: 'GeneralNotification', recipient: user, params: {})
     expected = ::Notification.where(recipient_type: 'User', recipient_id: user.id, read_at: nil).count
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
     assert_equal "#{expected} 条未读通知", body[:meta][:notice]
     assert_operator expected, :>=, 1, '用例必须真的造出 1 条未读，否则这条断言是空断言'
@@ -180,7 +180,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     status = make_status!(name: 'WB-实测状态')
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_includes body[:meta][:statusMachine], status.name
   end
@@ -201,7 +201,7 @@ class WorkbenchTest < AcTest::Base
     mod.update!(my_module_status: status)
     allow_task_read!(mod, user)
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
     dist = body[:dist]
     refute_nil dist, 'dist 必须有值'
@@ -215,7 +215,7 @@ class WorkbenchTest < AcTest::Base
   def test_dist_is_empty_array_when_team_has_no_modules
     scene = build_scene!
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal [], body[:dist], '无真实状态数据 → 空数组'
   end
@@ -228,7 +228,7 @@ class WorkbenchTest < AcTest::Base
   def test_groups_is_empty_array_when_team_has_no_user_groups
     scene = build_scene!
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal [], body[:groups], '无小组 → 空数组'
   end
@@ -239,7 +239,7 @@ class WorkbenchTest < AcTest::Base
     group = make_user_group!(team: scene[:team], name: 'WB-测试小组')
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal ['WB-测试小组'], body[:groups].map { |g| g[:name] }
     row = body[:groups].first
@@ -265,7 +265,7 @@ class WorkbenchTest < AcTest::Base
     open_mod.update_column(:my_module_status_id, make_status!(name: 'WB-未开始').id)
     allow_task_read!(open_mod, user)
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
     row = body[:groups].find { |g| g[:name] == 'WB-测试小组' }
     refute_nil row, '小组行必须存在'
@@ -284,7 +284,7 @@ class WorkbenchTest < AcTest::Base
     ::UserGroupMembership.create!(user_group: group, user: scene[:creator], created_by: scene[:creator])
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     kpi = body[:kpis].find { |k| k[:label] == '小组数' }
     refute_nil kpi, '小组数 KPI 必须存在'
@@ -296,7 +296,7 @@ class WorkbenchTest < AcTest::Base
   def test_token_kpi_card_is_not_emitted
     scene = build_scene!
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     refute body[:kpis].any? { |k| k[:label].include?('Token') }, '私有化部署不输出 Token 卡'
   end
@@ -407,7 +407,7 @@ class WorkbenchTest < AcTest::Base
     assert_equal '1', card[:value], '参与数应为 1'
     assert_equal '', card[:trend], 'M=0 时 trend 必须是空串（不是「其中我负责 0 个」）'
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: plain, team: team)
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: plain, team: team)
     assert_equal 3, body[:kpis].size, 'KPI 行仍是 3 张卡'
     assert_equal %w[小组数 项目任务 参与项目], body[:kpis].map { |k| k[:label] }
   end
@@ -426,7 +426,7 @@ class WorkbenchTest < AcTest::Base
     mine = make_resource_application!(project: project, requestor: user, status: 'submitted')
     theirs = make_resource_application!(project: project, requestor: other, status: 'submitted')
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
     # ⚠ 2026-10-04 QA 修：payload 的 title 是「<物料名>（<编号>）」形状，
     #   直接拿裸编号断言必然不 include —— 改成「标题里含编号」判定。
@@ -449,7 +449,7 @@ class WorkbenchTest < AcTest::Base
     ua = ua_for(mod, user)
     refute_nil ua, '任务必须有 UserAssignment 才能算「我的任务」'
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: scene[:team])
 
     todo = body[:todos].find { |t| t[:title] == mod.name }
     refute_nil todo, '被指派的任务必须出现在待办里'
@@ -466,7 +466,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     entries = body[:entries]
     refute_nil entries, 'entries 必须有值'
@@ -482,7 +482,7 @@ class WorkbenchTest < AcTest::Base
   def test_unsupported_prototype_entries_are_not_emitted
     scene = build_scene!
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     labels = body[:entries].map { |e| e[:label] }
     refute_includes labels, '新建实验任务', '宿主无承载面 → 不输出'
@@ -505,12 +505,12 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
     kpis = body[:kpis].index_by { |k| k[:label] }
 
     groups_card = kpis['小组数']
     refute_nil groups_card
-    assert_equal Scinote::Workbench::WorkbenchPayload::GROUPS_ANCHOR_ID, groups_card[:anchor],
+    assert_equal Scinote::ElnUi::WorkbenchPayload::GROUPS_ANCHOR_ID, groups_card[:anchor],
                  '小组数卡 → 同页「小组汇总」卡锚点'
     assert_nil groups_card[:to], '锚点卡不再给整页跳转'
 
@@ -534,7 +534,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     targets = body[:kpis].filter_map { |k| k[:to] }
     refute_empty targets, '至少要有两处整页跳转，否则这条是空断言'
@@ -549,7 +549,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     body[:kpis].each do |kpi|
       [kpi[:to], kpi[:anchor]].compact.each do |target|
@@ -570,7 +570,7 @@ class WorkbenchTest < AcTest::Base
     scene = build_scene!
     allow_project_read!(readable_project(scene), scene[:creator])
 
-    body = Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
 
     assert_equal %i[meta kpis todos dist groups entries], body.keys
   end
@@ -587,7 +587,7 @@ class WorkbenchTest < AcTest::Base
     make_status!(name: 'WB-终态基准') if ::MyModuleStatus.unscoped.count.zero?
 
     ruby_ids = ::MyModuleStatus.unscoped.select(&:final_status?).map(&:id).uniq.sort
-    batched_ids = ::Scinote::Workbench::WorkbenchPayload.new(user: nil, team: nil)
+    batched_ids = ::Scinote::ElnUi::WorkbenchPayload.new(user: nil, team: nil)
                                                         .send(:final_status_ids).sort
 
     refute_empty ruby_ids, '至少得有一个真终态，否则这条断言是空断言'
@@ -612,12 +612,12 @@ class WorkbenchTest < AcTest::Base
   end
 
   def payload_for(scene)
-    Scinote::Workbench::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
+    Scinote::ElnUi::WorkbenchPayload.call(user: scene[:creator], team: scene[:team])
   end
 
   # 工作台「参与项目」卡（V1.27 第三张 KPI 卡）。
   def participated_card(user, team)
-    body = Scinote::Workbench::WorkbenchPayload.call(user: user, team: team)
+    body = Scinote::ElnUi::WorkbenchPayload.call(user: user, team: team)
     card = body[:kpis].find { |k| k[:label] == '参与项目' }
     refute_nil card, '参与项目 KPI 卡必须存在'
     card

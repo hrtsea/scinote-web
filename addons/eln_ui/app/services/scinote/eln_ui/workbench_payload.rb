@@ -30,7 +30,7 @@
 #           项目列表页**共用单一真源** `Scinote::ElnUi::ProjectListScope` —— 卡片数字必须
 #           逐位等于点进去列表页筛出来的条数，两侧同一段可变代码才守得住该不变式。
 module Scinote
-  module Workbench
+  module ElnUi
     class WorkbenchPayload
       # 宿主 UserRole 真名（Owner / User / Technician / Viewer），不认 id。
       OWNER_ROLE_NAME = 'Owner'
