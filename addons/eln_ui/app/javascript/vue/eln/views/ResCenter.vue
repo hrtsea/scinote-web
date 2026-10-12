@@ -416,7 +416,6 @@
             :data-url="'/eln_res_center/grid?dataset=by_project'"
             table-id="rc_by_project"
             :column-defs="byProjectColDefs"
-            :height="'360px'"
           />
         </div>
       </div>
@@ -431,7 +430,6 @@
             :data-url="'/eln_res_center/grid?dataset=by_member'"
             table-id="rc_by_member"
             :column-defs="byMemberColDefs"
-            :height="'360px'"
           />
         </div>
       </div>

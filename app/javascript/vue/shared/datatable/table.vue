@@ -47,10 +47,11 @@
         <ag-grid-vue
           v-if="currentViewRender === 'table'"
           ref="agGrid"
-          class="ag-theme-alpine w-full flex-grow h-full z-10"
+          class="ag-theme-alpine w-full z-10"
           :class="{
             'opacity-0': initializing,
-            'adding-new-row': addingNewRow
+            'adding-new-row': addingNewRow,
+            'flex-grow h-full': !autoHeight
           }"
           :columnDefs="extendedColumnDefs"
           :selectionColumnDef="selectionColumnDef"
@@ -275,6 +276,12 @@ export default {
       type: Boolean,
       default: false
     },
+    // autoHeight：表格随当前页行数自适应、无内部滚动条（ELN 内嵌网格约定，见 ADR-0047）。
+    // 默认 false ⇒ 维持固定高度 + 内部滚动（原行为，原生 /projects 等表不受影响）。
+    autoHeight: {
+      type: Boolean,
+      default: false
+    },
   },
   data() {
     return {
@@ -346,6 +353,9 @@ export default {
         suppressCellFocus: true,
         rowHeight: 40,
         headerHeight: 40,
+        // autoHeight：网格自身撑开到当前页行数，无内部滚动条（移动端/内嵌页友好）。
+        // 仅当 autoHeight 开启时置为 'autoHeight'，否则维持固定高度 + 内置滚动。
+        domLayout: this.autoHeight ? 'autoHeight' : 'normal',
         getRowId: (params) => `e2e-TB-row-${params.data.code || params.data.id}`,
         rowSelection: {
           mode: 'multiRow',

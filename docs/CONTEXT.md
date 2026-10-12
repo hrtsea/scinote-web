@@ -27,6 +27,13 @@ addon 的启用/禁用**只由 Gemfile 一行决定**：注释掉 `gem 'scinote_
 把本是 eln_ui 功能的 workbench 收口进 eln_ui addon：删除独立 addon 目录，将其文件（controller /
 payload / view / route / test）迁到 eln_ui 并改命名空间。与「解耦」相对。
 
+## 自适应网格高度（ResGrid autoHeight）
+`eln_ui` 内嵌 12 张 AG Grid 表（ProjectDetail 7 + ResCenter 5）经 `ResGrid.vue` 薄封装复用宿主
+`shared/datatable/table.vue`。默认**不传 `height`** ⇒ `ResGrid` 透传 `:auto-height="!height"` ⇒ 宿主
+`autoHeight` prop 置 AG Grid `domLayout:'autoHeight'`，网格随**当前页行数**自行撑开、
+**无内部纵向滚动条**（移动端同样友好，见 ADR-0047）。传 `height` 则回退固定高度（override 旋钮）。
+宿主 prop 默认关（`false`）⇒ 原生 `/projects` 等全站表格行为不变。
+
 ## addon 零入侵契约（ADR-0022）
 宿主 `config/routes.rb` 不得含任何 `to: 'scinote/<addon>/...'` 路由；addon 路由一律由各自
 engine 的 initializer 自注册（`app.routes.append { mount Engine => '/' }`）。启用/禁用只由

@@ -64,7 +64,6 @@
             :data-url="gridUrl('experiments')"
             table-id="pd_experiments"
             :column-defs="experimentsCols"
-            height="320px"
           />
           <div v-else class="empty-pane">
             未接入宿主数据端点，暂不渲染表格（原型态）
@@ -136,7 +135,6 @@
                 :data-url="gridUrl('metrics')"
                 table-id="pd_metrics"
                 :column-defs="metricsCols"
-                height="240px"
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <p class="src-note">
@@ -165,7 +163,6 @@
                 :data-url="gridUrl('taskCloseReview')"
                 table-id="pd_task_close_review"
                 :column-defs="tcrCols"
-                height="240px"
               />
               <p v-else class="src-note">
                 ⓘ 暂无任务关闭审核记录 —— 原生 SciNote 没有任务关闭审核模型，取不到就不显示（不回落原型演示值）
@@ -191,7 +188,6 @@
                 :data-url="gridUrl('requiredDocs')"
                 table-id="pd_required_docs"
                 :column-defs="requiredDocsCols"
-                height="300px"
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
 
@@ -208,7 +204,6 @@
                 :data-url="gridUrl('otherDocs')"
                 table-id="pd_other_docs"
                 :column-defs="otherDocsCols"
-                height="300px"
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <p class="src-note">
@@ -228,7 +223,6 @@
                 :data-url="gridUrl('members')"
                 table-id="pd_members"
                 :column-defs="membersCols"
-                height="300px"
               />
               <div v-else class="empty-pane">未接入宿主数据端点，暂不渲染表格（原型态）</div>
               <div class="role-note">
@@ -282,7 +276,6 @@
                 :data-url="gridUrl('cost')"
                 table-id="pd_cost"
                 :column-defs="costCols"
-                height="260px"
               />
 
               <div v-if="hasCostData" class="rule-note">
