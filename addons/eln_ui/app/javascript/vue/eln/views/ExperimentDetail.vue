@@ -20,7 +20,7 @@
           实验 Experiment 层级 · 状态由 started_at / done_at 推导为三态，不因子任务完成自动推进（SCN-EXP-DETAIL-2/3）
         </p>
       </div>
-      <button class="eln-btn-primary">编辑实验信息</button>
+      <button v-if="canManage" class="eln-btn-primary" @click="openInfoModal">编辑实验信息</button>
     </div>
 
     <!-- 实验管理区 4:581 -->
@@ -65,6 +65,9 @@
                   挂实验级（DEC-009）· 项目负责人与小组组长可完整操作，组员不可访问（DEC-001）
                 </div>
               </div>
+              <button v-if="canManage" class="eln-btn-primary sm" @click="openDvModal(null)">
+                <AppIcon name="plus" :size="16" />新增变量
+              </button>
               <span class="eln-badge eln-badge-orange">云版 · 消耗 Token</span>
             </div>
 
@@ -93,13 +96,18 @@
               <span class="col-type">类型</span>
               <span class="col-range">取值范围</span>
               <span class="col-limit">约束</span>
+              <span class="col-act" v-if="canManage">操作</span>
             </div>
-            <div v-for="v in expDesignVars" :key="v.name" class="var-row">
+            <div v-for="v in expDesignVars" :key="v.id" class="var-row">
               <span class="col-check"><span class="checkbox"></span></span>
               <span class="col-var">{{ v.name }}</span>
               <span class="col-type">{{ v.type }}</span>
               <span class="col-range num">{{ v.range }}</span>
               <span class="col-limit">{{ v.constraint }}</span>
+              <span class="col-act" v-if="canManage">
+                <button class="row-act" @click="openDvModal(v)">编辑</button>
+                <button class="row-act danger" @click="deleteDv(v)">删除</button>
+              </span>
             </div>
             <!-- 显式留白：真机该实验没配 DOE 变量时，空表下面给一句说明。
                  原型独立跑时 expDesignVars 是 mock 的 3 行，不会走到这里（视觉零变化）。 -->
@@ -127,7 +135,7 @@
                 <div class="pane-title">实验信息</div>
                 <div class="pane-sub">实验 Experiment 主数据 · 与项目详情「实验列表」同源</div>
               </div>
-              <button class="eln-btn-ghost sm">编辑</button>
+              <button v-if="canManage" class="eln-btn-ghost sm" @click="openInfoModal">编辑</button>
             </div>
             <div class="field-grid">
               <div class="f-item"><span class="f-label">实验编号</span><span class="f-value num">{{ infoCode }}</span></div>
@@ -236,11 +244,110 @@
         </div>
       </div>
     </div>
+
+    <!-- 实验信息编辑弹窗（ADR-0051）：信息 / 目的 / 方法 / 状态 -->
+    <div v-if="infoModalOpen" class="modal-mask" @click.self="infoModalOpen = false">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-title">编辑实验信息</div>
+          <button class="modal-close" @click="infoModalOpen = false">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="form-row">
+            <span class="form-label">实验编号</span>
+            <input v-model="infoForm.business_code" class="form-input" placeholder="如 ELN-EXP-2026-001" />
+          </label>
+          <label class="form-row">
+            <span class="form-label">实验名称</span>
+            <input v-model="infoForm.name" class="form-input" />
+          </label>
+          <label class="form-row">
+            <span class="form-label">实验负责人</span>
+            <select v-model="infoForm.owner_user_id" class="form-input">
+              <option value="">（未指定）</option>
+              <option v-for="m in memberOptions" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </label>
+          <label class="form-row">
+            <span class="form-label">计划完成</span>
+            <input v-model="infoForm.due_date" type="date" class="form-input" />
+          </label>
+          <label class="form-row">
+            <span class="form-label">状态</span>
+            <select v-model="infoForm.status" class="form-input">
+              <option value="not_started">未开始</option>
+              <option value="in_progress">进行中</option>
+              <option value="done">已完成</option>
+            </select>
+          </label>
+          <label class="form-row form-row-col">
+            <span class="form-label">实验目的</span>
+            <textarea v-model="infoForm.purpose" class="form-textarea" rows="3"></textarea>
+          </label>
+          <label class="form-row form-row-col">
+            <span class="form-label">实验方案与方法</span>
+            <textarea v-model="infoForm.method" class="form-textarea" rows="4"></textarea>
+          </label>
+          <p v-if="infoError" class="form-error">{{ infoError }}</p>
+        </div>
+        <div class="modal-foot">
+          <button class="eln-btn-ghost" @click="infoModalOpen = false">取消</button>
+          <button class="eln-btn-primary" :disabled="infoSaving" @click="saveInfo">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设计变量编辑弹窗（ADR-0051 Q4=b）：增 / 改 -->
+    <div v-if="dvModalOpen" class="modal-mask" @click.self="dvModalOpen = false">
+      <div class="modal">
+        <div class="modal-head">
+          <div class="modal-title">{{ dvForm.id ? '编辑设计变量' : '新增设计变量' }}</div>
+          <button class="modal-close" @click="dvModalOpen = false">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="form-row">
+            <span class="form-label">变量名</span>
+            <input v-model="dvForm.name" class="form-input" />
+          </label>
+          <label class="form-row">
+            <span class="form-label">类型</span>
+            <select v-model="dvForm.var_type" class="form-input">
+              <option value="float">float</option>
+              <option value="integer">integer</option>
+              <option value="categorical">categorical</option>
+            </select>
+          </label>
+          <div class="form-row-group">
+            <label class="form-row">
+              <span class="form-label">范围下限</span>
+              <input v-model="dvForm.range_min" class="form-input" placeholder="可选" />
+            </label>
+            <label class="form-row">
+              <span class="form-label">范围上限</span>
+              <input v-model="dvForm.range_max" class="form-input" placeholder="可选" />
+            </label>
+            <label class="form-row">
+              <span class="form-label">单位</span>
+              <input v-model="dvForm.unit" class="form-input" placeholder="可选" />
+            </label>
+          </div>
+          <label class="form-row">
+            <span class="form-label">约束</span>
+            <input v-model="dvForm.constraint" class="form-input" placeholder="可选" />
+          </label>
+          <p v-if="dvError" class="form-error">{{ dvError }}</p>
+        </div>
+        <div class="modal-foot">
+          <button class="eln-btn-ghost" @click="dvModalOpen = false">取消</button>
+          <button class="eln-btn-primary" :disabled="dvSaving" @click="saveDv">保存</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue/dist/vue.esm-bundler.js'
+import { ref, computed, reactive } from 'vue/dist/vue.esm-bundler.js'
 import AppIcon from '../components/AppIcon.vue'
 // ⚠ drillTo 必须 import（2026-10-05 修一个把整页打挂的错）：
 //   任务名下钻改成 drillTo(t,'task') 后忘了引入 → 模板求值时抛
@@ -256,15 +363,19 @@ import { drillTo } from '../utils/drill'
 //   默认选中」，原生 my_modules#index 本来也是任务列表。真机默认的 design 面板
 //   是**原型硬编码的假文案**（DOE 表 + 执行步骤），首屏给假数据不行。
 //   （对齐 PRD 的默认页签，已记 OPEN-6；只改初值来源，不改画布选中态。）
-import { ui } from '../store/ui'
+import { ui, sendForm, showToast } from '../store/ui'
 import {
   expNav,
   expSubTabs,
-  expDesignVars,
   tasks,
   taskStatusLabel,
   avatarPalette
 } from '../data/mock'
+import { expDesignVars as expDesignVarsRaw } from '../data/mock'
+// ⚠ 包成 reactive：DOE CRUD 就地 splice 要触发重渲染（裸数组不会）。
+// 入口在 mount 前已用 replaceList 把真值 splice 进同一底层数组，首次渲染即真值；
+// 运行期 CRUD 走这里（proxy）splice → 响应式更新。
+const expDesignVars = reactive(expDesignVarsRaw)
 
 // ⚠ 默认**左栏**页签才是关键：任务表格在 activeNav==='tasks' 那一条分支里
 //   （模板第 179 行 <div v-else class="pane pane-plain">），
@@ -330,6 +441,147 @@ const scene = ref('B') // 画布 4:603 选中态 = 场景 B
 function avatarStyle(color) {
   const c = avatarPalette[color] || avatarPalette.blue
   return { background: c.bg, color: c.fg }
+}
+
+// ⚠ 编辑闸门（ADR-0051 Q6）：与 design 子页签显隐同源（= 原生 MANAGE）。
+//   ui.canManageExperiment 由 entry 注入；computed 保证响应式。
+const canManage = computed(() => !!ui.canManageExperiment)
+const memberOptions = computed(() => Array.isArray(ui.memberOptions) ? ui.memberOptions : [])
+
+// 实验所属实验 id（entry 写入 window.__ELN_EXP_DETAIL__.experimentId），用于拼写端点。
+function expId() {
+  return window.__ELN_EXP_DETAIL__ && window.__ELN_EXP_DETAIL__.experimentId
+}
+
+// ------------------------------------------------------------
+// 实验信息编辑弹窗（ADR-0051）
+//   初值取自 ui.editInfo（payload 下发原始值），不改显示用 const；
+//   保存 → PATCH → 返回全量 payload → window.location.reload()（与项目详情同源）。
+// ------------------------------------------------------------
+const infoModalOpen = ref(false)
+const infoSaving = ref(false)
+const infoError = ref('')
+const infoForm = ref({
+  business_code: '', name: '', owner_user_id: '', due_date: '', purpose: '', method: '', status: 'not_started'
+})
+
+function openInfoModal() {
+  const e = ui.editInfo || {}
+  infoForm.value = {
+    business_code: e.business_code || '',
+    name: e.name || '',
+    owner_user_id: e.owner_user_id || '',
+    due_date: e.due_date || '',
+    purpose: e.purpose || '',
+    method: e.method || '',
+    status: e.status || 'not_started'
+  }
+  infoError.value = ''
+  infoModalOpen.value = true
+}
+
+async function saveInfo() {
+  const id = expId()
+  if (!id) { infoError.value = '缺少实验 ID（payload 未下发）'; return }
+  infoSaving.value = true
+  infoError.value = ''
+  try {
+    await sendForm(`/experiments/${id}/eln_exp_detail`, 'PATCH', {
+      experiment: {
+        name: infoForm.value.name,
+        due_date: infoForm.value.due_date || null,
+        business_code: infoForm.value.business_code || null,
+        owner_user_id: infoForm.value.owner_user_id || null,
+        purpose: infoForm.value.purpose || null,
+        method: infoForm.value.method || null,
+        status: infoForm.value.status
+      }
+    })
+    // 返回全量 payload，整页 reload 重注入（与项目详情「编辑项目信息」同款）。
+    window.location.reload()
+  } catch (e) {
+    infoError.value = (e && e.message) ? e.message : '保存失败'
+    infoSaving.value = false
+  }
+}
+
+// ------------------------------------------------------------
+// 设计变量编辑弹窗（ADR-0051 Q4=b）：增 / 改 / 删
+//   成功 → 就地替换共享的 expDesignVars 数组（不跳页，留在 design 子页签）。
+// ------------------------------------------------------------
+const dvModalOpen = ref(false)
+const dvSaving = ref(false)
+const dvError = ref('')
+const dvForm = ref({ id: null, name: '', var_type: 'float', range_min: '', range_max: '', unit: '', constraint: '' })
+
+function openDvModal(v) {
+  if (v) {
+    dvForm.value = {
+      id: v.id,
+      name: v.name || '',
+      var_type: v.type || 'float',
+      range_min: v.range_min != null ? String(v.range_min) : '',
+      range_max: v.range_max != null ? String(v.range_max) : '',
+      unit: v.unit || '',
+      constraint: v.constraint || ''
+    }
+  } else {
+    dvForm.value = { id: null, name: '', var_type: 'float', range_min: '', range_max: '', unit: '', constraint: '' }
+  }
+  dvError.value = ''
+  dvModalOpen.value = true
+}
+
+function emptyToNull(x) {
+  return (x === '' || x == null) ? null : x
+}
+
+async function saveDv() {
+  const id = expId()
+  if (!id) { dvError.value = '缺少实验 ID（payload 未下发）'; return }
+  dvSaving.value = true
+  dvError.value = ''
+  const body = {
+    design_variable: {
+      name: dvForm.value.name,
+      var_type: dvForm.value.var_type,
+      range_min: emptyToNull(dvForm.value.range_min),
+      range_max: emptyToNull(dvForm.value.range_max),
+      unit: emptyToNull(dvForm.value.unit),
+      constraint: emptyToNull(dvForm.value.constraint)
+    }
+  }
+  try {
+    let data
+    if (dvForm.value.id) {
+      data = await sendForm(`/experiments/${id}/eln_exp_design_variables/${dvForm.value.id}`, 'PATCH', body)
+    } else {
+      data = await sendForm(`/experiments/${id}/eln_exp_design_variables`, 'POST', body)
+    }
+    if (data && Array.isArray(data.expDesignVars)) {
+      // 就地替换共享数组（mock.expDesignVars 同一引用，组件 v-for 自动重渲染）。
+      expDesignVars.splice(0, expDesignVars.length, ...data.expDesignVars)
+    }
+    dvModalOpen.value = false
+  } catch (e) {
+    dvError.value = (e && e.message) ? e.message : '保存失败'
+  } finally {
+    dvSaving.value = false
+  }
+}
+
+async function deleteDv(v) {
+  const id = expId()
+  if (!id) { showToast('缺少实验 ID'); return }
+  try {
+    const data = await sendForm(`/experiments/${id}/eln_exp_design_variables/${v.id}`, 'DELETE', {})
+    if (data && Array.isArray(data.expDesignVars)) {
+      expDesignVars.splice(0, expDesignVars.length, ...data.expDesignVars)
+    }
+    showToast('已删除设计变量')
+  } catch (e) {
+    showToast((e && e.message) ? e.message : '删除失败')
+  }
 }
 </script>
 
@@ -720,5 +972,156 @@ function avatarStyle(color) {
   height: 32px;
   padding: 0 12px;
   font-size: 12px;
+}
+
+/* DV 表操作列（ADR-0051） */
+.col-act {
+  width: 96px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.var-head .col-act {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.row-act {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--color-text-menu);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.row-act:hover {
+  background: var(--color-fill-soft);
+  color: var(--color-text);
+}
+.row-act.danger {
+  color: var(--color-danger, #d4380d);
+  border-color: var(--color-danger-border, #f0c9c0);
+}
+.row-act.danger:hover {
+  background: var(--color-danger-soft, #fdeee9);
+}
+
+/* 弹窗（ADR-0051，与全站卡片 token 同源） */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  width: 520px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.modal-close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-placeholder);
+  cursor: pointer;
+}
+.modal-close:hover {
+  background: var(--color-fill-soft);
+  color: var(--color-text);
+}
+.modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--color-border);
+}
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.form-row-col {
+  gap: 6px;
+}
+.form-label {
+  font-size: 12px;
+  color: var(--color-placeholder);
+}
+.form-input {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input-bg, var(--color-card));
+  color: var(--color-text);
+  font-size: 13px;
+  outline: none;
+}
+.form-input:focus {
+  border-color: var(--color-primary);
+}
+.form-textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input-bg, var(--color-card));
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+.form-textarea:focus {
+  border-color: var(--color-primary);
+}
+.form-row-group {
+  display: flex;
+  gap: 10px;
+}
+.form-row-group .form-row {
+  flex: 1;
+}
+.form-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-danger, #d4380d);
 }
 </style>

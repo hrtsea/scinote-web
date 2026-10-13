@@ -352,6 +352,185 @@ class ElnUiExpDetailTest < AcTest::Base
                  'addon 详情页地址必须同时给出'
   end
 
+  # ============================================================
+  # ADR-0051：实验信息 / 目的 / 方法 可编辑 + DOE 设计变量行级 CRUD
+  # ============================================================
+
+  # editInfo 必须给编辑表单初值（与显示用 expInfo 分离，status 取 trackable 形态）。
+  def test_edit_info_carries_trackable_status_and_profile_fields
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+    Scinote::ElnUi::ExperimentProfile.create!(
+      experiment: exp, business_code: 'ELN-EXP-2026-005',
+      purpose: '目的文本', method: '方法文本', owner_user_id: scene[:creator].id
+    )
+
+    info = Scinote::ElnUi::ExpDetailPayload.call(exp, scene[:creator],
+                                                 can_manage_experiment: true)[:editInfo]
+
+    assert_equal 'ELN-EXP-2026-005', info[:business_code]
+    assert_equal exp.name.to_s, info[:name]
+    assert_equal scene[:creator].id.to_s, info[:owner_user_id]
+    assert_equal '目的文本', info[:purpose]
+    assert_equal '方法文本', info[:method]
+    # status 取 trackable 形态（not_started/in_progress/done），不是显示用三态
+    assert_includes %w[not_started in_progress done], info[:status]
+  end
+
+  # memberOptions 真源 = 实验所属项目 team.users（负责人下拉）。
+  def test_member_options_come_from_project_team_users
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+
+    opts = Scinote::ElnUi::ExpDetailPayload.call(exp, scene[:creator],
+                                                 can_manage_experiment: true)[:memberOptions]
+
+    assert opts.is_a?(Array)
+    # 列表至少含创建者本人（创建者必然是项目 team 成员）
+    assert_includes opts.map { |o| o[:id] }, scene[:creator].id.to_s
+    # 每项必须有 id + name
+    assert(opts.all? { |o| o[:id] && o[:name] })
+  end
+
+  # expDesignVars 每项除显示用 range 外，还要带编辑表单需要的原始字段 id/range_min/range_max/unit。
+  def test_design_vars_payload_includes_id_and_raw_fields
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+    Scinote::ElnUi::DesignVariable.create!(experiment: exp, name: 'POE', var_type: 'float',
+                                           range_min: 5, range_max: 25, unit: '%', position: 0)
+
+    v = payload(exp, scene[:creator])[:expDesignVars].first
+
+    assert_equal Scinote::ElnUi::DesignVariable.first.id.to_s, v[:id], 'id 必须是主键字符串'
+    assert_equal 5, v[:range_min], '编辑表单读原始 range_min'
+    assert_equal 25, v[:range_max], '编辑表单读原始 range_max'
+    assert_equal '%', v[:unit], '编辑表单读原始 unit'
+    assert_equal '5 ~ 25%', v[:range], '显示用 range 仍按 min~max+unit 组装'
+  end
+
+  # 编辑实验信息（PATCH）：原生 name/due_date + 二开 business_code/owner/purpose/method 都落库。
+  def test_update_persists_native_and_profile_fields
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+
+    status, = patch_exp_detail(scene[:creator], exp, experiment: {
+                                name: '改名实验', due_date: '2026-12-01',
+                                business_code: 'ELN-EXP-2026-009',
+                                owner_user_id: scene[:creator].id.to_s,
+                                purpose: '新目的', method: '新方法', status: 'done'
+                              })
+
+    assert_equal 200, status
+    exp.reload
+    assert_equal '改名实验', exp.name, '原生 name 必须真被改'
+    assert_equal Date.new(2026, 12, 1), exp.due_date, '原生 due_date 必须真被改'
+    assert exp.done_at.present?, 'status=done 必须写 TimeTrackable 的 done_at'
+    prof = Scinote::ElnUi::ExperimentProfile.find_by(experiment_id: exp.id)
+    assert_equal 'ELN-EXP-2026-009', prof.business_code
+    assert_equal scene[:creator].id, prof.owner_user_id, '显式负责人落到 owner_user_id'
+    assert_equal '新目的', prof.purpose
+    assert_equal '新方法', prof.method
+  end
+
+  # 非法 status 必须被忽略（不写、不 422）。
+  def test_update_ignores_illegal_status
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+
+    status, = patch_exp_detail(scene[:creator], exp, experiment: { status: 'bogus_state' })
+
+    assert_equal 200, status
+    refute exp.reload.done_at.present?, '非法 status 不得写 done_at'
+  end
+
+  # 非 MANAGE 角色 PATCH 编辑信息 → 403，且不落任何副作用。
+  def test_update_refuses_non_manager_with_403
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+    reader = make_experiment_reader!(scene[:project], scene[:team], assigner: scene[:creator])
+    original_name = exp.name
+
+    status, = patch_exp_detail(reader, exp, experiment: { name: '被越权改名' })
+
+    assert_equal 403, status, '无 MANAGE 权限不得改实验信息'
+    assert_equal original_name, exp.reload.name, '越权写入不得生效'
+  end
+
+  # DOE 设计变量 create：append 到末尾（position = max+1），响应回传全量列表。
+  def test_design_variable_create_appends_position
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+
+    status, body = post_design_variable(scene[:creator], exp, design_variable: {
+                                         name: '固化温度', var_type: 'float',
+                                         range_min: 120, range_max: 180, unit: '°C',
+                                         constraint: '越高越好'
+                                       })
+
+    assert_equal 200, status
+    dv = Scinote::ElnUi::DesignVariable.find_by(experiment_id: exp.id, name: '固化温度')
+    assert dv, '变量必须落到 eln_ui_design_variables'
+    assert_equal 1, dv.position, '首条变量 position = 1（append 到末尾）'
+    assert_includes (body['expDesignVars'] || []).map { |v| v['name'] }, '固化温度'
+  end
+
+  # DOE 设计变量 update：改字段必须落库。
+  def test_design_variable_update_persists
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+    dv = Scinote::ElnUi::DesignVariable.create!(experiment: exp, name: '旧名',
+                                               var_type: 'float', position: 0)
+
+    status, = patch_design_variable(scene[:creator], exp, dv.id, design_variable: {
+                                      name: '新名', var_type: 'integer', range_min: 1, range_max: 9
+                                    })
+
+    assert_equal 200, status
+    assert_equal '新名', dv.reload.name, '变量名必须真被改'
+    assert_equal 'integer', dv.reload.var_type
+  end
+
+  # DOE 设计变量 destroy：删掉后从库里消失。
+  def test_design_variable_destroy_removes
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+    dv = Scinote::ElnUi::DesignVariable.create!(experiment: exp, name: '待删',
+                                               var_type: 'categorical', position: 0)
+
+    status, = delete_design_variable(scene[:creator], exp, dv.id)
+
+    assert_equal 200, status
+    refute Scinote::ElnUi::DesignVariable.exists?(dv.id), '变量必须真被删'
+  end
+
+  # 非 MANAGE 角色 create 设计变量 → 403，不落库。
+  def test_design_variable_crud_refuses_non_manager_with_403
+    scene = build_scene!
+    exp = make_experiment!(project: scene[:project], creator: scene[:creator])
+    reader = make_experiment_reader!(scene[:project], scene[:team], assigner: scene[:creator])
+
+    status, = post_design_variable(reader, exp, design_variable: {
+                                     name: '越权变量', var_type: 'float', range_min: 1, range_max: 2
+                                   })
+
+    assert_equal 403, status, '无 MANAGE 权限不得增设计变量'
+    refute Scinote::ElnUi::DesignVariable.exists?(name: '越权变量'), '越权写入不得生效'
+  end
+
+  # 跨实验 id：变量必须锁定在当前实验下，指到别的实验的变量 id → 404（不泄漏存在性）。
+  def test_design_variable_cross_experiment_id_404
+    scene = build_scene!
+    exp1 = make_experiment!(project: scene[:project], creator: scene[:creator])
+    exp2 = make_experiment!(project: scene[:project], creator: scene[:creator])
+    other = Scinote::ElnUi::DesignVariable.create!(experiment: exp2, name: '别人家的',
+                                                  var_type: 'float', position: 0)
+
+    status, = patch_design_variable(scene[:creator], exp1, other.id, design_variable: { name: '偷改' })
+
+    assert_equal 404, status, '跨实验 id 必须 404，不暴露存在性'
+    assert_equal '别人家的', other.reload.name, '不得越权改到别的实验的变量'
+  end
+
   private
 
   # ⚠ 测试库里默认没有 MyModuleStatus 行（生产库有：SciNote Free default task flow
@@ -365,11 +544,69 @@ class ElnUiExpDetailTest < AcTest::Base
   def payload(exp, user)
     Scinote::ElnUi::ExpDetailPayload.call(exp, user, can_create_task: true, can_manage_experiment: false)
   end
-  def open_exp(exp, user)
-    session = ActionDispatch::Integration::Session.new(Rails.application)
-    Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
-    session.get("/experiments/#{exp.id}/eln_exp_detail")
-    @status = session.response.status
-    session.response.body
-  end
-end
+      def open_exp(exp, user)
+        session = ActionDispatch::Integration::Session.new(Rails.application)
+        Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+        session.get("/experiments/#{exp.id}/eln_exp_detail")
+        @status = session.response.status
+        session.response.body
+      end
+
+      # ---- ADR-0051 端点请求封装（JSON 直发，与前端 sendForm 同源）----
+
+      def patch_exp_detail(user, exp, params)
+        session = ActionDispatch::Integration::Session.new(Rails.application)
+        Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+        session.patch "/experiments/#{exp.id}/eln_exp_detail",
+                      params: params.to_json,
+                      headers: { 'CONTENT_TYPE' => 'application/json' }
+        [session.response.status, (JSON.parse(session.response.body) rescue {})]
+      end
+
+      def post_design_variable(user, exp, params)
+        session = ActionDispatch::Integration::Session.new(Rails.application)
+        Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+        session.post "/experiments/#{exp.id}/eln_exp_design_variables",
+                     params: params.to_json,
+                     headers: { 'CONTENT_TYPE' => 'application/json' }
+        [session.response.status, (JSON.parse(session.response.body) rescue {})]
+      end
+
+      def patch_design_variable(user, exp, id, params)
+        session = ActionDispatch::Integration::Session.new(Rails.application)
+        Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+        session.patch "/experiments/#{exp.id}/eln_exp_design_variables/#{id}",
+                      params: params.to_json,
+                      headers: { 'CONTENT_TYPE' => 'application/json' }
+        [session.response.status, (JSON.parse(session.response.body) rescue {})]
+      end
+
+      def delete_design_variable(user, exp, id)
+        session = ActionDispatch::Integration::Session.new(Rails.application)
+        Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+        session.delete "/experiments/#{exp.id}/eln_exp_design_variables/#{id}",
+                       params: {}.to_json,
+                       headers: { 'CONTENT_TYPE' => 'application/json' }
+        [session.response.status, (JSON.parse(session.response.body) rescue {})]
+      end
+
+      # 造一个「能读实验但无 MANAGE 权限」的用户（用于 403 护栏用例）：
+      #   角色只含 experiment_read（+project_read 让其留在项目内），经 PropagateAssignmentJob
+      #   把角色下放到实验层 → 实验可读；但不含 experiment_manage → MANAGE 闸门拒绝。
+      # ⚠ 不能复用 :normal（normal 角色含 experiment_manage，会直接放行）；
+      #   也不能用 :restricted（self_only_researcher 连 experiment_read 都没有，会撞 404）。
+      def make_experiment_reader!(project, team, assigner:)
+        member = join_team!(make_user!(name: 'exp_reader'), team)
+        role = UserRole.create!(
+          name: "exp_reader_#{SecureRandom.hex(4)}",
+          permissions: %w[project_read experiment_read experiment_read_canvas],
+          predefined: false,
+          created_by: assigner,
+          last_modified_by: assigner
+        )
+        ua = project.user_assignments.find_or_initialize_by(user: member, team: team)
+        ua.update!(user_role: role, assigned: :manually)
+        UserAssignments::PropagateAssignmentJob.perform_now(ua, assigner_id: assigner.id)
+        member
+      end
+    end

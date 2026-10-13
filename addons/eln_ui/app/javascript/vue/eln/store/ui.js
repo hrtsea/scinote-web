@@ -215,7 +215,15 @@ export const ui = reactive({
   // 铁律：前端不写死宿主路由，一律由后端 payload 下发真实 URL。
   projectDetailUrl: '',   // 实验详情面包屑第二级 → 项目详情
   projectListUrl: '',     // 项目详情面包屑第一级 → addon 项目列表页
-  listConsumer: null
+  listConsumer: null,
+  // ---------- 实验详情可编辑化（ADR-0051）----------
+  // canManageExperiment：能否编辑实验信息 / DOE 变量（= 原生 MANAGE，与 design 子页签同源）。
+  //   空/false = 原型独立跑或组员，编辑按钮不渲染（不编造成「点开 403」的死入口）。
+  canManageExperiment: false,
+  // 负责人下拉真源：实验所属项目 team.users（payload 下发）；空 = 留白下拉。
+  memberOptions: [],
+  // 编辑表单原始初值（payload 下发）；组件打开弹窗时从这里取，不改显示用 const。
+  editInfo: {}
 })
 
 export function setViewRender(v) {

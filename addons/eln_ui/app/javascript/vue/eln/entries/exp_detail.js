@@ -117,6 +117,15 @@ if (injected.expInfo) {
 //   真机上要不要显隐，得等规格侧把 SCN-EXP-DETAIL-5 落到按钮上再定（记 OPEN），
 //   这里不擅自去改组件模板。
 
+// ---------- 实验详情可编辑化（ADR-0051） ----------
+// MANAGE 闸 → 编辑按钮显隐；memberOptions / editInfo 供弹窗表单。
+// 空/false = 原型独立跑或组员，组件据此不渲染编辑入口（不编造成「点开 403」死入口）。
+if (injected.canManageExperiment !== undefined) {
+  ui.canManageExperiment = !!injected.canManageExperiment
+}
+if (injected.memberOptions !== undefined) ui.memberOptions = injected.memberOptions
+if (injected.editInfo !== undefined) ui.editInfo = injected.editInfo
+
 // ---------- 挂载 ----------
 createApp({ render: () => h(ExperimentDetail) })
   .component('router-link', HostRouterLink)
