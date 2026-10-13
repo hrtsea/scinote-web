@@ -23,7 +23,6 @@ module Scinote
     class ProjectApproversController < ApplicationController
       class ConfigError < StandardError; end
 
-      before_action :require_login
       before_action :check_team_membership
 
       def index
@@ -46,7 +45,11 @@ module Scinote
       end
 
       def destroy
-        approver = Scinote::ElnUi::ProjectApprover.find_by(id: params[:id])
+        # 🔴 加团队边界：否则 `find_by(id:)` 全局查找会让 id 不存在→422、存在却无权限→403，
+        #   状态码差泄露跨团队记录存在性。收窄到 current_team 的项目内，与列表/创建同口径。
+        approver = Scinote::ElnUi::ProjectApprover
+                  .where(project_id: current_team.projects.select(:id))
+                  .find_by(id: params[:id])
         raise ConfigError, '配置不存在' if approver.nil?
 
         project = approver.project
@@ -162,12 +165,6 @@ module Scinote
         end
 
         stage
-      end
-
-      def require_login
-        return if current_user
-
-        redirect_to '/login'
       end
 
       def check_team_membership

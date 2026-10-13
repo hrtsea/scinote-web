@@ -107,6 +107,7 @@ module Scinote
       end
 
       def apply_approve(_reason)
+        gate!(same_team?, '该任务不属于当前团队')
         gate_reviewer!
         request = pending_request!
         request.update!(status: 'approved', reviewer: @user, reviewed_at: Time.current)
@@ -116,6 +117,7 @@ module Scinote
       # SCN-TASK-CLOSE-4：驳回必填理由 —— 「退回前序状态」在本表里的体现是
       # 这一行走 rejected、任务不被标记关闭；下次提交会新起一行，历史留痕。
       def apply_reject(reason)
+        gate!(same_team?, '该任务不属于当前团队')
         gate_reviewer!
         gate!(reason.present?, '驳回关闭申请必须填写驳回理由')
         request = pending_request!

@@ -89,9 +89,11 @@ module Scinote
       #    其余四态（立项中 / 年度考核 / 结题中）本轮无承载语义 → 422 并说清，绝不静默存一个 UI 上兑现不了的状态。
       def change_status
         return render_403 unless current_permissions[:canChangeStatus]
-        unless respond_to?(:can_archive_project?, true) && can_archive_project?(@project)
-          return render_403
-        end
+        # 🔴 去掉脆弱的 `respond_to?(:can_archive_project?, true)` 分支：Canaid 的 can_archive_project?
+        #   是全局注入的 helper（宿主 projects_controller 也直接调用，无 respond_to? 包裹），它若缺失
+        #   会让**所有人**改状态一律 403，而前端 canChangeStatus 仍显隐按钮（显示/403 分叉）。
+        #   直接调用，与宿主同源；与 current_permissions[:canChangeStatus]（owner? 口径）构成双闸。
+        return render_403 unless can_archive_project?(@project)
 
         unless params[:status].to_s == ::Scinote::ElnUi::ProjectProfile::STATUS_LABELS.key('已结题')
           return render json: { error: '本轮仅支持置为「已结题」；其余项目状态暂无承载语义' },

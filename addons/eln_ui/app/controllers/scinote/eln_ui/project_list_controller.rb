@@ -86,9 +86,13 @@ module Scinote
       #      edit/access/comments/activities/export 等，其中单读类动作由行 kebab 菜单承担，
       #      这里不重复暴露以免渲染出「点了没反应」的死按钮。
       def actions
-        items = JSON.parse(params[:items].presence || '[]')
-        folder_ids = items.select { |i| i['type'] == 'project_folder' }.pluck('id')
-        project_ids = items.select { |i| i['type'] == 'project' }.pluck('id')
+        # ⚠ `params[:items]` 可能是 JSON 字符串（前端 FormData）或 Rails 已解析的数组（application/json）。
+        #   先归一为 Array，再取 id —— 普通 Array 没有 `pluck`（那是 AR::Relation 的方法），
+        #   旧代码在此直接 NoMethodError → 500（批量条端点必崩，见 rails 评审 #1）。
+        raw = params[:items]
+        items = raw.is_a?(Array) ? raw : JSON.parse(raw.presence || '[]')
+        folder_ids = items.select { |i| i['type'] == 'project_folder' }.map { |i| i['id'] }
+        project_ids = items.select { |i| i['type'] == 'project' }.map { |i| i['id'] }
 
         # ⚠ 项目集合走 scoped_projects（已含 current_team + readable_by_user 两条口径），
         #   不直接 Project.where(id:) —— 后者会跨团队/跨权限拿到别人的项目。
