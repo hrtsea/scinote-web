@@ -40,7 +40,7 @@ class ElnUiRouteBaselineTest < AcTest::Base
   # 迁移后 ELN UI 路由应落在 addon 自己的路由定义里；宿主 routes.rb 不得再出现。
   HOST_ROUTES_PATH = Rails.root.join('config/routes.rb')
 
-  EXPECTED_COUNT = 34
+  EXPECTED_COUNT = 35
 
   # 收集 ELN UI 的 34 条路由 —— **迁移前后都要能用同一段代码取到**。
   #

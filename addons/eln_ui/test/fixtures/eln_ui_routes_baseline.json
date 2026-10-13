@@ -1,5 +1,5 @@
 {
-  "generated_for": "eln_ui 路由自注册迁移（.scratch/eln-ui-route-self-registration）；2026-10-13 重生成：新增必传文档上传端点（ADR-0049）+ 修复 isolate_namespace 后取样失效",
+  "generated_for": "eln_ui 路由自注册迁移（.scratch/eln-ui-route-self-registration）；2026-10-13 重生成：新增 eln_exp_detail PATCH update 端点（ADR-0051），基线 34→35",
   "controller_whitelist": [
     "project_detail",
     "project_list",
@@ -13,9 +13,9 @@
     "task_close_action",
     "notifications"
   ],
-  "count": 34,
+  "count": 35,
   "named_count": 33,
-  "anonymous_count": 1,
+  "anonymous_count": 2,
   "routes": [
     {
       "verb": "GET",
@@ -136,6 +136,12 @@
       "path": "/experiments/:id/eln_exp_detail",
       "key": "eln_exp_detail",
       "controller": "scinote/eln_ui/exp_detail#index"
+    },
+    {
+      "verb": "PATCH",
+      "path": "/experiments/:id/eln_exp_detail",
+      "key": "ANON:PATCH:/experiments/:id/eln_exp_detail:scinote/eln_ui/exp_detail#update",
+      "controller": "scinote/eln_ui/exp_detail#update"
     },
     {
       "verb": "GET",

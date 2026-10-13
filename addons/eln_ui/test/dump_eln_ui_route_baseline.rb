@@ -74,7 +74,7 @@ end.sort_by { |h| [h['path'], h['verb']] }
 
 payload = {
   'generated_for' => 'eln_ui 路由自注册迁移（.scratch/eln-ui-route-self-registration）；' \
-                     '2026-10-13 重生成：新增必传文档上传端点（ADR-0049）+ 修复 isolate_namespace 后取样失效',
+                     '2026-10-13 重生成：新增 eln_exp_detail PATCH update 端点（ADR-0051），基线 34→35',
   'controller_whitelist' => ENGINE_CONTROLLERS,
   'count' => triples.size,
   'named_count' => routes.count { |r| r.name },
