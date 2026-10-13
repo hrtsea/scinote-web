@@ -46,6 +46,12 @@ module Scinote
                        'active' => 'var(--status-active)',
                        'done' => 'var(--status-done)' }.freeze
 
+      # 三组中文文案，与原型 mock 的 statusLabel 逐字一致（进行中 / 未开始 / 已完成）。
+      STATUS_TEXT = { 'active' => '进行中', 'notstarted' => '未开始', 'done' => '已完成' }.freeze
+
+      # 空值占位符（破折号），信息列拿不到数据时回落展示。
+      DASH = '—'
+
       class << self
         def call(experiment, user, can_create_task: false, can_manage_experiment: false)
           new(experiment, user, can_create_task: can_create_task,
@@ -131,9 +137,6 @@ module Scinote
       end
 
       private
-
-      # 三组中文文案，与原型 mock 的 statusLabel 逐字一致（进行中 / 未开始 / 已完成）。
-      STATUS_TEXT = { 'active' => '进行中', 'notstarted' => '未开始', 'done' => '已完成' }.freeze
 
       def project_id
         return nil unless @experiment.respond_to?(:project_id)
@@ -294,8 +297,6 @@ module Scinote
         }
       end
 
-      DASH = '—'
-
       # 原生没有「实验编号」业务列，但 PrefixedIdModel 给了一个 code（EX + id）。
       # 与其在前端写死 'EX1'，不如直接用原生 code；code 拿不到（老记录）就留白。
       def experiment_code
@@ -363,7 +364,9 @@ module Scinote
       def modules
         return [] unless @experiment.respond_to?(:my_modules)
 
-        @modules ||= @experiment.my_modules.readable_by_user(@user).order(:created_at).to_a
+        @modules ||= @experiment.my_modules.readable_by_user(@user)
+                              .includes(user_assignments: :user)
+                              .order(:created_at).to_a
       end
 
       def task_row(my_module)
@@ -399,10 +402,11 @@ module Scinote
       def assigned_users(my_module)
         return [] unless my_module.respond_to?(:user_assignments)
 
+        # 依赖 modules 查询的 includes(user_assignments: :user) 预载，
+        # 在内存中按 assignable_type 过滤，避免每个任务各打一条 user_assignments 查询。
         my_module.user_assignments
-                  .where(assignable_type: 'MyModule')
-                  .includes(:user)
-                  .order(:created_at)
+                  .select { |ua| ua.assignable_type == 'MyModule' }
+                  .sort_by(&:created_at)
                   .map(&:user)
                   .compact
       end
