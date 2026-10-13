@@ -21,7 +21,6 @@
 module Scinote
   module ElnUi
     class ResApplyCreateController < ApplicationController
-      before_action :require_login
       before_action :check_team_membership
 
       # ⚠ 不 skip authenticity token，理由与 ResApplyActionController 同源
@@ -68,12 +67,6 @@ module Scinote
       end
 
       private
-
-      def require_login
-        return if current_user
-
-        redirect_to '/login'
-      end
 
       def check_team_membership
         return if current_team

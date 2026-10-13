@@ -12,7 +12,6 @@
 module Scinote
   module ElnUi
     class ResApplyActionController < ApplicationController
-      before_action :require_login
       before_action :check_team_membership
 
       # ⚠ CSRF：这里**故意不 skip** authenticity token。
@@ -59,12 +58,6 @@ module Scinote
           qty: params[:receipt_qty].presence || params.dig(:receipt, :qty),
           photos: files.presence || Array(params.dig(:receipt, :photos))
         }
-      end
-
-      def require_login
-        return if current_user
-
-        redirect_to '/login'
       end
 
       def check_team_membership

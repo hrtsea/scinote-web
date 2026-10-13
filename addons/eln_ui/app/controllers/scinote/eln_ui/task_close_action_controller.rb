@@ -16,7 +16,6 @@
 module Scinote
   module ElnUi
     class TaskCloseActionController < ApplicationController
-      before_action :require_login
       before_action :check_team_membership
 
       def create
@@ -33,12 +32,6 @@ module Scinote
       end
 
       private
-
-      def require_login
-        return if current_user
-
-        redirect_to '/login'
-      end
 
       def check_team_membership
         return if current_team

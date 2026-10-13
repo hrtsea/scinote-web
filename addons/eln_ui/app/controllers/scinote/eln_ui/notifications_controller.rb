@@ -10,8 +10,6 @@ module Scinote
     # 读库走 Noticed 的 Notification 模型（与 NotificationPublisher 写入同表），
     # 不造二开通知表。CSRF 不 skip —— Workbench 调用点显式带 X-CSRF-Token。
     class NotificationsController < ApplicationController
-      before_action :require_login
-
       def index
         render json: Scinote::ElnUi::NotificationsPayload.call(user: current_user)
       end
@@ -28,11 +26,6 @@ module Scinote
 
       private
 
-      def require_login
-        return if current_user
-
-        redirect_to '/login'
-      end
     end
   end
 end
