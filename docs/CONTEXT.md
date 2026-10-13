@@ -96,3 +96,17 @@ payload 每行下发 `previewUrl/downloadUrl`（仅 file.attached? 时）——*
 （rails_blob_path 的 signed_id 是永久下载凭证，外溢即失控）。宿主 `CheckBlobPermissions`
 给 ActiveStorage RedirectController 挂了第二道权限关（record_type 白名单，已加
 Scinote::ElnUi::ProjectDocument 分支）⇒ signed_id 即使外溢也会被再查一次。
+
+## 实验详情可编辑化（ADR-0051）
+`/experiments/:id/eln_exp_detail` 原三块（实验信息 / 实验目的 / 实验方案与方法）只读 + 死编辑按钮，
+改为可编辑。可编辑集 = 业务编号(business_code) / 名称(name) / 负责人(profile.owner_user_id) /
+计划完成(due_date) / 目的(purpose) / 方法(method) + 状态(status)；**所属项目、任务进度保持只读**
+（前者原生无 re-parent 承载，后者为派生值）。状态走原生 `TimeTrackable#status=`
+（trackable 形态 `not_started/in_progress/done`）。承载面不建新表：原生 `experiments` +
+`eln_ui_experiment_profiles`（upsert_for!）+ `eln_ui_design_variables`（DOE 行级 CRUD）。
+
+## editInfo / memberOptions（实验详情 payload 新增）
+- `editInfo`：实验详情可编辑表单的**原始**初值 `{ business_code, name, owner_user_id, due_date,
+  purpose, method, status }`（status 取 trackable 形态，供表单直发；与显示用三态 `notstarted/active/done` 区分）。
+- `memberOptions`：`[{id, name}]` = 实验所属项目 `team.users`，负责人下拉真源（当前 owner 不在列表也保留）。
+- `expDesignVars` 每项补原始字段 `range_min/range_max/unit`，display 仍用组装 `range`，编辑表单读原始字段。
