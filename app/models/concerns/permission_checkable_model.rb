@@ -46,7 +46,11 @@ module PermissionCheckableModel
     end
   end
 
-  def permission_granted?(user, permission, permission_team = user.permission_team)
+  def permission_granted?(user, permission, permission_team = user&.permission_team)
+    # 匿名（无 current_user）一律无授权。默认参数 user.permission_team 在 user 为 nil
+    # 时会 NoMethodError；这里前置短路：nil user ⇒ 直接 false，不再查库。
+    return false if user.nil?
+
     if user_assignments.exists?(user: user, team: permission_team)
       return user_assignments.joins(:user_role)
                              .where(user: user, team: permission_team)
