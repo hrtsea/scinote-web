@@ -17,6 +17,8 @@ class ElnUiProjectListTest < AcTest::Base
   # ⚠ 一律显式传 user（Canaid 的 can_*? 在 1 参时回读 current_user，
   #   测试类里没有那概念，不传会误判成 false 而假绿）。
   include Canaid::Helpers::PermissionsHelper
+  # make_project_owner! 等造数辅助在 ElnUiFactories 模块里（与 ApproverTest 同源）。
+  include ElnUiFactories
 
   def test_rows_map_real_columns
     scene = build_scene!
@@ -646,7 +648,71 @@ class ElnUiProjectListTest < AcTest::Base
     assert_operator res['pagination']['totalEntries'], :>, 20, 'totalEntries 仍是筛选后总数'
   end
 
+  # ==================================================================
+  # 批量操作条动作端点（POST /eln_project_list/actions）—— rails 评审 #1 回归护栏
+  #
+  # 🔴 旧实现 `items.pluck('id')`：普通 Array（无论前端 FormData 传的 JSON 字符串
+  #   经 JSON.parse 得到的 Array，还是 application/json 下 Rails 已解析好的 Array）
+  #   **都没有 pluck 方法** → NoMethodError → 500（批量条端点必崩）。
+  #   修复后归一为 Array 再 select/map，两条入参路径都必须 200 不死。
+  # ==================================================================
+
+  # 前端真实路径：ActionToolbar 走 FormData，`params[:items]` 是 JSON 字符串。
+  def test_actions_endpoint_accepts_json_string_items
+    scene = build_scene!
+    make_project_owner!(scene[:project], user: scene[:creator])
+    items = JSON.generate([{ 'type' => 'project', 'id' => scene[:project].id }])
+
+    body = post_actions(scene[:creator], { items: items })
+
+    assert_equal 200, @last_status, 'JSON 字符串入参不得 500（评审 #1 必崩路径）'
+    assert body.key?('actions'), '响应必须带 actions 键'
+    assert_instance_of Array, body['actions']
+  end
+
+  # application/json 路径：Rails 已把 params[:items] 解析成 Array。
+  def test_actions_endpoint_accepts_array_items
+    scene = build_scene!
+    make_project_owner!(scene[:project], user: scene[:creator])
+
+    body = post_actions(scene[:creator], { items: [{ type: 'project', id: scene[:project].id }] },
+                        as: :json)
+
+    assert_equal 200, @last_status, 'Array 入参不得 500（评审 #1 必崩路径）'
+    assert body.key?('actions'), '响应必须带 actions 键'
+  end
+
+  # 坏 JSON → 400 而不是 500（catch 住 JSON::ParserError，head :bad_request）。
+  def test_actions_endpoint_bad_json_returns_400
+    scene = build_scene!
+
+    post_actions(scene[:creator], { items: '这不是合法 JSON{{{' })
+
+    assert_equal 400, @last_status, '坏 JSON 必须 400 而不是 500'
+  end
+
+  # 空集合：不得 500，正常返回空 actions（批量条在全不选时也走得通）。
+  def test_actions_endpoint_empty_items_returns_200
+    scene = build_scene!
+
+    body = post_actions(scene[:creator], { items: JSON.generate([]) })
+
+    assert_equal 200, @last_status, '空集合不得 500'
+    assert_equal [], body['actions']
+  end
+
   private
+
+  # POST /eln_project_list/actions 并解析响应体；把状态码存进 @last_status。
+  def post_actions(user, payload, **post_opts)
+    session = ActionDispatch::Integration::Session.new(Rails.application)
+    Warden.on_next_request { |proxy| proxy.set_user(user, scope: :user) }
+    session.post('/eln_project_list/actions', params: payload, **post_opts)
+    @last_status = session.response.status
+    JSON.parse(session.response.body)
+  rescue JSON::ParserError
+    { 'actions' => nil }
+  end
 
   # 与 ProjectListController#filtered_projects 完全同款的调用方式。
   # controller 改动时这里必须跟着改 —— 这正是本测试存在的意义。
