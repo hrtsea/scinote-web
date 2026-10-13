@@ -88,11 +88,26 @@ module Scinote
         return false unless cr.source_type == 'RepositoryLedgerRecord'
         return false unless equipment_rule_active?
 
-        ledger = ::RepositoryLedgerRecord.find_by(id: cr.source_id)
+        ledger = ledger_by_source_id(cr.source_id)
         return false if ledger.nil?
 
         row = ledger.repository_stock_value&.repository_cell&.repository_row
         row.present? && equipment_repo_ids.include?(row.repository_id)
+      end
+
+      # 批量预载消耗行溯源的 Ledger（rails-best-practices #4h）：把逐行
+      # `RepositoryLedgerRecord.find_by(id:)` 合成一次按 source_id 集合的查询。
+      # 🔴 类级 memo 禁用（见类头注释）；这里用实例 memo，一次调用内只查一遍。
+      def ledger_by_source_id(source_id)
+        @ledger_by_source_id ||= begin
+          ids = @rows
+                .select { |cr| cr.source_type == 'RepositoryLedgerRecord' }
+                .map(&:source_id).compact.uniq
+          ids.empty? ? {} :
+            ::RepositoryLedgerRecord.where(id: ids)
+                                   .includes(:repository_stock_value).index_by(&:id)
+        end
+        @ledger_by_source_id[source_id.to_i]
       end
 
       # 规则**能不能判**（≠「团队有没有设备模板」，两种「空」的区别见 EquipmentTemplateFilter 头注释）。

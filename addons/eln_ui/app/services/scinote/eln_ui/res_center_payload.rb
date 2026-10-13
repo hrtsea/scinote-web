@@ -227,6 +227,11 @@ module Scinote
       # 前端点击直达 /repositories/:id（行管理 / Stock / 列自定义全在原生页）。
       # ------------------------------------------------------------
       def inventory_block
+        repo_ids = readable_repositories.map(&:id)
+        # 分组计数一次性查出各库未归档行数，消除逐库 COUNT 的 N+1（rails-best-practices #4f）
+        row_counts = repo_ids.empty? ? {} :
+          ::RepositoryRow.where(repository_id: repo_ids, archived: false)
+                         .group(:repository_id).count
         {
           repositories: readable_repositories.map do |repo|
             {
@@ -236,7 +241,7 @@ module Scinote
               #   created_by_id/name/.../repository_template_id）。描述行改用
               #   「是否来自原生模板」生成，别引用不存在的列 —— 3 个用例一起炸的根因。
               description: repo.repository_template_id ? '来自原生库存模板' : '自建库存',
-              rowsCount: ::RepositoryRow.where(repository_id: repo.id, archived: false).count
+              rowsCount: row_counts[repo.id] || 0
             }
           end
         }
@@ -259,13 +264,21 @@ module Scinote
 
       # ①.2 ledgerRecords：所有 RepositoryLedgerRecord（按团队范围内 active repo）
       def ledger_records
-        ::RepositoryLedgerRecord.where(repository_stock_value_id: team_stock_value_ids)
-                                 .order(created_at: :desc)
-                                 .limit(200)
-                                 .map { |r| ledger_record_row(r) }
+        recs = ::RepositoryLedgerRecord
+               .where(repository_stock_value_id: team_stock_value_ids)
+               .includes(:repository_stock_value, :user)
+               .order(created_at: :desc)
+               .limit(200)
+               .to_a
+        # 批量预载关联项目，消除逐行 Project.find_by 的 N+1（rails-best-practices #4g）
+        proj_ids = recs.filter_map do |r|
+          (r.my_module_references.is_a?(Hash) ? r.my_module_references['project_id'] : nil)
+        end.compact.uniq
+        projects = proj_ids.empty? ? {} : ::Project.where(id: proj_ids).index_by(&:id)
+        recs.map { |r| ledger_record_row(r, projects) }
       end
 
-      def ledger_record_row(r)
+      def ledger_record_row(r, projects = {})
         sv = r.repository_stock_value
         # ⚠ StockValue → RepositoryRow 走 EAV（repository_cell.repository_row），不直接
         row = sv&.repository_cell&.repository_row
@@ -279,7 +292,7 @@ module Scinote
                     end
         # 关联项目：my_module_references 里拿 project_id；空代表入库或非任务消耗
         proj_id = r.my_module_references.is_a?(Hash) ? r.my_module_references['project_id'] : nil
-        proj = proj_id ? ::Project.find_by(id: proj_id) : nil
+        proj = proj_id ? projects[proj_id.to_i] : nil
         qty = r.balance.to_d
         unit = r.unit.presence || stock_unit_of(sv)
         qty_text = r.amount.to_d.zero? ? '—' : "#{r.amount.abs} #{unit}".strip
@@ -321,6 +334,7 @@ module Scinote
       def team_consume_records_all
         @team_consume_records_all ||= ::Scinote::ElnUi::ConsumeRecord
                                       .where(project_id: team_project_ids)
+                                      .includes(:project, :user)
                                       .order(occurred_at: :desc)
                                       .to_a
       end

@@ -301,9 +301,26 @@ module Scinote
       #   真正的项目专属单元格根本不会用到这些占位值。
       # ------------------------------------------------------------
       def projects_block
+        preload_owners!
         @projects.map.with_index do |record, i|
           project_row?(record) ? project_row(record, i) : folder_row(record)
         end
+      end
+
+      # 批量预载项目负责人(supervised_by) / 创建人(created_by)，消除 owner_of 里的 N+1
+      # （rails-best-practices #4a/#4b）：一次性按 id 集查出，后续查走内存哈希。
+      def preload_owners!
+        ids = @projects.filter_map do |record|
+          next unless project_row?(record)
+          [record.supervised_by_id, record.created_by_id]
+        end.flatten.compact.uniq.map(&:to_i)
+        @preloaded_users = ids.empty? ? {} : User.where(id: ids).index_by(&:id)
+      end
+
+      def lookup_user(id)
+        return nil if id.blank?
+        iid = id.to_i
+        @preloaded_users&.fetch(iid, nil) || User.find_by(id: iid)
       end
 
       # 判别**只认 `instance_of?`**（与原生 `Lists::ProjectsService#project?` 同款）。
@@ -910,13 +927,14 @@ module Scinote
         return nil unless project.respond_to?(:supervised_by_id)
         return nil if project.supervised_by_id.blank?
 
-        User.find_by(id: project.supervised_by_id)
+        lookup_user(project.supervised_by_id)
       end
 
       def creator_user(project)
         return nil unless project.respond_to?(:created_by_id)
+        return nil if project.created_by_id.blank?
 
-        User.find_by(id: project.created_by_id)
+        lookup_user(project.created_by_id)
       end
 
       # ------------------------------------------------------------

@@ -536,8 +536,10 @@ module Scinote
       # ------------------------------------------------------------
       def members_block
         rows = @project.user_assignments.where(assignable_type: 'Project').order(:created_at).to_a
+        # 批量预载成员用户，消除逐行的 User.find_by N+1（rails-best-practices #4c）
+        users = rows.empty? ? {} : User.where(id: rows.filter_map(&:user_id).uniq).index_by(&:id)
         rows.each_with_index.map do |ua, i|
-          user = User.find_by(id: ua.user_id)
+          user = users[ua.user_id.to_i]
           role = ua.user_role
           role_name = role&.name.to_s
           {
@@ -554,7 +556,11 @@ module Scinote
       # ③ 下属实验（原型 experiments：fullName/status/owner/progress/due）
       # ------------------------------------------------------------
       def experiments_block
-        @project.experiments.order(:id).each_with_index.map do |exp, i|
+        exps = @project.experiments.order(:id).to_a
+        # 批量预载实验创建人，消除逐实验的 User.find_by N+1（rails-best-practices #4d）
+        creators = exps.empty? ? {} :
+          User.where(id: exps.filter_map(&:created_by_id).uniq).index_by(&:id)
+        exps.each_with_index.map do |exp, i|
           mods = exp.respond_to?(:my_modules) ? exp.my_modules.to_a : []
           total = mods.size
           done = mods.count { |m| m.completed_on.present? || m.archived.present? }
@@ -568,7 +574,7 @@ module Scinote
             href: "/projects/#{@project.id}/experiments/#{exp.id}",
             detailUrl: "/experiments/#{exp.id}/eln_exp_detail",
             status: experiment_status(exp, mods),
-            owner: experiment_owner(exp, i),
+            owner: experiment_owner(exp, i, creators),
             progress: { done: done, total: total },
             due: date(exp.due_date.presence || mods.map(&:due_date).compact.min)
           }
@@ -583,8 +589,12 @@ module Scinote
         'active'
       end
 
-      def experiment_owner(exp, index)
-        user = exp.respond_to?(:created_by_id) ? User.find_by(id: exp.created_by_id) : nil
+      def experiment_owner(exp, index, creators = {})
+        user = if exp.respond_to?(:created_by_id) && exp.created_by_id.present?
+                 creators[exp.created_by_id.to_i] || User.find_by(id: exp.created_by_id.to_i)
+               else
+                 nil
+               end
         {
           name: user.present? ? user_full_name(user) : '—',
           initial: user.present? ? (user.initials.presence || user_full_name(user).first).to_s : '·',
@@ -603,6 +613,12 @@ module Scinote
         mods = @project.experiments.flat_map { |e| e.respond_to?(:my_modules) ? e.my_modules.to_a : [] }
         mod_ids = mods.map(&:id)
         requests = Scinote::ElnUi::TaskCloseRequest.where(my_module_id: mod_ids).to_a
+        # 按 my_module 取最新一行（替代逐模块 latest_for 的 N+1，rails-best-practices #4e）。
+        # 排序口径与原生 latest_for（order submitted_at desc, id desc）的 .first 完全一致：
+        # 升序排后取末位 = 最大 submitted_at、并列取最大 id。submitted_at 为 nil 视为最旧。
+        latest_by_mod = requests.group_by(&:my_module_id).transform_values do |rs|
+          rs.sort_by { |r| [r.submitted_at || Time.at(0), r.id] }.last
+        end
         closed   = requests.count(&:approved?)
         pending  = requests.count(&:pending?)
         rejected = requests.count(&:rejected?)
@@ -615,7 +631,7 @@ module Scinote
           # 全部任务关闭 → 指标达标可驱动（spec #11「由任务审核关闭驱动」）
           indicatorDriven: total.positive? && closed == total,
           tasks: mods.map do |m|
-            latest = Scinote::ElnUi::TaskCloseRequest.latest_for(m)
+            latest = latest_by_mod[m.id]
             {
               id: m.id,
               name: m.name.to_s,
