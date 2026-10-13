@@ -80,7 +80,7 @@ module Scinote
       # 直接委托 payload —— range_text/format_number/表存在性兜底都由 payload 一处维护，
       # 不在 controller 再抄一份（避免两份逻辑漂移）。
       def vars_after
-        { expDesignVars: Scinote::ElnUi::ExpDetailPayload.new(@experiment, user: current_user).exp_design_vars }
+        { expDesignVars: Scinote::ElnUi::ExpDetailPayload.new(@experiment, current_user).exp_design_vars }
       end
     end
   end

@@ -9,7 +9,8 @@ module Scinote
 
       belongs_to :project, class_name: '::Project', inverse_of: false
 
-      validates :name, presence: true
+      # 名称必填；用 '^' 前缀让 full_messages 不前置英文属性名，直接给中文整句。
+      validates :name, presence: { message: '^名称不能为空' }
 
       scope :ordered, -> { order(:position, :id) }
     end
