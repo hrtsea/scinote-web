@@ -18,12 +18,9 @@
         <span class="eln-badge" :class="pb.statusKey === 'closed' ? 'eln-badge-grey' : 'eln-badge-green'">{{ pb.status }}</span>
         <span class="eln-badge eln-badge-grey badge-metric">{{ pb.metricProgress }}</span>
       </template>
-      <template #right>
-        <div class="head-actions">
-          <button v-if="can.canEditBasic" class="eln-btn-primary pd14" @click="openEdit">编辑项目信息</button>
-          <button v-if="can.canChangeStatus" class="eln-btn-ghost pd14" @click="confirmClose">修改项目状态</button>
-        </div>
-      </template>
+      <!-- 页头右侧操作组已撤（2026-10-13）：编辑项目信息的入口收敛到「项目基础信息」
+           页签行内「编辑」（同一 openEdit 弹层，canEditBasic 同款门控）；改项目状态
+           走宿主原生项目页的归档动作。页面因此更紧凑，且消除同一功能两个入口。 -->
     </PageHeader>
 
     <!-- 项目管理区 4:506 -->
@@ -339,7 +336,7 @@
       </div>
     </div>
 
-    <!-- ---------- 编辑项目信息（页头三键之一 · 2026-10-11 接线） ---------- -->
+    <!-- ---------- 编辑项目信息（2026-10-11 接线；2026-10-13 起入口在「项目基础信息」页签行内） ---------- -->
     <div v-if="editOpen" class="pd-mask" @click.self="editOpen = false">
       <div class="pd-modal">
         <h3 class="pd-modal-title">编辑项目信息</h3>
@@ -770,7 +767,8 @@ function exportArchive() {
   openHostEndpoint(projectArchive.exportUrl)
 }
 
-// ---------- 页头三键（2026-10-11 接线） ----------
+// ---------- 页头写操作组（2026-10-11 接线；2026-10-13 页头按钮撤后，编辑弹层
+//            改由「项目基础信息」页签行内「编辑」唤起，confirmClose 已删） ----------
 // 三条纪律：① 端点 URL 一律来自宿主下发（act.*），不自己拼；
 //          ② CSRF 与 credentials 沿用 addon 既有写法（ResCenter.vue / ui.js 同款）；
 //          ③ 原型独立跑时 act.* 是空串 —— 明说是原型态，不做任何假装的请求。
@@ -853,24 +851,10 @@ async function submitEdit() {
   }
 }
 
-// 「修改项目状态」本轮唯一真实的一档是置已结题（= 原生归档）。
-// ⚠ 归档后宿主的项目集只认 active，本页不再可读 → 成功就回列表，不让用户停在 404 上。
-async function confirmClose() {
-  if (!hasEndpoint(act.changeStatus)) return
-  if (!window.confirm('置为「已结题」将归档该项目（禁止再新建任务），确定继续？')) return
-
-  const res = await fetch(act.changeStatus, {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { 'Content-Type': 'application/json', ...csrfHeader() },
-    body: JSON.stringify({ status: 'closed' })
-  })
-  if (!res.ok) {
-    window.alert(`操作失败：${await failureText(res)}`)
-    return
-  }
-  window.location.href = listUrl.value
-}
+// 「修改项目状态」入口已撤（2026-10-13）：页头按钮取消后 confirmClose 成为死代码。
+// 后端 changeStatus 端点与权限档 canChangeStatus 保留（原生归档能力仍在宿主项目页，
+// 端点经 eln_ui_project_detail_actions_test 覆盖）；如后续要在此页重接状态变更，
+// 从这里恢复 fetch(act.changeStatus, {status:'closed'}) 即可。
 
 // ---------- 必传文档行级上传（2026-10-13 · ADR-0049 D7/D8） ----------
 // 原页头「上传任务书」按钮退役：端点写死 name='项目任务书'，必传清单固定为 5 类后
@@ -1009,10 +993,12 @@ async function toggleMetric(m) {
 
 <style scoped>
 .proj-detail {
-  padding: 28px;
+  /* 2026-10-13 紧凑化：画布原值 padding 28 / gap 16，用户要求更紧凑 ⇒ 24 / 12。
+     仅收页面级留白，不改卡片与网格内部结构；共享 PageHeader 不动（跨页生效）。 */
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px; /* 画布 4:387 内容区 gap 16 */
+  gap: 12px;
 }
 
 /* ---------- 空态（取不到真数据就留白，绝不回落原型演示值） ---------- */
@@ -1051,12 +1037,7 @@ async function toggleMetric(m) {
   color: var(--color-placeholder);
 }
 
-/* ---------- 页头操作组（画布 4:396 gap 8） ---------- */
-.head-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
+/* ---------- 页头操作组（2026-10-13 已撤：编辑入口在「项目基础信息」页签行内） ---------- */
 .pd14 {
   padding: 0 14px;
 }
@@ -1562,7 +1543,7 @@ async function toggleMetric(m) {
   margin-top: 2px;
 }
 
-/* ---------- 编辑项目信息弹层（页头三键接线，2026-10-11） ---------- */
+/* ---------- 编辑项目信息弹层（2026-10-11 接线；2026-10-13 起由「项目基础信息」页签唤起） ---------- */
 .pd-file {
   display: none;
 }
