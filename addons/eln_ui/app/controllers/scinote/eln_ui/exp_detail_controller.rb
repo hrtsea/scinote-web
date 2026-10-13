@@ -82,7 +82,10 @@ module Scinote
       # 单一来源），不再维护一份镜像的 TRACKABLE_STATUS，避免两份手工同步的映射漂移。
       def experiment_params
         # owner_user_id 空串 → 清显式负责人（回落指派/创建者推导）；其余 compact 后落库。
-        params.expect(experiment: [:name, :due_date, :business_code, :owner_user_id, :purpose, :method, :status])
+        # ⚠ 不能用 params.expect（那是 Rails 8 才有的 API，本项目 Rails 7.2 没有该方法，
+        #   一调就NoMethodError ⇒ 整条before_action 链 500）。2026-10-13 实测踩过。
+        params.require(:experiment)
+              .permit(:name, :due_date, :business_code, :owner_user_id, :purpose, :method, :status)
       end
 
       # ------------------------------------------------------------

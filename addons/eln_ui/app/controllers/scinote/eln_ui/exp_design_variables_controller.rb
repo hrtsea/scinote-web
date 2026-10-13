@@ -71,7 +71,9 @@ module Scinote
       end
 
       def dv_params
-        params.expect(design_variable: [:name, :var_type, :range_min, :range_max, :unit, :constraint])
+        # ⚠ 不能用 params.expect（那是 Rails 8 才有的 API，本项目 Rails 7.2 没有该方法）。
+        params.require(:design_variable)
+              .permit(:name, :var_type, :range_min, :range_max, :unit, :constraint)
       end
 
       # 与 ExpDetailPayload#exp_design_vars 同源 shape（display 用 range + 原始字段）。
