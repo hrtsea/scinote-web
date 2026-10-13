@@ -37,6 +37,10 @@ module Scinote
       # 设计变量表：原生无 DOE 变量 → 空。给「显式留白」而非隐身（面板照常渲染空表）。
       EMPTY_DESIGN_VARS = [].freeze
 
+      # 表单直发的三态 = 原生 TimeTrackable 取值域（非显示用三态 notstarted/active/done）。
+      # TimeTrackable#status= 收 :not_started/:in_progress/:done（status.to_sym 后 case）。
+      STATUS_TRACKABLE = { 'notstarted' => 'not_started', 'active' => 'in_progress', 'done' => 'done' }.freeze
+
       # 空值占位 + 状态色，与 tokens.css 的 --status-* 三档一一对应（画布 3 档色板）。
       STATUS_COLOR = { 'notstarted' => 'var(--status-notstarted)',
                        'active' => 'var(--status-active)',
@@ -93,6 +97,10 @@ module Scinote
           # 绝不把原型那套演示文案（Dow ADH-6066 / 拉伸剪切强度 ≥ 8.0 MPa）当真值渲染。
           expPurpose: exp_purpose,
           expMethod: exp_method,
+          # 编辑表单原始初值（ADR-0051）：与显示用 expInfo 分离，status 取 trackable 形态。
+          editInfo: edit_info,
+          # 负责人下拉真源：实验所属项目 team.users（ADR-0051 Q6 + owner 编辑）。
+          memberOptions: member_options,
           # 「实验信息」Pane（画布 4:69 hidden 态）那 7 个字段的原型写死假值
           # （EX1 / 硅胶配方与固化体系筛选 / 张负责人 / 2026-09-30 / 1/3 任务）。
           # 这 7 格之前是整页最后一块假数据，真机不接就会顶着别人的项目名。
@@ -100,6 +108,26 @@ module Scinote
           tasks: tasks_block,
           status: status_of(@experiment)
         }
+      end
+
+      # DOE 设计变量（纯二开表 eln_ui_design_variables）。公开：行级 CRUD 控制器
+      # （ExpDesignVariablesController#vars_after）复用同一装配，避免 range_text/format_number
+      # 在 controller 再抄一份导致漂移。表存在性兜底仍由 design_variable_class 一处负责。
+      def exp_design_vars
+        return EMPTY_DESIGN_VARS unless design_variable_class
+
+        design_variable_class.where(experiment_id: @experiment.id).ordered.map do |v|
+          {
+            id: v.id.to_s,
+            name: v.name.to_s,
+            type: v.var_type.to_s,
+            range: range_text(v),
+            constraint: v.constraint.to_s,
+            range_min: v.range_min,
+            range_max: v.range_max,
+            unit: v.unit.to_s
+          }
+        end
       end
 
       private
@@ -147,27 +175,6 @@ module Scinote
         base + [{ key: 'design', label: '实验设计与配方优化' }]
       end
 
-      # ------------------------------------------------------------
-      # DOE 设计变量（纯二开表 eln_ui_design_variables）
-      #
-      # 原生完全没有 DOE，所以这张表**必须有数据才可能有行**。空表 → 空数组 →
-      # 前端渲染空表（显式留白），与「原型写死 3 行假变量」是两回事。
-      # ⚠ 表不存在（老实例没建过 eln_ui_*）时降级为空数组，而不是让整页 500。
-      # ------------------------------------------------------------
-      def exp_design_vars
-        return EMPTY_DESIGN_VARS unless design_variable_class
-
-        design_variable_class.where(experiment_id: @experiment.id).ordered.map do |v|
-          {
-            name: v.name.to_s,
-            type: v.var_type.to_s,
-            # 区间按 var_type 组装：categorical 没有 min/max，就不硬凑一个区间字符串
-            range: range_text(v),
-            constraint: v.constraint.to_s
-          }
-        end
-      end
-
       def range_text(v)
         return DASH if v.range_min.blank? || v.range_max.blank?
 
@@ -205,6 +212,38 @@ module Scinote
         return nil unless profile_class
 
         profile_class.where(experiment_id: @experiment.id).first
+      end
+
+      # ------------------------------------------------------------
+      # 编辑表单原始初值（ADR-0051）：与显示用 expInfo 分离。
+      # status 取** trackable 形态 **（not_started/in_progress/done），
+      # 供表单直发 TimeTrackable#status=；不混用显示用三态 notstarted/active/done。
+      # owner_user_id 取档案显式负责人；为空串时表单视为「未指定」（落库即清除显式负责人，
+      # 回落到指派/创建者推导）。purpose 兜底原生 description（与 exp_purpose 同口径）。
+      # ------------------------------------------------------------
+      def edit_info
+        p = profile
+        {
+          business_code: (p&.business_code.presence || ''),
+          name: @experiment.name.to_s,
+          owner_user_id: (p&.owner_user_id || '').to_s,
+          due_date: (date(@experiment.respond_to?(:due_date) ? @experiment.due_date : nil) || '').to_s,
+          purpose: (p&.purpose.presence || native_description_text).to_s.strip,
+          method: (p&.method.to_s).strip,
+          status: STATUS_TRACKABLE.fetch(status_of(@experiment), 'not_started')
+        }
+      end
+
+      # 负责人下拉真源（ADR-0051 Q6）：实验所属项目的 team.users。
+      # 关联缺失（实验无 project / team）用安全导航落到空数组（留白，不编造成员名单）；
+      # 不再用 respond_to? 链 + rescue StandardError——后者会吞掉真实异常、掩盖 bug。
+      def member_options
+        users = @experiment.project&.team&.users
+        return [] unless users
+
+        users.select(:id, :full_name, :email)
+             .map { |u| { id: u.id.to_s, name: display_name(u) } }
+             .uniq
       end
 
       # 实验目的：二开档案优先；原生 description 兜底（原生**有**这一列，不算编造）。

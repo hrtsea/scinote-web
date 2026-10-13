@@ -20,6 +20,44 @@ module Scinote
         @payload_json = JSON.generate(payload).gsub('<', '\\u003c')
       end
 
+      # ------------------------------------------------------------
+      # 编辑实验信息（ADR-0051）：实验信息 / 目的 / 方法 / 状态 可写。
+      # 闸 = MANAGE（与 design 子页签显隐同源，避免「看得见按钮、保存 403」分叉）。
+      # 原生字段 name/due_date + 虚拟 status（TimeTrackable 三态机写 started_at/done_at）
+      # 直接落 experiments；二开 business_code/owner_user_id/purpose/method 走 profile upsert。
+      # 所属项目 / 任务进度 不在白名单（原生无承载，保持只读，见 ADR-0051 §2）。
+      # 返回**全量 payload**（前端 window.location.reload() 同源，不解析 body）。
+      # ------------------------------------------------------------
+      def update
+        exp = experiment # 设 @experiment 且守可读性（不可读 → 404）
+        return render_403 unless can_manage_experiment?
+
+        native_attrs = experiment_params.slice(:name, :due_date).to_h.compact
+        profile_attrs = experiment_params.slice(:business_code, :purpose, :method).to_h.compact
+        # owner_user_id 显式处理：前端在「负责人」下拉选「不指定」时发 null，
+        # 必须落到 nil 清掉显式负责人。compact 会吞掉 nil，故单独处理——
+        # 只在请求**显式带了这个 key** 时才动它（不带则保留原值）。
+        profile_attrs[:owner_user_id] = experiment_params[:owner_user_id].presence if experiment_params.key?(:owner_user_id)
+        status = experiment_params[:status].presence
+
+        # status 直发 trackable 形态（not_started/in_progress/done）；非法值忽略不写。
+        # 有效性判定复用 ExpDetailPayload::STATUS_TRACKABLE 的 values（单一来源）。
+        native_attrs[:status] = status if status && Scinote::ElnUi::ExpDetailPayload::STATUS_TRACKABLE.value?(status.to_s)
+
+        ::Experiment.transaction do
+          exp.update!(native_attrs) if native_attrs.any?
+          Scinote::ElnUi::ExperimentProfile.upsert_for!(exp, profile_attrs) if profile_attrs.any?
+        end
+
+        render json: Scinote::ElnUi::ExpDetailPayload.call(
+          exp, current_user,
+          can_create_task: can_create_task?,
+          can_manage_experiment: can_manage_experiment?
+        )
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { error: e.record.errors.full_messages.to_sentence }, status: :unprocessable_entity
+      end
+
       private
 
       # 可读性沿用原生 PermissionCheckableModel#readable_by_user（与列表页同口径，
@@ -38,6 +76,13 @@ module Scinote
           can_create_task: can_create_task?,
           can_manage_experiment: can_manage_experiment?
         )
+      end
+
+      # 状态有效性判定复用 ExpDetailPayload::STATUS_TRACKABLE 的 values（display→trackable
+      # 单一来源），不再维护一份镜像的 TRACKABLE_STATUS，避免两份手工同步的映射漂移。
+      def experiment_params
+        # owner_user_id 空串 → 清显式负责人（回落指派/创建者推导）；其余 compact 后落库。
+        params.expect(experiment: [:name, :due_date, :business_code, :owner_user_id, :purpose, :method, :status])
       end
 
       # ------------------------------------------------------------

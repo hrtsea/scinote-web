@@ -121,10 +121,22 @@ Scinote::ElnUi::Engine.routes.draw do
   post 'eln_project_list/actions',
       to: 'project_list#actions'
 
-  # GET
+  # GET（只读装配） + PATCH（ADR-0051 编辑实验信息）
   get 'experiments/:id/eln_exp_detail',
       to: 'exp_detail#index',
       as: :eln_exp_detail
+  patch 'experiments/:id/eln_exp_detail',
+       to: 'exp_detail#update'
+
+  # 实验 DOE 设计变量 行级 CRUD（ADR-0051 Q4=b / Q8=a / Q9=a）
+  post   'experiments/:experiment_id/eln_exp_design_variables',
+         to: 'exp_design_variables#create',
+         as: :eln_exp_design_variables
+  patch  'experiments/:experiment_id/eln_exp_design_variables/:id',
+         to: 'exp_design_variables#update',
+         as: :eln_exp_design_variable
+  delete 'experiments/:experiment_id/eln_exp_design_variables/:id',
+         to: 'exp_design_variables#destroy'
 
   # GET
   get 'experiments/:experiment_id/my_modules/:id/eln_task_detail',
