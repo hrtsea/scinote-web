@@ -21,8 +21,8 @@ class MyModule < ApplicationRecord
 
   attr_accessor :transition_error_rollback, :status_changed_by
 
-  enum state: Extends::TASKS_STATES
-  enum provisioning_status: { done: 0, in_progress: 1, failed: 2 }
+  enum :state, Extends::TASKS_STATES
+  enum :provisioning_status, { done: 0, in_progress: 1, failed: 2 }
 
   before_validation :archiving_and_restoring_extras, on: :update, if: :archived_changed?
   before_save -> { report_elements.destroy_all }, if: -> { !new_record? && experiment_id_changed? }
@@ -32,6 +32,8 @@ class MyModule < ApplicationRecord
   before_create :assign_default_status_flow
   after_save -> { experiment.workflowimg.purge },
              if: -> { (saved_changes.keys & %w(x y experiment_id my_module_group_id input_id output_id archived)).any? }
+  after_save :flag_status_broadcast, if: :status_attributes_changed?
+  after_commit :broadcast_status_change
 
   auto_strip_attributes :name, :description, nullify: false, if: proc { |mm| mm.name_changed? || mm.description_changed? }
   validates :name,
@@ -444,7 +446,7 @@ class MyModule < ApplicationRecord
     raise InvalidContentError, invalid_content_error_message(invalid_element)
   end
 
-  def deep_clone_to_experiment(current_user, experiment_dest)
+  def deep_clone_to_experiment(current_user, experiment_dest, copy_results: false)
     raise_if_invalid_content!
 
     # Copy the module
@@ -466,12 +468,12 @@ class MyModule < ApplicationRecord
 
     clone.assign_user(current_user)
 
-    MyModules::CopyContentJob.perform_later(current_user.id, id, clone.id, skip_activities: true)
+    MyModules::CopyContentJob.perform_later(current_user.id, id, clone.id, skip_activities: true, copy_results: copy_results)
 
     clone
   end
 
-  def copy_content(current_user, target_my_module)
+  def copy_content(current_user, target_my_module, include_results: false)
     # Remove the automatically generated protocol,
     # & clone the protocol instead
     target_my_module.protocol.destroy
@@ -479,7 +481,7 @@ class MyModule < ApplicationRecord
 
     # Update the cloned protocol if neccesary
     clone_tinymce_assets(target_my_module, target_my_module.experiment.project.team)
-    protocol.deep_clone_my_module(target_my_module, current_user)
+    protocol.deep_clone_my_module(target_my_module, current_user, include_results: include_results)
     target_my_module.reload
   end
 
@@ -530,6 +532,14 @@ class MyModule < ApplicationRecord
 
   def permission_parent
     experiment
+  end
+
+  def status_broadcast_payload
+    {
+      my_module_status_id: my_module_status_id,
+      status_changing: status_changing?,
+      transition_failed: last_transition_error.present?
+    }
   end
 
   private
@@ -609,6 +619,21 @@ class MyModule < ApplicationRecord
       MyModuleStatusConsequencesJob
         .perform_now(self, my_module_status.my_module_status_consequences.to_a, status_changing_direction)
     end
+  end
+
+  def status_attributes_changed?
+    saved_changes.keys.intersect?(%w(my_module_status_id status_changing last_transition_error))
+  end
+
+  def flag_status_broadcast
+    @status_broadcast_pending = true
+  end
+
+  def broadcast_status_change
+    return unless @status_broadcast_pending
+
+    @status_broadcast_pending = false
+    MyModuleStatusChannel.broadcast_to(self, status_broadcast_payload)
   end
 
   def reset_due_date_notification_sent

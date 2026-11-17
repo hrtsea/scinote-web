@@ -82,7 +82,6 @@ Rails.application.routes.draw do
         as: 'zebra_settings'
 
     resources :label_printers, only: [] do
-      post :print, on: :member
       get :update_progress_modal, on: :member
     end
 
@@ -285,7 +284,6 @@ Rails.application.routes.draw do
       member do
         post 'parse_sheet', defaults: { format: 'json' }
         post 'export_repository', to: 'repositories#export_repository'
-        post 'export_repository_stock_items', to: 'repositories#export_repository_stock_items'
         post 'export_projects'
         get 'sidebar'
         get 'export_projects_modal'
@@ -293,12 +291,7 @@ Rails.application.routes.draw do
         get 'disable_tasks_sharing_modal'
         # Used for atwho (smart annotations)
         get 'atwho_users', to: 'at_who#users'
-        get 'atwho_menu', to: 'at_who#menu'
-        get 'atwho_rep_items', to: 'at_who#rep_items'
-        get 'atwho_projects', to: 'at_who#projects'
-        get 'atwho_experiments', to: 'at_who#experiments'
-        get 'atwho_my_modules', to: 'at_who#my_modules'
-        get 'atwho_menu_items', to: 'at_who#menu_items'
+        get 'atwho_search', to: 'at_who#search'
         get :automations
         get :automation_settings
         put :update_automation_settings
@@ -567,7 +560,6 @@ Rails.application.routes.draw do
         post :tag_resource
         post :untag_resource
         post :tag_resource_with_new_tag
-        get :current_status
         get :status_partial
       end
       resources :user_my_modules, path: '/users', only: %i(index create destroy) do
@@ -591,9 +583,8 @@ Rails.application.routes.draw do
       resources :repositories, controller: :my_module_repositories, only: %i(index show update create) do
         member do
           get :full_view_table
-          post :index_dt, defaults: { format: 'json' }
-          get :index_ag, defaults: { format: 'json' }
-          get :unassigned_rows, defaults: { format: 'json' }
+          post :index_ag, defaults: { format: 'json' }
+          post :unassigned_rows, defaults: { format: 'json' }
           post :export_repository
           get :assign_repository_records_modal, as: :assign_modal
           post :update_repository_records_modal, as: :update_modal
@@ -614,7 +605,6 @@ Rails.application.routes.draw do
       resources :repository_snapshots, controller: :my_module_repository_snapshots, only: %i(destroy show) do
         member do
           get :full_view_table
-          post :index_dt, defaults: { format: 'json' }
           post :export_repository_snapshot
           get :status
         end
@@ -921,7 +911,7 @@ Rails.application.routes.draw do
            to: 'repository_rows#index',
            as: 'table_index',
            defaults: { format: 'json' }
-      get 'repository_index_ag',
+      post 'repository_index_ag',
            to: 'repository_rows#index_ag',
            as: 'table_index_ag',
            defaults: { format: 'json' }
@@ -955,9 +945,6 @@ Rails.application.routes.draw do
       post 'restore_records',
            to: 'repository_rows#restore_records',
            defaults: { format: 'json' }
-      get 'repository_columns/:id/destroy_html',
-          to: 'repository_columns#destroy_html',
-          as: 'columns_destroy_html'
       get 'available_columns',
           to: 'repository_columns#available_columns',
           as: 'available_columns',
@@ -965,7 +952,7 @@ Rails.application.routes.draw do
       get :table_toolbar
       get :status
 
-      resources :repository_columns, only: %i(index new edit destroy) do
+      resources :repository_columns, only: %i(destroy) do
         collection do
           get :index_new
           get :describe_all
@@ -997,10 +984,13 @@ Rails.application.routes.draw do
           post 'repository_stock_value', to: 'repository_stock_values#create_or_update', as: 'update_repository_stock'
         end
         resources :repository_stock_values, only: %i(new create edit update)
-        resources :repository_cells, only: :hide_reminder do
+        resources :repository_cells, only: [] do
           post :hide_reminder, to: 'hidden_repository_cell_reminders#create'
           post :hide_reminders, to: 'hidden_repository_cell_reminders#create_all'
         end
+        post 'repository_cells/:repository_column_id',
+             to: 'repository_cells#update',
+             as: 'repository_cell'
       end
 
       collection do
@@ -1017,6 +1007,7 @@ Rails.application.routes.draw do
       member do
         post 'parse_sheet', defaults: { format: 'json' }
         post 'import_records'
+        post :export_repository_stock_items
       end
       namespace :repository_columns do
         resources :text_columns, only: %i(create update)
@@ -1147,6 +1138,7 @@ Rails.application.routes.draw do
     post 'files/:id/unlock', to: 'assets#unlock', as: 'asset_unlock'
     delete 'files/:id/', to: 'assets#destroy', as: 'asset_destroy'
     patch 'files/:id/rename', to: 'assets#rename', as: 'asset_rename'
+    patch 'files/:id/update_title', to: 'assets#update_title', as: 'update_asset_title'
     post 'files/:id/duplicate', to: 'assets#duplicate', as: 'asset_duplicate'
     post 'files/create_wopi_file',
          to: 'assets#create_wopi_file',

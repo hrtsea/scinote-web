@@ -19,8 +19,6 @@ end
 json.editable @repository_row.editable?
 json.notification @notification
 
-json.update_path update_cell_repository_repository_row_path(@repository, @repository_row)
-
 json.permissions do
   json.can_export_repository_stock @repository_row.snapshot_at.nil? && can_export_repository_stock?(@repository)
   json.can_manage @repository_row.snapshot_at.nil? && can_manage_repository_rows?(@repository) if @repository.is_a?(Repository) && !@repository.is_a?(SoftLockedRepository)
@@ -130,7 +128,7 @@ json.relationships do
 end
 
 json.custom_columns do
-  json.array! repository_columns_ordered_by_state(@repository_row.repository).each do |repository_column|
+  json.array! repository_columns_ordered_by_state(@repository_row).each do |repository_column|
     repository_cell = @repository_row.repository_cells.find { |c| c.repository_column_id == repository_column.id }
 
     options = case repository_column.data_type

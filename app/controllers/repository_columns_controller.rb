@@ -3,32 +3,16 @@ class RepositoryColumnsController < ApplicationController
   include RepositoryColumnsHelper
 
   before_action :load_repository
-  before_action :load_column, only: %i(edit update destroy_html destroy items)
-  before_action :check_read_permissions, except: %i(new create edit update destroy_html destroy)
-  before_action :check_create_permissions, only: %i(new create)
-  before_action :check_manage_permissions, only: %i(edit update)
-  before_action :check_delete_permissions, only: %i(destroy_html destroy)
+  before_action :load_column, only: %i(update destroy items)
+  before_action :check_read_permissions, except: %i(create update destroy)
+  before_action :check_create_permissions, only: %i(create)
+  before_action :check_manage_permissions, only: %i(update)
+  before_action :check_delete_permissions, only: %i(destroy)
   before_action :load_asset_type_columns, only: :available_asset_type_columns
-
-  def index
-    render json: {
-      id: @repository.id,
-      html: render_to_string(
-        partial: 'repository_columns/manage_column_modal_index'
-      )
-    }
-  end
 
   def index_new
     columns = @repository.repository_columns
     render json: columns, each_serializer: RepositoryColumnSerializer
-  end
-
-  def new
-    @repository_column = RepositoryColumn.new
-    render json: {
-      html: render_to_string(partial: 'repository_columns/manage_column_modal_content')
-    }
   end
 
   def create
@@ -60,39 +44,26 @@ class RepositoryColumnsController < ApplicationController
     render json: { response: response_json }
   end
 
-  def edit
-    render json: {
-      html: render_to_string(
-        partial: 'repository_columns/manage_column_modal_content'
-      )
-    }
-  end
-
   def update
     raise NotImplementedError
   end
 
-  def destroy_html
-    render json: {
-      html: render_to_string(partial: 'repository_columns/delete_column_modal_body')
-    }
-  end
-
   def destroy
-    column_id = @repository_column.id
-    column_name = @repository_column.name
+    ActiveRecord::Base.transaction do
+      column_id = @repository_column.id
+      column_name = @repository_column.name
+      log_activity(:delete_column_inventory)
+      @repository_column.destroy!
 
-    log_activity(:delete_column_inventory) # Should we move this call somewhere?
-    if @repository_column.destroy
       render json: {
         message: t('libraries.repository_columns.destroy.success_flash', name: escape_input(column_name)),
         id: column_id
       }
-    else
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed => e
       render json: {
-        message: t('libraries.repository_columns.destroy.error_flash'),
-        status: :unprocessable_entity
-      }
+        message: t('libraries.repository_columns.destroy.error_flash')
+      }, status: :unprocessable_entity
+      raise ActiveRecord::Rollback
     end
   end
 

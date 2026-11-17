@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class Asset < ApplicationRecord
+  ID_PREFIX = 'FL'
+
+  include PrefixedIdModel
   include SearchableModel
   include DatabaseHelper
   include WopiUtil
@@ -16,7 +19,7 @@ class Asset < ApplicationRecord
   WOPI_LOCK_DURATION = 60 * 30
   SEARCHABLE_ATTRIBUTES = ['active_storage_blobs.filename', 'asset_text_data.data_vector'].freeze
 
-  enum view_mode: { thumbnail: 0, list: 1, inline: 2 }
+  enum :view_mode, { thumbnail: 0, list: 1, inline: 2 }
 
   # ActiveStorage configuration
   has_one_versioned_attached :file
@@ -28,6 +31,7 @@ class Asset < ApplicationRecord
   # assign it to result
   validate :step_or_result_or_repository_asset_value
   validate :check_file_size, on: :on_api_upload
+  validates :file_title, length: { maximum: 50 }, allow_blank: true
 
   belongs_to :created_by, class_name: 'User', optional: true
   belongs_to :last_modified_by, class_name: 'User', optional: true
@@ -127,6 +131,15 @@ class Asset < ApplicationRecord
 
   def large_preview
     preview_attachment.representation(resize_to_limit: Constants::LARGE_PIC_FORMAT, format: image_preview_format(blob))
+  end
+
+  def preview_status
+    return 'not_previewable' unless previewable?
+    return 'failed' if preview_failed?
+    return 'ready' if preview_generated?
+    return 'processing' if file_processing?
+
+    'ready'
   end
 
   def file_name
@@ -470,6 +483,14 @@ class Asset < ApplicationRecord
   def previewable_image?
     preview_image.attached? ||
       file.blob&.content_type&.match?(%r{^image/#{Regexp.union(Constants::WHITELISTED_IMAGE_TYPES)}})
+  end
+
+  def preview_failed?
+    preview_attachment.blob.metadata['preview_failed'].present?
+  end
+
+  def preview_generated?
+    medium_preview.image&.attached? || false
   end
 
   def step_or_result_or_repository_asset_value

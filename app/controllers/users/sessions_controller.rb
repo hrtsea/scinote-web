@@ -38,10 +38,10 @@ class Users::SessionsController < Devise::SessionsController
   def expire_in
     return render body: nil, status: :unauthorized if current_user.blank?
 
-    if current_user.remember_created_at.nil? || (current_user.remember_created_at + Devise.remember_for).past?
+    if current_user.remember_created_at.nil? || (current_user.remember_created_at + User.remember_for).past?
       render plain: (current_user.timeout_in.to_i - (Time.now.to_i - user_session['last_request_at']).round) * 1000
     else
-      render plain: [(Devise.remember_for - (Time.now.to_i - current_user.remember_created_at.to_i).round) * 1000,
+      render plain: [(User.remember_for - (Time.now.to_i - current_user.remember_created_at.to_i).round) * 1000,
                      (current_user.timeout_in.to_i - (Time.now.to_i - user_session['last_request_at']).round) * 1000].max
     end
   end
@@ -65,7 +65,7 @@ class Users::SessionsController < Devise::SessionsController
 
     unless user
       flash[:alert] = t('devise.sessions.2fa.no_user_error')
-      redirect_to root_path && return
+      return redirect_to root_path
     end
 
     if user.valid_otp?(params[:otp])
@@ -86,7 +86,7 @@ class Users::SessionsController < Devise::SessionsController
 
     unless user
       flash[:alert] = t('devise.sessions.2fa.no_user_error')
-      redirect_to root_path && return
+      return redirect_to root_path
     end
 
     session.delete(:otp_user_id)

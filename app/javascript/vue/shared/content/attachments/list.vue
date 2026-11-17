@@ -12,8 +12,11 @@
        :data-gallery-view-id="parentId"
        :data-preview-url="attachment.attributes.urls.preview"
     >
-      <span class="attachment-name" data-toggle="tooltip"
+      <span class="attachment-name flex gap-2 items-center" data-toggle="tooltip"
            data-placement="bottom">
+        <div v-if="attachment.attributes.file_title" class=" text-sn-black">
+          {{ attachment.attributes.file_title }}
+        </div>
         {{ attachment.attributes.file_name }}
 
       </span>
@@ -28,6 +31,7 @@
             @load="ActiveStoragePreviews.showPreview"/>
     </div>
     <div class="flex items-center gap-2 text-xs text-sn-grey overflow-hidden ml-auto">
+      <div class=" text-sn-grey-700 shrink-0">{{ attachment.attributes.code }}</div>
       <span v-if="!attachment.attributes.archived" class="truncate" :title="i18n.t('assets.placeholder.modified_label') + ' ' + attachment.attributes.updated_at_formatted">
           {{ i18n.t('assets.placeholder.modified_label') }}
           {{ attachment.attributes.updated_at_formatted }}
@@ -54,7 +58,6 @@
           @attachment:moved="attachmentMoved"
           @attachment:uploaded="reloadAttachments"
           @attachment:versionRestored="reloadAttachments"
-          @attachment:changed="$emit('attachment:changed', $event)"
           @attachment:update="$emit('attachment:update', $event)"
           @attachment:toggle_menu="toggleMenuDropdown"
           @attachment:move_modal="showMoveModal"
@@ -79,7 +82,6 @@ import ContextMenu from './context_menu.vue';
 import MoveMixin from './mixins/move.js';
 import MoveAssetModal from '../modal/move.vue';
 import AttachmentActions from './attachment_actions.vue';
-import OpenMenu from './open_menu.vue';
 import LockedTag from '../../snippets/locked_tag.vue';
 
 export default {
@@ -88,7 +90,6 @@ export default {
   components: {
     ContextMenu,
     MoveAssetModal,
-    OpenMenu,
     AttachmentActions,
     LockedTag
   },

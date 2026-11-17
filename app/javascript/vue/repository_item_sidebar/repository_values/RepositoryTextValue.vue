@@ -15,6 +15,7 @@
     </div>
     <div v-if="canEdit || colVal?.edit.length > 0" class="w-full contents">
       <text-area :initialValue="colVal?.edit"
+                  :sanitizedValue="colVal?.view_sanitized"
                   :noContentPlaceholder="i18n.t('repositories.item_card.repository_text_value.placeholder')"
                   :placeholder="i18n.t('repositories.item_card.repository_text_value.placeholder')"
                   :unEditableRef="`textRef`"
@@ -22,6 +23,7 @@
                   :expandable="expandable"
                   :collapsed="collapsed"
                   :canEdit="canEdit"
+                  :smartAnnotationAssignableObjectId="smartAnnotationAssignableObjectId"
                   @toggleExpandableState="toggleExpandableState"
                   @update="update"
                   className="px-3"
@@ -48,7 +50,8 @@ export default {
     return {
       expandable: false,
       collapsed: true,
-      textValue: ''
+      textValue: '',
+      smartAnnotationAssignableObjectId: ''
     };
   },
   props: {
@@ -70,6 +73,7 @@ export default {
       const isExpandable = textRefEl.scrollHeight > maxCollapsedHeight;
       this.expandable = isExpandable;
     });
+    this.smartAnnotationAssignableObjectId = document.querySelector('.my-module-content')?.dataset?.taskId;
   },
   methods: {
     toggleCollapse() {

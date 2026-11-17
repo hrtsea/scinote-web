@@ -24,7 +24,8 @@
                   'text-sn-dark-grey': value, 'text-sn-grey': !value
                 }"
         @click="enableEdit">
-    <span>{{ value || noContentPlaceholder }}</span>
+    <span v-if="sanitizedValue" v-html="sanitizedValue"></span>
+    <span v-else>{{ value || noContentPlaceholder }}</span>
   </div>
 </template>
 
@@ -41,6 +42,7 @@ export default {
     expandable: { type: Boolean, required: true },
     collapsed: { type: Boolean, required: true },
     initialValue: String,
+    sanitizedValue: { type: String, default: null },
     noContentPlaceholder: String,
     placeholder: String,
     canEdit: { type: Boolean, default: false },
@@ -48,6 +50,7 @@ export default {
     isNumber: { type: Boolean, default: false },
     unEditableRef: { type: String, required: true },
     smartAnnotation: { type: Boolean, default: false },
+    smartAnnotationAssignableObjectId: {type: Number },
     className: { type: String, default: false }
   },
   mounted() {
@@ -122,7 +125,7 @@ export default {
       this.editing = true;
       this.$nextTick(() => {
         if (this.smartAnnotation) {
-          SmartAnnotation.init($(this.$refs.textareaRef), false);
+          SmartAnnotation.init($(this.$refs.textareaRef), false, this.smartAnnotationAssignableObjectId);
         }
       });
     },

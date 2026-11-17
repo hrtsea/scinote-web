@@ -66,7 +66,7 @@ class Constants
   # Maximum number of users that can be invited in a single action
   INVITE_USERS_LIMIT = 20
   # Maximum nr. of search results for atwho (smart annotations)
-  ATWHO_SEARCH_LIMIT = 10
+  ATWHO_SEARCH_LIMIT = 20
   # Max characters for repository name in Atwho modal
   ATWHO_REP_NAME_LIMIT = 16
   # Results limited query/display elements for pages
@@ -353,7 +353,10 @@ class Constants
   config[:attributes]['img'] << 'data-mce-token'
   config[:attributes]['img'] << 'data-source-type'
   config[:attributes]['a'] << 'data-turbolinks'
+  config[:attributes]['a'].merge(%w(data-no-turbolink data-id data-preview-url data-page))
   config[:protocols]['img']['src'] << 'data'
+  (config[:attributes]['span'] ||= []).concat(%w(class data-latex))
+
   INPUT_SANITIZE_CONFIG = Sanitize::Config.freeze_config(config)
 
   REPOSITORY_DEFAULT_PAGE_SIZE = 10
@@ -442,7 +445,6 @@ class Constants
   TEMPLATES_PROJECT_NAME = 'SciNote Examples'.freeze
 
   # Interval time for polling status state
-  FAST_STATUS_POLLING_INTERVAL = 5000
   SLOW_STATUS_POLLING_INTERVAL = 10000
 
   STATUS_COLORS = {
@@ -453,9 +455,6 @@ class Constants
 
   # Infinite date, for use in sorting
   INFINITE_DATE = Date.new(9999, 1, 1).freeze
-
-  # Interval time for polling asset changes when editing with SciNote Edit
-  ASSET_POLLING_INTERVAL = 5000
 
   ASSET_SYNC_TOKEN_EXPIRATION = 1.year
   ASSET_SYNC_URL = ENV['ASSET_SYNC_URL'].freeze
@@ -483,7 +482,6 @@ class Constants
   # my module report limits
   MY_MODULE_REPORT_HEADER_MAX_LENGTH = 140
   MY_MODULE_REPORT_HEADER_MAX_LINES = 3
-  MY_MODULE_REPORT_FOOTER_MAX_LENGTH = 80
 
   #                             )       \   /      (
   #                            /|\      )\_/(     /|\

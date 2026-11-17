@@ -76,6 +76,7 @@
           :key="field.id"
           :field="field"
           :formResponse="formResponse"
+          :assignableMyModuleId="assignableMyModuleId"
           @save="saveValue"
           @validChanged="checkValidFormFields"
           :dataE2e="`${dataE2e}-formElement${element.id}-field${field.id}`"
@@ -157,6 +158,10 @@ export default {
     },
     reorderElementUrl: {
       type: String
+    },
+    assignableMyModuleId: {
+      type: Number,
+      default: null
     },
     dataE2e: {
       type: String,
@@ -255,6 +260,8 @@ export default {
         } else {
           this.formFieldValues.push({ ...response.data.data.attributes, id: response.data.data.id });
         }
+      }).catch(() => {
+        HelperModule.flashAlertMsg(I18n.t('errors.general'), 'danger');
       });
     },
     submitForm() {
@@ -268,6 +275,8 @@ export default {
         this.deleteUrl = this.formResponse.urls.delete_url;
         this.moveUrl = this.formResponse.urls.move_url;
         this.archiveUrl = this.formResponse.urls.archive_url;
+      }).catch(() => {
+        HelperModule.flashAlertMsg(I18n.t('errors.general'), 'danger');
       }).finally(() => {
         this.submitting = false;
       });
@@ -286,6 +295,8 @@ export default {
           this.deleteUrl = this.formResponse.urls.delete_url;
           this.moveUrl = this.formResponse.urls.move_url;
           this.archiveUrl = this.formResponse.urls.archive_url;
+        }).catch(() => {
+          HelperModule.flashAlertMsg(I18n.t('errors.general'), 'danger');
         }).finally(() => {
           this.submitting = false;
         });

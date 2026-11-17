@@ -16,7 +16,7 @@
         :data-preview-url="attachment.attributes.urls.preview"
         :data-e2e="`e2e-BT-attachment-${attachment.id}`"
     >
-      <div class="attachment-preview" :class= "attachment.attributes.asset_type">
+      <div class="attachment-preview" :class="[attachment.attributes.asset_type, { processing: previewLoading }]">
         <div class="absolute top-2 left-2 z-10 flex items-center gap-1">
           <div v-if="attachment.attributes.archived" class="sci-tag bg-sn-alert-brittlebush pointer-events-none text-sn-black">
             {{ i18n.t('my_modules.results.archived') }}
@@ -24,13 +24,13 @@
           </div>
           <LockedTag v-if="attachment.attributes.locked" />
         </div>
-        <img v-if="attachment.attributes.medium_preview !== null"
+        <img v-if="previewSrc"
             class="rounded-sm"
-            :src="attachment.attributes.medium_preview"
-            style='opacity: 0'
-            @error="ActiveStoragePreviews.reCheckPreview"
-            @load="ActiveStoragePreviews.showPreview">
-        <div v-else class="w-[186px] h-[186px] bg-sn-super-light-grey rounded-sm"></div>
+            :src="previewSrc"
+            :style="{ opacity: previewVisible ? 1 : 0 }"
+            @error="onPreviewError"
+            @load="onPreviewLoad">
+        <div v-else-if="!previewProcessing" class="w-[186px] h-[186px] bg-sn-super-light-grey rounded-sm"></div>
       </div>
       <div class="attachment-label"
            data-toggle="tooltip"
@@ -49,8 +49,13 @@
         :data-gallery-view-id="parentId"
         :data-preview-url="attachment.attributes.urls.preview"
       >
-        {{ attachment.attributes.file_name }}
+        <div v-if="attachment.attributes.file_title" class=" text-sn-black">
+          {{ attachment.attributes.file_title }}
+        </div>
+        {{ attachment.attributes.file_name }}<br>
+        <div class=" text-sn-grey-700">{{ attachment.attributes.code }}</div>
       </a>
+
       <div class="absolute bottom-16 text-sn-grey">
         <div v-if="attachment.attributes.archived">
           {{ i18n.t('assets.placeholder.archived_on_label', {
@@ -74,7 +79,6 @@
           @attachment:moved="attachmentMoved"
           @attachment:uploaded="reloadAttachments"
           @attachment:versionRestored="reloadAttachments"
-          @attachment:changed="$emit('attachment:changed', $event)"
           @attachment:update="$emit('attachment:update', $event)"
           @attachment:toggle_menu="toggleMenu"
           @attachment:move_modal="showMoveModal"
@@ -118,20 +122,19 @@ import deleteAttachmentModal from './delete_modal.vue';
 import MenuDropdown from '../../../shared/menu_dropdown.vue';
 import MoveAssetModal from '../modal/move.vue';
 import MoveMixin from './mixins/move.js';
-import OpenMenu from './open_menu.vue';
+import PreviewStatusMixin from './mixins/preview_status.js';
 import AttachmentActions from './attachment_actions.vue';
 import { vOnClickOutside } from '@vueuse/components';
 import LockedTag from '../../snippets/locked_tag.vue';
 
 export default {
   name: 'thumbnailAttachment',
-  mixins: [ContextMenuMixin, AttachmentMovedMixin, MoveMixin],
+  mixins: [ContextMenuMixin, AttachmentMovedMixin, MoveMixin, PreviewStatusMixin],
   components: {
     ContextMenu,
     deleteAttachmentModal,
     MoveAssetModal,
     MenuDropdown,
-    OpenMenu,
     AttachmentActions,
     LockedTag
   },

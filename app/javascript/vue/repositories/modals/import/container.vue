@@ -55,9 +55,6 @@ export default {
       loading: false
     };
   },
-  created() {
-    window.importRepositoryModalComponent = this;
-  },
   methods: {
     open() {
       this.activeStep = 'UploadStep';
@@ -72,6 +69,9 @@ export default {
           this.params = { ...this.params, ...response.data.data };
           this.modalId = Math.random().toString(36);
           this.modalOpened = true;
+        })
+        .catch(() => {
+          HelperModule.flashAlertMsg(this.i18n.t('errors.general'), 'danger');
         });
     },
     uploadFile(params) {
@@ -127,14 +127,14 @@ export default {
             HelperModule.flashAlertMsg(response.data.message, 'success');
             this.modalOpened = false;
             this.activeStep = null;
-            $('.dataTable.repository-dataTable').DataTable().ajax.reload(null, false);
+            this.$emit('import-success');
           }
 
           this.loading = false;
         })
         .catch((error) => {
-          HelperModule.flashAlertMsg(error.response.data.message, 'danger');
           this.loading = false;
+          HelperModule.flashAlertMsg(error.response?.data?.message || this.i18n.t('errors.general'), 'danger');
         });
     }
   }

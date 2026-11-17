@@ -7,7 +7,7 @@
     :data-asset-id="attachment.id"
   >
     <div class="header justify-between">
-      <div class="file-info">
+      <div class="file-info min-w-0 w-full">
         <a :href="attachment.attributes.urls.blob"
           class="file-preview-link file-name"
           :id="`modal_link${attachment.id}`"
@@ -17,12 +17,18 @@
           :data-preview-url="attachment.attributes.urls.preview"
         >
           <span data-toggle="tooltip"
-               data-placement="bottom"
-               :title="`${ attachment.attributes.file_name }`">
-            {{ attachment.attributes.file_name }}
+                data-placement="bottom"
+                class="flex gap-2 items-center min-w-0 w-full">
+            <span v-if="attachment.attributes.file_title" class="text-sn-black truncate min-w-0"  :title="attachment.attributes.file_title">
+              {{ attachment.attributes.file_title }}
+            </span>
+            <span class="truncate min-w-0"  :title="attachment.attributes.file_name">
+              {{ attachment.attributes.file_name }}
+            </span>
           </span>
         </a>
         <div class="file-metadata">
+          <div class=" text-sn-grey-700">{{ attachment.attributes.code }}</div>
           <span v-if="!attachment.attributes.archived">
             {{ attachment.attributes.updated_at_formatted }}
           </span>
@@ -49,7 +55,6 @@
           @attachment:moved="attachmentMoved"
           @attachment:uploaded="reloadAttachments"
           @attachment:versionRestored="reloadAttachments"
-          @attachment:changed="$emit('attachment:changed', $event)"
           @attachment:update="$emit('attachment:update', $event)"
           @attachment:toggle_menu="toggleMenuDropdown"
           @attachment:move_modal="showMoveModal"
@@ -110,19 +115,17 @@ import ContextMenu from './context_menu.vue';
 import PdfViewer from '../../pdf_viewer.vue';
 import MoveAssetModal from '../modal/move.vue';
 import MoveMixin from './mixins/move.js';
-import OpenLocallyMixin from './mixins/open_locally.js';
 import AttachmentActions from './attachment_actions.vue';
-import OpenMenu from './open_menu.vue';
 import LockedTag from '../../snippets/locked_tag.vue';
+import axios from '../../../../packs/custom_axios.js';
 
 export default {
   name: 'inlineAttachment',
-  mixins: [ContextMenuMixin, AttachmentMovedMixin, MoveMixin, OpenLocallyMixin],
+  mixins: [ContextMenuMixin, AttachmentMovedMixin, MoveMixin],
   components: {
     ContextMenu,
     PdfViewer,
     MoveAssetModal,
-    OpenMenu,
     AttachmentActions,
     LockedTag
   },
@@ -161,16 +164,14 @@ export default {
   },
   methods: {
     reloadAsset() {
-      $.ajax({
-        method: 'GET',
-        url: this.attachment.attributes.urls.load_asset,
-        data: {
+      axios.get(this.attachment.attributes.urls.load_asset, {
+        params: {
           asset: { view_mode: this.attachment.attributes.view_mode }
-        },
-        success: (data) => {
-          if (!(data.html.includes('empty-office-file'))) {
-            this.showWopi = true;
-          }
+        }
+      }).then((response) => {
+        const data = response.data;
+        if (!(data.html.includes('empty-office-file'))) {
+          this.showWopi = true;
         }
       });
     },

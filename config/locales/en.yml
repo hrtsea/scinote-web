@@ -445,6 +445,8 @@ en:
       experiment: "#private experiment"
       my_module: "#private task"
       repository_row: "#private inventory item"
+      repository: "#private inventory"
+      file: "#private file"
       object: "#private object"
 
   attachments:
@@ -1232,6 +1234,7 @@ en:
       not_valid_future_date: "Future dates not allowed"
       no_selection: "No options selected"
       mark_as_completed: "Mark as completed"
+      input_length: "%{length} characters"
     index:
       head_title: "Forms"
       head_title_archived: "Archived forms"
@@ -2003,24 +2006,26 @@ en:
           label: "Step 1"
           description:  "Select files you want to include into your report as attachment and define their order."
           no_assets: "Task contains no PDF attachments."
-          asset_from_result: "Result: %{name}"
-          asset_from_step: "Step: %{name}"
+          result_group: "Result: %{name}"
+          step_group: "Step: %{name}"
         second_step:
           title: "Step 2: Add attachment information"
           label: "Step 2"
           description: "Add additional information such as  header and footer text for report attachment."
-          form: 
+          form:
             header:
               label: "Header"
+              description: "Header text"
               placeholder: "Maximum 3 rows, 140 characters"
               error_rows: "Maximum 3 rows allowed"
               error_size: "Header is too long (maximum number is 140 characters)"
             footer:
               label: "Footer"
-              placeholder: "1 row, 80 characters"
-              error_size: "Footer is too long (maximum number is 80 characters)"
-            numarization_checkbox: "Add numerization after footer text"
-            blank_page_checkbox: "Add a blank page after attachments"
+              display_attachment_references: "Display attachment references"
+              add_reference_page_numbers: "Add page numbers for attachment references"
+              display_attachment_groups: "Display the attachment groups"
+              add_group_numeration: "Add numeration after attachment groups"
+              blank_page_after_group: "Add a blank page after attachment group"
         third_step:
           description: "Header and footer will appear on each page of the attachment section. If left empty, no header and footer will be added."
 
@@ -2110,6 +2115,7 @@ en:
       success_flash: 'Successfully duplicated experiment %{experiment} as template.'
       error_flash: 'Could not duplicate the experiment as template.'
       current_project: '(current project)'
+      copy_results: 'Include task results'
     duplicate_tasks:
       success: 'Successfully duplicated %{count} task(s) as template.'
       duplicating: 'Duplicating contents...'
@@ -2161,6 +2167,10 @@ en:
         no_experiments: "No experiments to move this task to."
         success_flash: "Successfully moved task(s) to experiment %{experiment}."
         error_flash: "Failed to move task(s) to experiment %{experiment}."
+      modal_duplicate_modules:
+        title: "Duplicate task(s)"
+        copy_results: "Include results"
+        confirm: "Duplicate"
       column_display_modal:
         title: 'Manage columns'
         description: 'Click the eye buttons to hide or show columns in the table'
@@ -2584,10 +2594,12 @@ en:
       archived_inventory_items: "%{repository_name} archived items"
       archived_inventory: "Archived %{repository_name}"
       inventory_archived_items: "%{repository_name} archived items"
+      laoding_table_configuration: "Loading table configuration..."
       subtitle: "Owned by %{team_name}"
       your_team: "your Workspace"
       show_active_items: "Show active items"
       show_archived_items: "Show archived items"
+      no_active_repository_rows_archived_repository: "This inventory is archived and can't have active items."
       archived_view_label:
         active: "These are individually archived items from the %{repository_name} inventory. The inventory itself is active."
         archived_on: "Inventory archived on"
@@ -2608,7 +2620,12 @@ en:
         filters: "Filters"
         search: "Quick search"
       filters:
-        save_filters: "Save filters"
+        title: "Filters"
+        create_new_filter: "Create new filter"
+        active_filter: "Active filter"
+        clear_filter: "Clear filter"
+        filter_name: "Filter name"
+        save_filter: "Save filter"
         new_filter: "New filter"
         overwrite_filter: "Overwrite"
         title: "Filters"
@@ -2706,6 +2723,7 @@ en:
       assigned_search: 'Search...'
       assigned_tooltip: "%{tasks} tasks in &#10;%{experiments} experiments,&#10;%{projects} projects"
       row_name: "Name"
+      reminders: "Reminders"
       added_on: "Created on"
       added_by: "Added by"
       updated_on: "Updated on"
@@ -2720,8 +2738,11 @@ en:
       enter_row_name: "Enter name"
       locked_item: "This is read-only item."
       assets:
-        select_file_btn: "Select File (Max %{max_size} MB)..."
+        add_file: "Add file"
+        uploading: "Uploading..."
       text:
+        add_text: "Add text"
+        more: more
         errors:
           too_long: "Text is too long (maximum is %{max_length} characters)"
         enter_text: "Enter text"
@@ -2736,10 +2757,15 @@ en:
       checklist:
         set_checklist: "Set Checklist..."
       date_time:
+        add_date: "Add date"
+        add_time: "Add time"
+        add_date_range: "Add date range"
+        add_time_range: "Add time range"
         errors:
           set_all_or_none: 'Needs to set both or none'
           not_valid_range: 'Range is not valid.'
       name:
+        placeholder: "Enter name"
         errors:
           too_long: "Item name is too long (maximum is %{max_length} characters)"
           is_empty: "Item name should be filled"
@@ -3380,7 +3406,7 @@ en:
 
   libraries:
     manange_modal_column_index:
-      title: "Manage columns"
+      title: "Edit columns"
       add_column: "Add column"
     manange_modal_column:
       button_tooltip: "Manage columns"
@@ -3433,9 +3459,10 @@ en:
           space: "Enter dropdown list options, separated by space..."
       status_type:
         status_options_label: "Status options"
-        add_status_label: "Add status option"
+        add_status_label: "Add status name"
         errors:
           icon_and_name_error: "Status icon and status name should be filled"
+          text_too_long_error: "Status name is too long (maximum is %{max_length} characters)"
       datetime_type:
         options: 'Options'
         reminder: 'Reminder'
@@ -3450,6 +3477,7 @@ en:
         range_label: 'Range'
         reminder_message_limit: "Maximum number of characters reached (255)"
       stock_type:
+        one_per_inventory: "Only one per inventory allowed."
         multiple_options: 'selected'
         all_options: 'All options'
         stock_units: 'Stock units'
@@ -3475,6 +3503,8 @@ en:
     repository_columns:
       head_title: '%{repository} | Manage Columns'
       repository_list_items_limit: "Dropdown items limit reached max. %{limit}"
+      empty_placeholder: "There are no custom columns yet. Click the button below to add the first one."
+      button_tooltip: "Add or Edit columns"
       no_permissions: "You don't have permissions on that repository"
       update:
         success_flash: "Column %{name} was successfully updated."
@@ -4946,6 +4976,12 @@ en:
     file_preview:
       edit_in_scinote: "Open in image editor"
       edit_in_marvinjs: "Open in Marvin JS"
+      file_metadata: "File metadata"
+      file_title: "File title"
+      file_title_placeholder: "Enter file title"
+      file_title_max_length_error: "File title is too long (maximum number is %{max_length} characters)."
+      no_file_title: "No file title"
+      file_id: "File ID"
     context_menu:
       set_view_size: "SET PREVIEW SIZE"
       rename: "Rename"
@@ -4999,30 +5035,50 @@ en:
 
   atwho:
     no_results:
+      no_matches_html: "No matches for <b>%{query}</b>"
+      no_matches_hint: "Try an ID like IT42453, or part of a name."
       projects: "Projects with this name/ID were not found"
       experiments: "Experiments with this name/ID were not found"
       my_modules: "Tasks with this name/ID were not found"
       repository_rows: "This inventory is currently empty."
+      files: "Files with this name/code were not found"
       users: "Users with this name were not found"
+      mixed: "Nothing found"
       description: "Once you create items in the inventory, they will appear here."
     buttons:
-      insert: "Insert"
+      add: "Add"
+      mention: "Mention"
+      mention_page: "Mention page"
+      add_page_number: "Add page number"
       assign: "Assign to task"
-    projects: PROJECTS
-    experiments: EXPERIMENTS
-    tasks: TASKS
-    inventories: INVENTORIES
-    more_results: To get other results, please type more
+      assign_to_protocol: "Assign to Protocol"
+      assign_to_protocol_success: "Successfully assigned an item to the protocol."
+    navigate: "Navigate"
+    projects: Projects
+    experiments: Experiments
+    tasks: Tasks
+    inventories: Inventories
+    more_results: "Enter longer search term to get more results"
+    files: Task files
+    search_placeholder: "Search"
+    search_placeholder_users: "Search for users"
+    search_placeholder_in: "Search in %{name}"
     users:
       title: "People"
       header: "Type the name or email of the user you want to mention (they will be notified)"
-      help: "Navigate: ↑ ↓    •    Insert: Enter / Tab    •    Dismiss: Esc"
+      help: "Insert: Click    •    Dismiss: Esc"
       not_in_this_team: 'Not in this workspace'
       popover_html: "<span class='silver'>Workspace:</span>&nbsp;%{team} <br> <span class='silver'>Role:</span>&nbsp;%{role} <br> <span class='silver'>Joined:</span>&nbsp;%{time}"
     res:
       archived: "(archived)"
       removed: "(removed)"
       deleted: "(deleted)"
+    tags:
+      prj: "[Pro]"
+      exp: "[Exp]"
+      tsk: "[Tsk]"
+      file: "[Fil]"
+      rep: "[Inv]"
 
   dropdown_selector:
     nothing_found: "Nothing found..."
@@ -5331,6 +5387,7 @@ en:
     webhooks:
       errors:
         subject_not_serializable: "Subject not serializable."
+        subject_not_exist: "Subject does not exist."
     core:
       status_ok: "Ok"
       invalid_api_key: "API key is invalid or expired"

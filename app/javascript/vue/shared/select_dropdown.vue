@@ -7,7 +7,7 @@
   >
     <div
       ref="field"
-      class="px-3 py-1 rounded flex items-center cursor-pointer"
+      class="px-3 py-1 rounded flex items-center cursor-pointer grow"
       @click="open"
       :class="[{
         'border border-solid': !borderless,
@@ -87,13 +87,15 @@
           <div ref="scrollContainer" class="p-2.5 flex flex-col max-h-80 relative overflow-y-auto" :class="{ 'pt-0': withCheckboxes && !hideSelectAll }">
             <template v-for="(option, i) in filteredOptions" :key="option[0]">
               <div
-                @click.stop="setValue(option[0])"
+                @click.stop="handleOptionClick(option)"
                 ref="options"
                 :title="option[2]?.tooltip || option[1]"
-                class="py-1.5 px-3 rounded cursor-pointer flex items-center gap-2 shrink-0 hover:bg-sn-super-light-grey"
+                class="py-1.5 px-3 rounded flex items-center gap-2 shrink-0"
                 :class="[{
+                  'cursor-pointer hover:bg-sn-super-light-grey': !option[2]?.disabled,
+                  'cursor-not-allowed text-sn-grey': option[2]?.disabled,
                   '!bg-sn-super-light-blue': valueSelected(option[0]) && focusedOption !== i,
-                  '!bg-sn-super-light-grey': focusedOption === i ,
+                  '!bg-sn-super-light-grey': focusedOption === i && !option[2]?.disabled,
                 }]"
                 :style="sizeStyle"
               >
@@ -381,6 +383,11 @@ export default {
         this.query = '';
       });
     },
+    handleOptionClick(option) {
+      if (option[2]?.disabled) return;
+
+      this.setValue(option[0]);
+    },
     setValue(value) {
       if (this.multiple) {
         if (this.newValue.includes(value)) {
@@ -458,6 +465,10 @@ export default {
             this.$nextTick(() => {
               this.setPosition();
             });
+          })
+          .catch(() => {
+            this.loadingOptions = false;
+            HelperModule.flashAlertMsg(this.i18n.t('errors.general'), 'danger');
           });
       }
     },
@@ -480,7 +491,7 @@ export default {
           this.focusedOption = (this.focusedOption || this.$refs.options.length) - 1;
           if (this.focusedOption < 0) this.focusedOption = this.$refs.options.length - 1;
         } else if (e.key === 'Enter' && this.focusedOption !== null) {
-          this.setValue(this.filteredOptions[this.focusedOption][0]);
+          this.handleOptionClick(this.filteredOptions[this.focusedOption]);
         }
       }
       if (this.$refs.options) {

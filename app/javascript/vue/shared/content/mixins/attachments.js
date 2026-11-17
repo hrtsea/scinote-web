@@ -1,5 +1,9 @@
 /* global ActiveStorage GLOBAL_CONSTANTS Promise I18n */
 
+import { markRaw } from 'vue';
+import axios from '../../../../packs/custom_axios.js';
+import consumer from '../../../../channels/consumer';
+
 export default {
   data() {
     return {
@@ -8,6 +12,7 @@ export default {
         thumbnail: 1,
         list: 2
       },
+      assetSyncSubscriptions: {}
     };
   },
   computed: {
@@ -19,7 +24,26 @@ export default {
     },
     cantUploadFiles() {
       return false;
+    },
+    // A primitive, so the watcher only fires when the set of ids changes - not when
+    // reloadAttachment replaces an object in the array.
+    assetSyncIds() {
+      return this.attachments
+        .filter((attachment) => attachment?.id && attachment.attributes?.urls?.open_locally)
+        .map((attachment) => String(attachment.id))
+        .join(',');
     }
+  },
+  watch: {
+    assetSyncIds() {
+      this.syncAssetSubscriptions();
+    }
+  },
+  mounted() {
+    this.syncAssetSubscriptions();
+  },
+  beforeUnmount() {
+    this.unsubscribeAllAssetSync();
   },
   methods: {
     dropFile(e) {
@@ -113,13 +137,14 @@ export default {
               reject(error);
             } else {
               const signedId = blob.signed_id;
-              $.post(this.attachmentsParent.attributes.urls.upload_attachment_url, {
+              axios.post(this.attachmentsParent.attributes.urls.upload_attachment_url, {
                 signed_blob_id: signedId
-              }, (result) => {
+              }).then((response) => {
+                const result = response.data;
                 fileObject.id = result.data.id;
                 fileObject.attributes = result.data.attributes;
                 this.attachments = this.attachments.with(filePosition, fileObject);
-              }).fail(() => {
+              }).catch(() => {
                 fileObject.error = I18n.t('attachments.new.general_error');
                 this.attachments = this.attachments.with(filePosition, fileObject);
               });
@@ -137,7 +162,7 @@ export default {
     },
     changeAttachmentsOrder(order) {
       this.attachmentsParent.attributes.assets_order = order;
-      $.post(this.attachmentsParent.attributes.urls.update_view_state_url, {
+      axios.post(this.attachmentsParent.attributes.urls.update_view_state_url, {
         assets: { order }
       });
     },
@@ -147,7 +172,7 @@ export default {
         attachment.attributes['view_mode'] = viewMode;
         attachment.attributes['asset_order'] = this.viewModeOrder[viewMode];
       });
-      $.post(this.attachmentsParent.attributes.urls.update_asset_view_mode_url, {
+      axios.post(this.attachmentsParent.attributes.urls.update_asset_view_mode_url, {
         assets_view_mode: viewMode
       });
     },
@@ -155,6 +180,67 @@ export default {
       const attachment = this.attachments.find(e => e.id === id);
       attachment.attributes['view_mode'] = viewMode;
       attachment.attributes['asset_order'] = this.viewModeOrder[viewMode];
+    },
+    syncAssetSubscriptions() {
+      const watchedIds = this.assetSyncIds ? this.assetSyncIds.split(',') : [];
+
+      Object.keys(this.assetSyncSubscriptions)
+        .filter((assetId) => !watchedIds.includes(assetId))
+        .forEach((assetId) => this.unsubscribeAssetSync(assetId));
+
+      watchedIds.forEach((assetId) => this.subscribeAssetSync(assetId));
+    },
+    subscribeAssetSync(assetId) {
+      if (assetId in this.assetSyncSubscriptions) return;
+      this.assetSyncSubscriptions[assetId] = null;
+
+      // markRaw, because ActionCable forgets a subscription and would
+      // never match its reactive proxy; so unsubscribing would silently do nothing.
+      this.assetSyncSubscriptions[assetId] = markRaw(consumer.subscriptions.create(
+        { channel: 'AssetSyncChannel', asset_id: assetId },
+        {
+          received: (data) => {
+            const attachment = this.attachments.find((a) => String(a?.id) === assetId);
+
+            if (!attachment || data.checksum === attachment.attributes.checksum) return;
+
+            this.reloadAttachment(attachment.id);
+          },
+          rejected: () => this.unsubscribeAssetSync(assetId)
+        }
+      ));
+    },
+    unsubscribeAssetSync(assetId) {
+      if (!(assetId in this.assetSyncSubscriptions)) return;
+
+      const subscription = this.assetSyncSubscriptions[assetId];
+
+      if (subscription) consumer.subscriptions.remove(subscription);
+
+      delete this.assetSyncSubscriptions[assetId];
+    },
+    unsubscribeAllAssetSync() {
+      Object.keys(this.assetSyncSubscriptions).forEach((assetId) => this.unsubscribeAssetSync(assetId));
+    },
+    reloadAttachment(attachmentId) {
+      const index = this.attachments.findIndex(attachment => attachment?.id === attachmentId);
+      if (index === -1) return;
+
+      const attachmentUrl = this.attachments[index].attributes.urls.asset_show;
+      if (!attachmentUrl) return;
+
+      axios.get(attachmentUrl)
+        .then((response) => {
+          const updatedAttachment = response.data?.data;
+          const updatedIndex = this.attachments.findIndex(attachment => attachment?.id === attachmentId);
+
+          if (updatedAttachment && updatedIndex !== -1) {
+            this.attachments[updatedIndex] = updatedAttachment;
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to reload attachment:', error);
+        });
     }
   }
 };

@@ -59,35 +59,81 @@ const tagUploadedTinyMCEImages = (editor) => {
   };
 };
 
-const image_upload_handler = (blobInfo, _progress) =>
-  new Promise((resolve, reject) => {
-    if (!blobInfo) resolve();
-
-    let blob = blobInfo.blob();
-
-    // ensure blob has filename, for direct uploads
-    if (blob.name === undefined) blob.name = blobInfo.filename();
-
-    const upload = new ActiveStorage.DirectUpload(blob, rails_direct_uploads_path());
-
-    upload.create((error, blob) => {
-      if (error) {
-        reject(`ActiveStorage upload failed: ${error}`);
-      } else {
-        axios.post('/tiny_mce_assets', {
-          files: [{blob_id: blob.signed_id}]
-        })
-        .then((response) => {
-          resolve(response.data.images[0].url);
-
-          window.uploadedTinyMCEImages.push(response.data.images[0]);
-        })
-        .catch((error) => {
-          reject(`Failed to create TinyMCE asset: ${error}`);
-        });
-      }
-    });
+const directUpload = (blob) => new Promise((resolve, reject) => {
+  new ActiveStorage.DirectUpload(blob, rails_direct_uploads_path()).create((error, uploadedBlob) => {
+    if (error) reject(error);
+    else resolve(uploadedBlob);
   });
+});
+
+const createTinyMceAsset = (blob) =>
+  directUpload(blob)
+    .then((uploadedBlob) => axios.post('/tiny_mce_assets', { files: [{ blob_id: uploadedBlob.signed_id }] }))
+    .then((response) => response.data.images[0]);
+
+const image_upload_handler = (blobInfo, _progress) => {
+  if (!blobInfo) return Promise.resolve();
+
+  const blob = blobInfo.blob();
+
+  // ensure blob has filename, for direct uploads
+  if (blob.name === undefined) blob.name = blobInfo.filename();
+
+  return createTinyMceAsset(blob)
+    .then((image) => {
+      window.uploadedTinyMCEImages.push(image);
+      return image.url;
+    })
+    .catch((error) => { throw new Error(`Failed to upload image: ${error}`); });
+};
+
+const findEditorImageBySrc = (editor, src) => {
+  if (editor.removed) return null;
+
+  return editor.dom.select('img').find((element) => element.getAttribute('src') === src);
+};
+
+// changes go through editor.dom and get their own undo level, so TinyMCE's undo history
+// matches the editor content (otherwise undo or smart paste restores the pasted images)
+const updateEditorImage = (editor, imageElement, update) => {
+  if (!imageElement) return;
+
+  update(imageElement);
+  editor.undoManager.add();
+};
+
+const extractAndUploadElementImage = async (editor, imageElement) => {
+  const src = imageElement.getAttribute('src');
+
+  // pasting an image from the clipboard inserts a blob: src
+  if (!/^https?:\/\//i.test(src || '')) return;
+
+  try {
+    const response = await axios.get(src, { responseType: 'blob' });
+    const blob = response.data;
+    const contentType = (response.headers['content-type'] || '').split(';')[0].trim();
+
+    if (!contentType.startsWith('image/')) throw new Error();
+    if (blob.size > GLOBAL_CONSTANTS.FILE_MAX_SIZE_MB * 1024 * 1024) throw new Error();
+
+    blob.name = `image.${contentType.split('image/')[1] || 'png'}`;
+
+    const image = await createTinyMceAsset(blob);
+
+    updateEditorImage(editor, findEditorImageBySrc(editor, src), (liveElement) => {
+      editor.dom.setAttribs(liveElement, {
+        src: image.url,
+        'data-mce-token': image.token,
+        alt: `description-${image.token}`,
+        class: 'img-responsive'
+      });
+    });
+  } catch(error) {
+    // remove the image so it's obvious to the user that the pasted image didn't come through
+    updateEditorImage(editor, findEditorImageBySrc(editor, src), (liveElement) => editor.dom.remove(liveElement));
+    console.error(`Error uploading image: ${error}`);
+  }
+};
 
 const contentPStyle = `p { margin: 0; padding: 0;}`;
 const contentBodyStyle = `body { font-family: "SN Inter", "Open Sans", Arial, Helvetica, sans-serif }`;
@@ -160,7 +206,13 @@ window.TinyMCE = (() => {
       });
     }
 
-    setTimeout(() => { tinyMCE.activeEditor.execCommand('mceAutoResize') }, 500);
+    // The editor needs focus for the blur-save; preventScroll keeps the page from scrolling to the caret
+    setTimeout(() => {
+      if (editor.removed) return;
+
+      editor.getBody().focus({ preventScroll: true });
+      editor.execCommand('mceAutoResize', false, null, { skip_focus: true });
+    }, 500);
   }
 
   function initCssOverrides(editor) {
@@ -202,6 +254,12 @@ window.TinyMCE = (() => {
     }
   }
 
+  // The emptied editor container sits below the restored view; hiding it stops Chrome scroll anchoring
+  // from following it down (the page would jump by the height of the view).
+  function hideEditorContainer(editorForm) {
+    editorForm.find('.tinymce-editor-container').addClass('hidden');
+  }
+
   // Update scroll position after exit
   function updateScrollPosition(editorForm) {
     if (editorForm.offset().top < $(window).scrollTop()) {
@@ -232,6 +290,7 @@ window.TinyMCE = (() => {
 
         editorForm.parent().height(tinyMceInitSize);
         tinyMceContainer.addClass('hidden');
+        editorForm.find('.tinymce-editor-container').removeClass('hidden');
 
         const plugins = `
           image table autosave autoresize link advlist codesample code autolink lists
@@ -396,9 +455,9 @@ window.TinyMCE = (() => {
             editorForm
               .on('ajax:success', (_ev, data) => {
                 editor.save();
-                editor.setProgressState(0);
                 editorForm.find('.tinymce-status-badge').removeClass('hidden');
                 editor.remove();
+                hideEditorContainer(editorForm);
                 editorForm.find('.tinymce-view').html(data.html).removeClass('hidden');
                 TinyMCE.wrapTables(editorForm.find('.tinymce-view'));
                 editor.plugins.autosave.removeDraft();
@@ -416,6 +475,8 @@ window.TinyMCE = (() => {
                   HelperModule.flashAlertMsg(I18n.t('general.no_permissions'), 'danger');
                 } else if (data.status === 422) {
                   HelperModule.flashAlertMsg(data.responseJSON ? Object.values(data.responseJSON).join(', ') : I18n.t('errors.general'), 'danger');
+                } else {
+                  HelperModule.flashAlertMsg(I18n.t('errors.general'), 'danger');
                 }
               });
 
@@ -435,6 +496,7 @@ window.TinyMCE = (() => {
                 editorForm.find('.tinymce-status-badge').addClass('hidden');
                 editorForm.find('.tinymce-view').removeClass('hidden');
                 editor.remove();
+                hideEditorContainer(editorForm);
 
                 if (options.onSaveCallback) { options.onSaveCallback($(selector).val()); }
 
@@ -454,7 +516,7 @@ window.TinyMCE = (() => {
             editor.isBlurTempDisabled = false;
 
             editor.on('keydown', (e) => {
-              if (e.key === 'Enter' && $(editor.contentDocument.activeElement).atwho('isSelecting')) {
+              if (e.key === 'Enter' && window.SmartAnnotation.isSelecting(editor.contentDocument.activeElement)) {
                 return false;
               }
               return true;
@@ -499,6 +561,10 @@ window.TinyMCE = (() => {
 
             editor.on('init', () => {
               restoreDraftNotification(selector, editor);
+            });
+
+            editor.on('PastePostProcess', (e) => {
+              $(e.node).find('img').each((_i, imageElement) => extractAndUploadElementImage(editor, imageElement));
             });
 
             editor.on('BeforeSetContent GetContent', function(e) {
